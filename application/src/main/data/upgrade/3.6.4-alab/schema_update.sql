@@ -539,3 +539,5 @@ alter table model_logs add column if not exists title varchar(255);
 alter table device_errors add column if not exists created_time bigint;
 
 alter table device_failures add column if not exists created_time bigint;
+
+alter table device_maintenance add column if not exists created_time bigint;
