@@ -535,3 +535,5 @@ CREATE TRIGGER update_ml_models_updated_at BEFORE UPDATE ON ml_models
 alter table model_logs drop column tenant_id;
 -- add message title column
 alter table model_logs add column if not exists title varchar(255);
+
+alter table device_errors add column if not exists created_time bigint;
