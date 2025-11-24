@@ -83,18 +83,18 @@ services:
     volumes:
       - application_source_code:/app
 
-  # dashboard-script:
-  #   build:
-  #     context: ./send-telemetry/
-  #     dockerfile: dashboard-script.Dockerfile
-  #   container_name: dashboard-script
-  #   mem_limit: 512m
-  #   cpus: 0.5
-  #   depends_on:
-  #     thingsboard:
-  #       condition: service_healthy
-  #   networks:
-  #     - thingsboard
+  dashboard-script:
+    build:
+      context: ./send-telemetry/
+      dockerfile: dashboard-script.Dockerfile
+    container_name: dashboard-script
+    mem_limit: 512m
+    cpus: 0.5
+    depends_on:
+      thingsboard:
+        condition: service_healthy
+    networks:
+      - thingsboard
 
   model:
     build:
