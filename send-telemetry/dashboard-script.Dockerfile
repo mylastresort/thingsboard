@@ -12,5 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 
+WORKDIR /app/send-telemetry/
+
 CMD ["bash", "-c", "./docker-entry-point-dashboard.sh"]
 # CMD [ "tail", "-f"]

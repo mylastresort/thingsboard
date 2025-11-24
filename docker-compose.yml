@@ -93,6 +93,8 @@ services:
     depends_on:
       thingsboard:
         condition: service_healthy
+    volumes:
+      - application_source_code:/app
     networks:
       - thingsboard
 
