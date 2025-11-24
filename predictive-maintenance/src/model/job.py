@@ -2,6 +2,9 @@
 Job management system for background prediction workers
 """
 
+import sys
+sys.path.append("..")
+
 import json
 import threading
 import time
@@ -21,6 +24,7 @@ from library.models.anomaly_predictor import predict_failure, feature_cols, load
 from .shared import get_data_registry
 import traceback
 from sqlalchemy import text
+from src.scripts.create_alarm import create_alarm, authenticate
 
 # Global job registry: {model_id: {status, thread, start_time, etc}}
 active_jobs: Dict[str, dict] = {}
@@ -132,6 +136,9 @@ def prediction_job_worker(
     add_model_log(model_id, "info", f"Prediction job started for {model_type}")
     data_registry = get_data_registry()
     try:
+        
+        auth_token = authenticate()
+
         # print(f"[PREDICTION JOB] {model_id} - Initializing model worker", flush=True)
         add_model_log(model_id, "info", f"Initializing model worker for {model_type}")
         path = settings.models_path
@@ -203,11 +210,12 @@ def prediction_job_worker(
                 hourly_models,
                 iteration,
                 data_registry,
+                auth_token,
             )
             if should_break:
                 break
-            if model_type == "AnomalyPredictor":
-                break
+            # if model_type == "AnomalyPredictor":
+            #     break
             iteration += 1
             threading.Event().wait(interval)
     except Exception as e:
@@ -227,7 +235,7 @@ def prediction_job_worker(
 
 
 def anomaly_predict_model(
-    model_id: str, iteration: int, device_id: str, hourly_models: dict, data_registry
+    model_id: str, iteration: int, device_id: str, hourly_models: dict, data_registry, auth_token: str
 ):
     # Fetch latest sensor data and predict
     # print(
@@ -329,6 +337,29 @@ def anomaly_predict_model(
                 "result": prediction,  # Send single prediction
             },
         )
+        # create alarm if anomaly detected
+        if prediction.get("failure_predicted", True):
+            # get the confidence score
+            print(
+                f"[PREDICTION JOB] {model_id} - Anomaly detected in prediction index {idx + 1}",
+                flush=True,
+            )
+            confidence_score = prediction.get("general_failure_probability", 0.0)
+            print(
+                f"[PREDICTION JOB] {model_id} - Anomaly detected with confidence score {confidence_score}",
+                flush=True,
+            )
+            alarm = create_alarm(
+                auth_token,
+                machine_id=device_id,
+                alarm_type="Anomaly Detected",
+                severity=
+                "CRITICAL" if confidence_score > 0.8 else "MAJOR" if confidence_score > 0.5 else "MINOR",
+            )
+            print(
+                f"[PREDICTION JOB] {model_id} - Alarm created: {alarm}",
+                flush=True,
+            )
         save_prediction(data_registry, model_id, prediction, "Anomaly")
     add_model_log(
         model_id,
@@ -337,7 +368,7 @@ def anomaly_predict_model(
     )
 
 
-def forecast_predict_model(model_id: str, iteration: int, device_id: str, model, data_registry):
+def forecast_predict_model(model_id: str, iteration: int, device_id: str, model, data_registry, auth_token: str):
     add_model_log(model_id, "info", f"Starting forecast (iteration {iteration})")
     result = model.forecast(predict_for=24)
     result_copy = json.loads(json.dumps(result, default=to_native))
@@ -418,6 +449,7 @@ def inner_loop(
     hourly_models: dict,
     iteration: int,
     data_registry,
+    auth_token: str,
 ) -> bool:
     # return if should break the loop
     # Check if job is stopped or paused
@@ -445,9 +477,9 @@ def inner_loop(
         add_model_log(model_id, "info", f"Running prediction iteration #{iteration}")
 
         if model_type == "AnomalyPredictor":
-            anomaly_predict_model(model_id, iteration, device_id, hourly_models, data_registry)
+            anomaly_predict_model(model_id, iteration, device_id, hourly_models, data_registry, auth_token)
         elif model_type == "ForecastModel":
-            forecast_predict_model(model_id, iteration, device_id, model, data_registry)
+            forecast_predict_model(model_id, iteration, device_id, model, data_registry, auth_token)
     except Exception as e:
         error_details = traceback.format_exc()
         # print(
