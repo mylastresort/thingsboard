@@ -521,7 +521,7 @@ public class PythonWebSocketClientService {
         String forecastId = message.get("forecastId").asText();
 
         // First, send historical logs from database (7 days)
-        handleJobLogsRequest(sessionId, message);
+        // handleJobLogsRequest(sessionId, message);
 
         // Then subscribe to real-time log updates via Python
         int commandId = commandIdCounter.getAndIncrement();
@@ -748,13 +748,13 @@ public class PythonWebSocketClientService {
                 log.info("[ROUTE] Successfully routed {} response for commandId {} to UI session {}",
                         type, commandId, sessionId);
             } else {
-                log.warn("No UI session mapping found for commandId {}, broadcasting to all sessions", commandId);
-                broadcastToAllSessions(message, type);
+                // log.warn("No UI session mapping found for commandId {}, broadcasting to all sessions", commandId);
+                // broadcastToAllSessions(message, type);
             }
         } else {
-            // No commandId - broadcast to all UI sessions
-            log.debug("Broadcasting {} message to all UI sessions (no commandId)", type);
-            broadcastToAllSessions(message, type);
+            // // No commandId - broadcast to all UI sessions
+            // log.debug("Broadcasting {} message to all UI sessions (no commandId)", type);
+            // broadcastToAllSessions(message, type);
         }
     }
 

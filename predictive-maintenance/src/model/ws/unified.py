@@ -358,18 +358,27 @@ async def unified_model_stream(websocket: WebSocket):
 
                     return log_callback
 
-                # Store the callback and subscribe (pass the event loop and command_id)
+                # Subscribe to anomaly predictor
+                anomaly_model_id = f"{forecast_id}/anomaly_predictor"
+                # print(f"[SUBSCRIBE DEBUG] Creating callback for {anomaly_model_id}", flush=True)
+                
                 callback = create_log_callback(
-                    websocket, forecast_id, command_id, asyncio.get_event_loop()
+                    websocket, forecast_id, command_id, asyncio.get_running_loop()
                 )
-                model_id = f"{forecast_id}/anomaly_predictor"
-                log_callbacks[model_id] = callback
-                subscribe_to_logs(model_id, callback)
-                model_id = f"{forecast_id}/forecast_model"
-                log_callbacks[model_id] = callback
-                subscribe_to_logs(model_id, callback)
-
-                logger.info(f"Client subscribed to real-time logs for forecast {forecast_id}")
+                log_callbacks[anomaly_model_id] = callback
+                # print(f"[SUBSCRIBE DEBUG] Calling subscribe_to_logs({anomaly_model_id}, {id(callback)})", flush=True)
+                subscribe_to_logs(anomaly_model_id, callback)
+                
+                # Subscribe to forecast model
+                forecast_model_id = f"{forecast_id}/forecast_model"
+                # print(f"[SUBSCRIBE DEBUG] Creating callback for {forecast_model_id}", flush=True)
+                
+                callback = create_log_callback(
+                    websocket, forecast_id, command_id, asyncio.get_running_loop()
+                )
+                log_callbacks[forecast_model_id] = callback
+                # print(f"[SUBSCRIBE DEBUG] Calling subscribe_to_logs({forecast_model_id}, {id(callback)})", flush=True)
+                subscribe_to_logs(forecast_model_id, callback)
 
                 await websocket.send_json(
                     {
@@ -385,6 +394,13 @@ async def unified_model_stream(websocket: WebSocket):
             if msg_type == "unsubscribe_logs":
                 log_subscriptions.discard(forecast_id)
                 model_id = f"{forecast_id}/anomaly_predictor"
+
+                # Unsubscribe the callback if it exists
+                if model_id in log_callbacks:
+                    unsubscribe_from_logs(model_id, log_callbacks[model_id])
+                    del log_callbacks[model_id]
+
+                model_id = f"{forecast_id}/forecast_model"
 
                 # Unsubscribe the callback if it exists
                 if model_id in log_callbacks:
