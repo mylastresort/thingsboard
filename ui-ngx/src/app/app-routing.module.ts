@@ -16,11 +16,12 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { environment } from '@env/environment';
 
 const routes: Routes = [
   {
     path: '',
-    redirectTo: 'dashboards',
+    redirectTo: 'dashboards/' + environment.default_dashboard_id,
     pathMatch: 'full',
     data: {
       breadcrumb: {

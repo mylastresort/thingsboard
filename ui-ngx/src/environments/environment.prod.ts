@@ -14,6 +14,7 @@
 /// limitations under the License.
 ///
 
+
 export const environment = {
   appTitle: 'AnalyticBoard',
   production: true,
@@ -24,5 +25,6 @@ export const environment = {
   defaultLang: 'en_US',
   host: '10.152.116.13', // 10.152.116.10
   phone_id: '',
-  WT_ACCESS_TOKEN: ''
+  WT_ACCESS_TOKEN: '',
+  default_dashboard_id: '12dbc720-661e-11ef-9061-853a958a524a',
 };
