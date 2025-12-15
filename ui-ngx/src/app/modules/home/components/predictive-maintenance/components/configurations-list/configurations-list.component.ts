@@ -23,6 +23,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -33,10 +34,12 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { Router } from '@angular/router';
 import { PredictiveModelsService } from '@app/core/http/forecast.service';
 import { DeviceService } from '@app/core/public-api';
-import { Direction, PageLink } from '@app/shared/public-api';
+import { Direction, PageLink, TemplateAutocompleteComponent } from '@app/shared/public-api';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { AddModelDialogComponent } from '../model/add-model-dialog/add-model-dialog.component';
+import { ModelSelectionDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/model-selection-dialog/model-selection-dialog.component';
+import { HttpClient } from '@angular/common/http';
 
 export interface Configuration {
   id: string;
@@ -71,6 +74,7 @@ export interface Configuration {
     TranslateModule,
     ReactiveFormsModule,
     FlexLayoutModule,
+    MatMenuModule,
   ],
 })
 export class ConfigurationsListComponent implements OnInit {
@@ -112,7 +116,8 @@ export class ConfigurationsListComponent implements OnInit {
     private forecastService: PredictiveModelsService,
     private deviceService: DeviceService,
     private translate: TranslateService,
-    private router: Router
+    private router: Router,
+    private httpClient: HttpClient
   ) {}
 
   ngOnInit() {}
@@ -194,6 +199,7 @@ export class ConfigurationsListComponent implements OnInit {
           }));
 
         Promise.all(configPromises).then((configurations) => {
+          // All configs from database are active models (templates are in localStorage)
           this.dataSource.data = configurations;
           this.totalElements = configurationsPage.totalElements;
           this.isLoading = false;
@@ -279,6 +285,89 @@ export class ConfigurationsListComponent implements OnInit {
         this.addConfiguration(result);
       }
     });
+  }
+
+  openAddMenu(): void {
+    // kept for compatibility; menu handles actions in template
+  }
+
+  openLoadModelDialog(): void {
+    // Load templates from localStorage
+    try {
+
+      // fetch from /models/saveLoadConfig api endpoint
+      const templates = this.forecastService.getLoadModelConfigs();
+      templates.subscribe((templatesData) => {
+        // const templates
+        // console.log('Loaded templates from localStorage:', templates);
+
+      if (!templatesData) {
+        alert('No saved model templatesData found. Save a model config first.');
+        return;
+      }
+
+      const templateKeys = Object.keys(templatesData);
+
+      if (templateKeys.length === 0) {
+        alert('No saved model templatesData found. Save a model config first.');
+        return;
+      }
+
+      // Build list from localStorage templatesData
+      const models = templateKeys.map((key) => {
+        const template = templatesData[key];
+        return {
+          trueId: key, // Use the template key as ID
+          id: key,
+          device: template.deviceName || 'Unknown Device',
+          date: new Date(template.savedAt).toLocaleDateString(),
+          status: 'Template', // Mark as template status
+        };
+      });
+
+      // Preserve dark theme on overlay dialogs by applying panelClass when body has tb-dark
+      const panelClass = typeof document !== 'undefined' && document.body.classList.contains('tb-dark') ? 'tb-dark' : undefined;
+      const dialogRef = this.dialog.open(ModelSelectionDialogComponent, {
+        width: '600px',
+        data: {
+          models,
+          currentModelId: null,
+          getModelDisplayName: (m: any) => m.id,
+        },
+        ...(panelClass ? { panelClass } : {}),
+      });
+
+      dialogRef.afterClosed().subscribe((selectedModel: any) => {
+        if (selectedModel) {
+          this.loadAndCreateModel(selectedModel);
+        }
+      });
+      });
+    } catch (e) {
+      console.error('Error loading templates from localStorage:', e);
+      alert('Failed to load model templates');
+    }
+  }
+
+  loadAndCreateModel(template: any): void {
+    try {
+      if (!template) {
+        alert('Template not found');
+        return;
+      }
+
+      // Deep clone the config
+      const payload = JSON.parse(JSON.stringify(template.config));
+
+      // Remove template suffix and make unique name
+      payload.name = payload.name.replace('_template', '') + `_${Date.now()}`;
+
+      // Save as a new predictive model config
+      this.addConfiguration(payload);
+    } catch (e) {
+      console.error('Error loading template:', e);
+      alert('Failed to load template');
+    }
   }
 
   addConfiguration(config: any): void {

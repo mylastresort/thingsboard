@@ -68,6 +68,7 @@
                 margin: 0;
                 font-size: 1.1rem;
                 font-weight: 500;
+                // color: rgba(0, 0, 0, 0.87);
                 display: flex;
                 align-items: center;
                 gap: 8px;
@@ -114,6 +115,14 @@
                     color: #ff9800;
                   }
                 }
+
+                &.status-template {
+                  color: #1976d2;
+
+                  mat-icon {
+                    color: #2196f3;
+                  }
+                }
               }
             }
           }
@@ -150,7 +159,7 @@
 .tb-dark {
   .model-selection-dialog {
     background: var(--tb-dark-app-bar);
-    color: rgba(255, 255, 255, 0.87);
+    // color: rgba(255, 255, 255, 0.87);
 
     h2 {
       color: rgba(255, 255, 255, 0.87);
@@ -175,6 +184,12 @@
 
           .model-item {
             .model-info {
+              .model-header {
+                .model-name {
+                  color: rgba(255, 255, 255, 0.87);
+                }
+              }
+
               .model-details {
                 span {
                   color: rgba(255, 255, 255, 0.6);
@@ -197,6 +212,14 @@
 
                     mat-icon {
                       color: #ff9800;
+                    }
+                  }
+
+                  &.status-template {
+                    color: #64b5f6;
+
+                    mat-icon {
+                      color: #42a5f5;
                     }
                   }
                 }

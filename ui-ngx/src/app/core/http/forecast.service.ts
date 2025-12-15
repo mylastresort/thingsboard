@@ -41,6 +41,14 @@ export class PredictiveModelsService {
     return this.http.get<AvailableModelsResponse>('/api/predictiveMaintenance/availableModels');
   }
 
+  getLoadModelConfigs(): Observable<any> {
+    return this.http.get<any>('/api/models/loadModelConfig', {});
+  }
+
+  saveLoadModelConfig(config: any): Observable<any> {
+    return this.http.post<any>('/api/models/saveLoadConfig', config, {});
+  }
+
   private baseUrl = '/api/forecasts'; // Base URL for your API
 
   private baseUrlModels = '/api/models'; // Base URL for your API

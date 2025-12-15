@@ -16,59 +16,80 @@
 
 -->
 <div class="model-selection-dialog">
-    <h2 mat-dialog-title>Select Model</h2>
+  <h2 mat-dialog-title>Select Model</h2>
 
-    <mat-dialog-content>
-        <div class="search-section">
-            <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 16px;">
-                <mat-label>Search models</mat-label>
-                <input matInput [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()"
-                    placeholder="Search by name, device, or date">
-                <mat-icon matSuffix>search</mat-icon>
-            </mat-form-field>
-        </div>
+  <mat-dialog-content>
+    <div class="search-section">
+      <mat-form-field
+        appearance="outline"
+        style="width: 100%; margin-bottom: 16px"
+      >
+        <mat-label>Search models</mat-label>
+        <input
+          matInput
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchChange()"
+          placeholder="Search by name, device, or date"
+        />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
 
-        <div class="models-section">
-            <div class="model-list">
-                <div *ngFor="let model of filteredModels" class="model-option"
-                    [class.current-model]="isCurrentModel(model)" (click)="selectModel(model)">
-
-                    <div class="model-item">
-                        <div class="model-info">
-                            <div class="model-header">
-                                <h4 class="model-name">
-                                    {{ data.getModelDisplayName(model) }}
-                                    <mat-icon *ngIf="isCurrentModel(model)" class="current-icon">check_circle</mat-icon>
-                                </h4>
-                            </div>
-                            <div class="model-details">
-                                <span class="model-device">
-                                    <mat-icon>memory</mat-icon>
-                                    Device: {{ model.device }}
-                                </span>
-                                <span class="model-date">
-                                    <mat-icon>schedule</mat-icon>
-                                    Created: {{ model.date }}
-                                </span>
-                                <span class="model-status" [class]="'status-' + model.status.toLowerCase()">
-                                    <mat-icon>{{ model.status.toLowerCase() === 'completed' ? 'check_circle' :
-                                        'schedule' }}</mat-icon>
-                                    Status: {{ model.status }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div *ngIf="filteredModels.length === 0" class="no-models">
-                    <mat-icon>info</mat-icon>
-                    <p>No models found matching your search criteria.</p>
-                </div>
+    <div class="models-section">
+      <div class="model-list">
+        <div
+          *ngFor="let model of filteredModels"
+          class="model-option"
+          [class.current-model]="isCurrentModel(model)"
+          (click)="selectModel(model)"
+        >
+          <div class="model-item">
+            <div class="model-info">
+              <div class="model-header">
+                <h4 class="model-name">
+                  {{ data.getModelDisplayName(model) }}
+                  <mat-icon *ngIf="isCurrentModel(model)" class="current-icon"
+                    >check_circle</mat-icon
+                  >
+                </h4>
+              </div>
+              <div class="model-details">
+                <span class="model-device">
+                  <mat-icon>memory</mat-icon>
+                  Device: {{ model.device }}
+                </span>
+                <span class="model-date">
+                  <mat-icon>schedule</mat-icon>
+                  Created: {{ model.date }}
+                </span>
+                <span
+                  *ngIf="model.status"
+                  class="model-status"
+                  [class]="'status-' + model.status.toLowerCase()"
+                >
+                  <mat-icon>{{
+                    model.status.toLowerCase() === "completed"
+                      ? "check_circle"
+                      : model.status.toLowerCase() === "template"
+                      ? "save"
+                      : "schedule"
+                  }}</mat-icon>
+                  Status: {{ model.status }}
+                </span>
+              </div>
             </div>
+          </div>
         </div>
-    </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-        <button mat-button (click)="onCancel()">Cancel</button>
-    </mat-dialog-actions>
+        <div *ngIf="filteredModels.length === 0" class="no-models">
+          <mat-icon>info</mat-icon>
+          <p>No models found matching your search criteria.</p>
+        </div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancel</button>
+  </mat-dialog-actions>
 </div>

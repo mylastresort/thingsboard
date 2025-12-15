@@ -72,6 +72,7 @@ import { QuickTimeInterval, Timewindow } from '@shared/models/time/time.models';
 import { flatMap, result } from 'lodash';
 import { mergeMap, Observable } from 'rxjs';
 import { distinctUntilChanged, filter, tap } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'tb-forecast',
@@ -258,9 +259,11 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     private logsNotifier: ModelLogsNotifierService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
+    private http: HttpClient,
   ) {
     super(store);
   }
+
 
   ngOnDestroy(): void {
     // Unsubscribe from log updates
@@ -588,6 +591,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   }
 
   openModelSelectionDialog(): void {
+    const panelClass = typeof document !== 'undefined' && document.body.classList.contains('tb-dark') ? 'tb-dark' : undefined;
     const dialogRef = this.dialog.open(ModelSelectionDialogComponent, {
       width: '600px',
       data: {
@@ -595,6 +599,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         currentModelId: this.id,
         getModelDisplayName: (model: any) => this.getModelDisplayName(model),
       },
+      ...(panelClass ? { panelClass } : {}),
     });
 
     dialogRef.afterClosed().subscribe((selectedModel: Order) => {
@@ -949,6 +954,61 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         this.addForecast(result); // Call addForecast if a result is returned
       }
     });
+  }
+
+  saveModelConfig(): void {
+    if (!this.trueId) {
+      console.error('No model currently loaded to save');
+      return;
+    }
+    // Fetch full model config and save to localStorage
+    this.predictiveModelsService.getPredictiveModel(this.trueId).subscribe(
+      (data) => {
+        const payload: any = JSON.parse(JSON.stringify(data));
+        if (payload.id) {
+          delete payload.id;
+        }
+        // Give a distinct name for saved template
+        const baseName = payload.name || `Model_${Date.now()}`;
+        const templateName = baseName.endsWith('_template') ? baseName : baseName + '_template';
+        payload.name = templateName;
+
+        // Save to localStorage with unique key
+        try {
+          // Use template name as unique key
+          const template = {
+            config: payload,
+            savedAt: Date.now(),
+            deviceId: this.deviceId,
+            deviceName: this.device
+          };
+
+          const record = {
+            name: templateName,
+            config: template
+          };
+
+          this.predictiveModelsService.saveLoadModelConfig(record).subscribe(
+            (response) => {
+              alert(`Model template "${templateName}" saved successfully`);
+            },
+            (error) => {
+              console.error('Failed to save model template via service:', error);
+              alert('Failed to save model template');
+            }
+          );
+
+          alert(`Model template "${templateName}" saved successfully`);
+        } catch (e) {
+          console.error('Failed to save model template to localStorage:', e);
+          alert('Failed to save model template');
+        }
+      },
+      (error) => {
+        console.error('Failed to fetch current model config for saving:', error);
+        alert('Failed to fetch model configuration');
+      }
+    );
   }
 
   openLogsDialog(): void {

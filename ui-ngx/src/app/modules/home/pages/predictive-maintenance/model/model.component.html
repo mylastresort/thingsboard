@@ -84,7 +84,13 @@
         progressMessage.progress +
         '%)'
       "
-      style="display: inline-flex; align-items: center; font-weight: bold; color: #ffa726; gap: 4px;"
+      style="
+        display: inline-flex;
+        align-items: center;
+        font-weight: bold;
+        color: #ffa726;
+        gap: 4px;
+      "
     >
       <!-- <mat-icon style="vertical-align: middle;">hourglass_empty</mat-icon> -->
       <!-- <span>{{ progressMessage.progress }}%</span> -->
@@ -166,6 +172,17 @@
           class="rebuild-button"
         >
           Rebuild
+        </button>
+        <button
+          mat-stroked-button
+          color="accent"
+          (click)="saveModelConfig()"
+          [disabled]="!trueId"
+          matTooltip="Save current model config"
+          matTooltipPosition="below"
+          class="save-config-button"
+        >
+          Save Config
         </button>
         <button
           mat-raised-button

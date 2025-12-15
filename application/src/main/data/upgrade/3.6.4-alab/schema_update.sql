@@ -20,7 +20,7 @@
 -- algorithms with their date ranges for each device
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS predictive_maintenance_config (
-    id uuid NOT NULL CONSTRAINT predictive_maintenance_config_pkey PRIMARY KEY,
+    id uuid NOT NULL DEFAULT gen_random_uuid() CONSTRAINT predictive_maintenance_config_pkey PRIMARY KEY,
     name varchar(255) NOT NULL,
     created_time bigint NOT NULL,
     tenant_id uuid NOT NULL CONSTRAINT fk_pm_config_tenant_id REFERENCES tenant (id) ON DELETE CASCADE,
@@ -49,7 +49,7 @@ CREATE INDEX IF NOT EXISTS idx_pm_config_created_time ON predictive_maintenance_
 -- CLAIM TABLE
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS claim (
-    id uuid NOT NULL CONSTRAINT claims_pkey PRIMARY KEY,
+    id uuid NOT NULL DEFAULT gen_random_uuid () CONSTRAINT claims_pkey PRIMARY KEY,
     body varchar(255) NOT NULL,
     created_time bigint NOT NULL,
     tenant_id uuid NOT NULL CONSTRAINT fk_claims_tenant_id REFERENCES tenant (id) ON DELETE CASCADE,
@@ -536,8 +536,17 @@ alter table model_logs drop column tenant_id;
 -- add message title column
 alter table model_logs add column if not exists title varchar(255);
 
-alter table device_errors add column if not exists created_time bigint;
+alter table device_errors
+add column if not exists created_time bigint;
 
-alter table device_failures add column if not exists created_time bigint;
+alter table device_failures
+add column if not exists created_time bigint;
 
-alter table device_maintenance add column if not exists created_time bigint;
+alter table device_maintenance
+add column if not exists created_time bigint;
+
+create table if not exists predictive_model_load_model_config (
+    id uuid NOT NULL DEFAULT gen_random_uuid () CONSTRAINT predictive_model_load_model_config_pkey PRIMARY KEY,
+    name varchar(255) NOT NULL,
+    config jsonb NOT NULL
+)

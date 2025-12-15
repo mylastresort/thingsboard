@@ -31,7 +31,7 @@ engine = create_engine(
     poolclass=NullPool,  # No connection pooling for read-only
     echo=False,
     connect_args={
-        "options": "-c default_transaction_read_only=on"  # Read-only transactions
+        # "options": "-c default_transaction_read_only=on"  # Read-only transactions
     },
 )
 

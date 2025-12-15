@@ -79,6 +79,22 @@ public class PredictiveMaintenanceController extends BaseController {
         return fastAPIService.getAvailableModels();
     }
 
+    @ApiOperation(value = "Save predictive maintenance load model config", notes = "Save predictive maintenance load model configuration")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN')")
+    @PostMapping(value = "/models/saveLoadConfig", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public void saveLoadModelConfig(@RequestBody JsonNode loadModelConfig) throws ThingsboardException {
+        fastAPIService.saveLoadModelConfig(loadModelConfig);
+    }
+
+    @ApiOperation(value = "Load predictive maintenance model config", notes = "Load predictive maintenance model configuration")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN')")
+    @GetMapping(value = "/models/loadModelConfig", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public JsonNode loadModelConfig() throws ThingsboardException {
+        return fastAPIService.getLoadModelConfigs();
+    }
+
     @ApiOperation(value = "Get predictiveMaintenance models", notes = "access the predictive models in predictive maintenance route directive")
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN')")
     @GetMapping(value = "/forecasts", params = { "pageSize", "page" })

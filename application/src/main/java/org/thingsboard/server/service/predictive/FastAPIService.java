@@ -26,4 +26,9 @@ public interface FastAPIService {
     public void activatePredictiveModel(PredictiveModelId predictiveModelId) throws ThingsboardException;
 
     public JsonNode getAvailableModels();
+
+    public void saveLoadModelConfig(JsonNode loadModelConfig) throws ThingsboardException;
+
+    public JsonNode getLoadModelConfigs() throws ThingsboardException;
+
 }

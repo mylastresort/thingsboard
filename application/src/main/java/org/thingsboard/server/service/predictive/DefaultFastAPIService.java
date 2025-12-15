@@ -74,4 +74,27 @@ public class DefaultFastAPIService implements FastAPIService {
             throw new ThingsboardException("Failed to activate predictive model", e, ThingsboardErrorCode.GENERAL);
         }
     }
+
+    public void saveLoadModelConfig(JsonNode loadModelConfig) throws ThingsboardException {
+        try {
+            log.info("[SAVE LOAD CONFIG] DefaultFastAPIService: Sending load model config to Python backend: {}", loadModelConfig);
+            this.restTemplate.postForObject("models/saveLoadConfig", loadModelConfig, Void.class);
+            log.info("[SAVE LOAD CONFIG] DefaultFastAPIService: Load model config sent successfully");
+        } catch (Exception e) {
+            log.error("[SAVE LOAD CONFIG] DefaultFastAPIService: Failed to send load model config to Python backend: {}", loadModelConfig, e);
+            throw new ThingsboardException("Failed to save load model config", e, ThingsboardErrorCode.GENERAL);
+        }
+    }
+
+    public JsonNode getLoadModelConfigs() throws ThingsboardException {
+        try {
+            log.info("[GET LOAD CONFIGS] DefaultFastAPIService: Retrieving load model configs from Python backend");
+            JsonNode response = this.restTemplate.getForObject("models/loadModelConfig", JsonNode.class);
+            log.info("[GET LOAD CONFIGS] DefaultFastAPIService: Load model configs retrieved successfully");
+            return response;
+        } catch (Exception e) {
+            log.error("[GET LOAD CONFIGS] DefaultFastAPIService: Failed to retrieve load model configs from Python backend", e);
+            throw new ThingsboardException("Failed to get load model configs", e, ThingsboardErrorCode.GENERAL);
+        }
+    }
 }
