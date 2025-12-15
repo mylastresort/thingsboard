@@ -299,7 +299,7 @@ export class ConfigurationsListComponent implements OnInit {
       const templates = this.forecastService.getLoadModelConfigs();
       templates.subscribe((templatesData) => {
         // const templates
-        // console.log('Loaded templates from localStorage:', templates);
+        console.log('Loaded templates from localStorage:', templatesData);
 
       if (!templatesData) {
         alert('No saved model templatesData found. Save a model config first.');
@@ -339,7 +339,9 @@ export class ConfigurationsListComponent implements OnInit {
 
       dialogRef.afterClosed().subscribe((selectedModel: any) => {
         if (selectedModel) {
-          this.loadAndCreateModel(selectedModel);
+          // Fetch the actual template from templatesData using the selected model's ID
+          const template = templatesData[selectedModel.id];
+          this.loadAndCreateModel(template);
         }
       });
       });
@@ -357,7 +359,7 @@ export class ConfigurationsListComponent implements OnInit {
       }
 
       // Deep clone the config
-      const payload = JSON.parse(JSON.stringify(template.config));
+      const payload = template.config;
 
       // Remove template suffix and make unique name
       payload.name = payload.name.replace('_template', '') + `_${Date.now()}`;
