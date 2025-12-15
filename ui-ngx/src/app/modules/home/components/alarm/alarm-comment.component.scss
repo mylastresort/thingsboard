@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@use '@angular/material' as mat;
-@import '../theme.scss';
+@use "@angular/material" as mat;
+@import "../theme.scss";
 
 $primary-color: rgba(mat.get-color-from-palette($tb-primary, 50), 0.4);
 $border: 1px solid mat.get-color-from-palette($tb-primary);
 
 :host {
   .tb-alarm-comments {
-    background-color: $primary-color;
+    // background-color: $primary-color;
     max-width: 600px;
     width: 100%;
 
@@ -32,7 +32,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
       .inner-wrap {
         border: $border;
         padding: 0 24px;
-        background-color: $primary-color;
+        // background-color: $primary-color;
       }
 
       &.oldest-first {
@@ -47,7 +47,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
           bottom: -1px;
 
           .inner-wrap {
-            border: none
+            border: none;
           }
         }
       }
@@ -75,7 +75,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
       z-index: 1;
       position: sticky;
       top: -24px;
-      background-color: white;
+      // background-color: white;
 
       &.activity-only {
         top: 0;
@@ -83,7 +83,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
 
       &-container {
         padding: 0 24px;
-        background-color: $primary-color;
+        // background-color: $primary-color;
         border: $border;
         border-bottom: none;
         border-radius: 8px 8px 0px 0px;
@@ -102,7 +102,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
         }
 
         .header-title {
-          color: rgba(0, 0, 0, 0.76);
+          // color: rgba(0, 0, 0, 0.76);
           letter-spacing: 0.25px;
           font-weight: 500;
         }
@@ -200,11 +200,11 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
     }
 
     .green-button {
-      color: #00695C;
+      color: #00695c;
     }
 
     .red-button {
-      color: #D12730;
+      color: #d12730;
     }
 
     .mat-form-field {
