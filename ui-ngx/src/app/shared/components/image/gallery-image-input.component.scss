@@ -95,7 +95,7 @@ $containerHeight: 96px !default;
       flex-direction: column;
       gap: 4px;
       .tb-resource-image-name {
-        color: rgba(0, 0, 0, 0.54);
+        // color: rgba(0, 0, 0, 0.54);
         overflow: hidden;
         text-overflow: ellipsis;
         word-break: break-all;
@@ -112,7 +112,7 @@ $containerHeight: 96px !default;
         display: flex;
         align-items: center;
         gap: 8px;
-        color: rgba(0, 0, 0, 0.38);
+        // color: rgba(0, 0, 0, 0.38);
         font-size: 11px;
         font-style: normal;
         font-weight: 400;

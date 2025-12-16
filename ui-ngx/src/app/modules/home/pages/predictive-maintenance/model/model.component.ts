@@ -1397,35 +1397,50 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   }
 
   addForecast(forecast: any): void {
-    // Call the service to add a forecast
+    // Add hidden: true to viewPreferences
+    if (!forecast.viewPreferences) {
+      forecast.viewPreferences = JSON.stringify({ hidden: true });
+    } else {
+      try {
+        const prefs = typeof forecast.viewPreferences === 'string' ? JSON.parse(forecast.viewPreferences) : forecast.viewPreferences;
+        prefs.hidden = true;
+        forecast.viewPreferences = JSON.stringify(prefs);
+      } catch {
+        forecast.viewPreferences = JSON.stringify({ hidden: true });
+      }
+    }
+
+    // Old logic commented out:
+    // this.predictiveModelsService.addPredictiveModelConfig(forecast).subscribe(
+    //   (response) => {
+    //     ...
+    //   },
+    //   (error) => {
+    //     ...
+    //   }
+    // );
+
+    // New logic: Save config with hidden: true
     this.predictiveModelsService.addPredictiveModelConfig(forecast).subscribe(
       (response) => {
         console.log('Forecast created successfully:', response);
-        // Get the new model ID from the response (handle both ForecastId object and string)
         const newModelId: string = typeof response.id === 'string' ? response.id : response.id?.id;
-
         if (newModelId) {
-          // Add the new model to the models list
           const newModel: Order = {
             id: response.name || newModelId.substring(0, 8),
             trueId: newModelId,
-            device: '', // Will be populated when navigating to the page
+            device: '',
             date: new Date().toISOString()
           };
-
-          // Update the models list if it exists
           if (this.models) {
             this.models.push(newModel);
             this.updateFilteredModels();
-            this.fetchModelNames(); // Fetch the name for the new model
+            this.fetchModelNames();
           }
-
-          // Navigate to the new model page
           this.router.navigate(['/predictiveMaintenance/model', newModelId], {
             state: { forecastData: this.models || [newModel] }
           });
         } else {
-          // Fallback: navigate to PM list if ID is not available
           console.warn('Model ID not found in response, navigating to PM list');
           this.router.navigateByUrl('/PM');
         }

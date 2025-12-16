@@ -156,7 +156,19 @@ export class ConfigurationsListComponent implements OnInit {
       (configurationsPage) => {
         console.log('Configurations API response:', configurationsPage);
 
-        if (configurationsPage.data.length === 0) {
+        // Filter to only show models where hidden is false or not set
+        const visibleConfigs = (configurationsPage.data || []).filter((forecast: any) => {
+          let hidden = false;
+          try {
+            if (forecast.viewPreferences) {
+              const prefs = JSON.parse(forecast.viewPreferences);
+              hidden = !!prefs.hidden;
+            }
+          } catch {}
+          return !hidden;
+        });
+
+        if (visibleConfigs.length === 0) {
           this.dataSource.data = [];
           this.totalElements = configurationsPage.totalElements;
           this.isLoading = false;
@@ -164,42 +176,41 @@ export class ConfigurationsListComponent implements OnInit {
         }
 
         // Load device details for each configuration
-        const configPromises = configurationsPage.data.map((forecast: any) => new Promise<Configuration>((resolve) => {
-            this.deviceService.getDevice(forecast.deviceId.id).subscribe(
-              (device) => {
-                resolve({
-                  id: forecast.id.id,
-                  name:
-                    forecast.name || `Model_${forecast.id.id.split('-')[0]}`,
-                  deviceId: forecast.deviceId.id,
-                  deviceName: device.name,
-                  deviceLabel: device.label || 'N/A',
-                  deviceType: device.type || 'Unknown',
-                  createdTime: forecast.createdTime,
-                  forecastAlgorithm: forecast.forecastAlgorithm || 'N/A',
-                  anomalyAlgorithm: forecast.anomalyAlgorithm || 'N/A',
-                });
-              },
-              (error) => {
-                console.error('Error loading device:', error);
-                resolve({
-                  id: forecast.id.id,
-                  name:
-                    forecast.name || `Model_${forecast.id.id.split('-')[0]}`,
-                  deviceId: forecast.deviceId.id,
-                  deviceName: 'Unknown',
-                  deviceLabel: 'N/A',
-                  deviceType: 'Unknown',
-                  createdTime: forecast.createdTime,
-                  forecastAlgorithm: forecast.forecastAlgorithm || 'N/A',
-                  anomalyAlgorithm: forecast.anomalyAlgorithm || 'N/A',
-                });
-              }
-            );
-          }));
+        const configPromises = visibleConfigs.map((forecast: any) => new Promise<Configuration>((resolve) => {
+          this.deviceService.getDevice(forecast.deviceId.id).subscribe(
+            (device) => {
+              resolve({
+                id: forecast.id.id,
+                name:
+                  forecast.name || `Model_${forecast.id.id.split('-')[0]}`,
+                deviceId: forecast.deviceId.id,
+                deviceName: device.name,
+                deviceLabel: device.label || 'N/A',
+                deviceType: device.type || 'Unknown',
+                createdTime: forecast.createdTime,
+                forecastAlgorithm: forecast.forecastAlgorithm || 'N/A',
+                anomalyAlgorithm: forecast.anomalyAlgorithm || 'N/A',
+              });
+            },
+            (error) => {
+              console.error('Error loading device:', error);
+              resolve({
+                id: forecast.id.id,
+                name:
+                  forecast.name || `Model_${forecast.id.id.split('-')[0]}`,
+                deviceId: forecast.deviceId.id,
+                deviceName: 'Unknown',
+                deviceLabel: 'N/A',
+                deviceType: 'Unknown',
+                createdTime: forecast.createdTime,
+                forecastAlgorithm: forecast.forecastAlgorithm || 'N/A',
+                anomalyAlgorithm: forecast.anomalyAlgorithm || 'N/A',
+              });
+            }
+          );
+        }));
 
         Promise.all(configPromises).then((configurations) => {
-          // All configs from database are active models (templates are in localStorage)
           this.dataSource.data = configurations;
           this.totalElements = configurationsPage.totalElements;
           this.isLoading = false;
@@ -292,58 +303,81 @@ export class ConfigurationsListComponent implements OnInit {
   }
 
   openLoadModelDialog(): void {
-    // Load templates from localStorage
+    // Load templates from localStorage and hidden models from predictive_maintenance_config
     try {
+      const templates$ = this.forecastService.getLoadModelConfigs();
+      // Fetch all configs from DB (predictive_maintenance_config)
+      const pageLink = new PageLink(1000, 0, null, { property: 'createdTime', direction: Direction.DESC });
+      const dbConfigs$ = this.forecastService.getPredictiveModelsByPage(pageLink);
 
-      // fetch from /models/saveLoadConfig api endpoint
-      const templates = this.forecastService.getLoadModelConfigs();
-      templates.subscribe((templatesData) => {
-        // const templates
-        console.log('Loaded templates from localStorage:', templatesData);
+      // Combine both sources
+      Promise.all([
+        templates$.toPromise(),
+        dbConfigs$.toPromise()
+      ]).then(([templatesData, dbConfigs]) => {
+        // Local templates
+        const templateKeys = templatesData ? Object.keys(templatesData) : [];
+        const templateModels = templateKeys.map((key) => {
+          const template = templatesData[key];
+          return {
+            trueId: key,
+            id: key,
+            device: template.deviceName || 'Unknown Device',
+            date: new Date(template.savedAt).toLocaleDateString(),
+            status: 'Template',
+            source: 'template'
+          };
+        });
 
-      if (!templatesData) {
-        alert('No saved model templatesData found. Save a model config first.');
-        return;
-      }
+        // DB configs with viewPreferences.hidden === true
+        const dbModels = (dbConfigs?.data || []).filter((cfg: any) => {
+          let hidden = false;
+          try {
+            if (cfg.viewPreferences) {
+              const prefs = JSON.parse(cfg.viewPreferences);
+              hidden = !!prefs.hidden;
+            }
+          } catch {}
+          return hidden;
+        }).map((cfg: any) => ({
+          trueId: cfg.id.id,
+          id: cfg.name || `Model_${cfg.id.id.split('-')[0]}`,
+          device: cfg.deviceId?.id || 'Unknown Device',
+          date: new Date(cfg.createdTime).toLocaleDateString(),
+          status: 'Hidden',
+          source: 'db',
+          dbId: cfg.id.id
+        }));
 
-      const templateKeys = Object.keys(templatesData);
-
-      if (templateKeys.length === 0) {
-        alert('No saved model templatesData found. Save a model config first.');
-        return;
-      }
-
-      // Build list from localStorage templatesData
-      const models = templateKeys.map((key) => {
-        const template = templatesData[key];
-        return {
-          trueId: key, // Use the template key as ID
-          id: key,
-          device: template.deviceName || 'Unknown Device',
-          date: new Date(template.savedAt).toLocaleDateString(),
-          status: 'Template', // Mark as template status
-        };
-      });
-
-      // Preserve dark theme on overlay dialogs by applying panelClass when body has tb-dark
-      const panelClass = typeof document !== 'undefined' && document.body.classList.contains('tb-dark') ? 'tb-dark' : undefined;
-      const dialogRef = this.dialog.open(ModelSelectionDialogComponent, {
-        width: '600px',
-        data: {
-          models,
-          currentModelId: null,
-          getModelDisplayName: (m: any) => m.id,
-        },
-        ...(panelClass ? { panelClass } : {}),
-      });
-
-      dialogRef.afterClosed().subscribe((selectedModel: any) => {
-        if (selectedModel) {
-          // Fetch the actual template from templatesData using the selected model's ID
-          const template = templatesData[selectedModel.id];
-          this.loadAndCreateModel(template);
+        // Only show models where status is 'Hidden' (i.e., hidden: true)
+        const models = dbModels; // Only DB models with hidden: true
+        if (models.length === 0) {
+          alert('No hidden models found.');
+          return;
         }
-      });
+
+        const panelClass = typeof document !== 'undefined' && document.body.classList.contains('tb-dark') ? 'tb-dark' : undefined;
+        const dialogRef = this.dialog.open(ModelSelectionDialogComponent, {
+          width: '600px',
+          data: {
+            models,
+            currentModelId: null,
+            getModelDisplayName: (m: any) => m.id,
+          },
+          ...(panelClass ? { panelClass } : {}),
+        });
+
+        dialogRef.afterClosed().subscribe((selectedModel: any) => {
+          if (selectedModel) {
+            if (selectedModel.source === 'db' && selectedModel.dbId) {
+              // Redirect to model page for DB config
+              this.router.navigate(['/predictiveMaintenance/model', selectedModel.dbId]);
+            }
+          }
+        });
+      }).catch((e) => {
+        console.error('Error loading models:', e);
+        alert('Failed to load model templates or hidden models');
       });
     } catch (e) {
       console.error('Error loading templates from localStorage:', e);
@@ -373,9 +407,34 @@ export class ConfigurationsListComponent implements OnInit {
   }
 
   addConfiguration(config: any): void {
+    // Add hidden: false to viewPreferences for new configs so they appear in the list
+    if (!config.viewPreferences) {
+      config.viewPreferences = JSON.stringify({ hidden: false });
+    } else {
+      try {
+        const prefs = typeof config.viewPreferences === 'string' ? JSON.parse(config.viewPreferences) : config.viewPreferences;
+        prefs.hidden = false;
+        config.viewPreferences = JSON.stringify(prefs);
+      } catch {
+        config.viewPreferences = JSON.stringify({ hidden: false });
+      }
+    }
+
+    // Old logic commented out:
+    // this.forecastService.addPredictiveModelConfig(config).subscribe(
+    //   () => {
+    //     setTimeout(() => {
+    //       this.refreshConfigurations();
+    //     }, 500);
+    //   },
+    //   (error) => {
+    //     console.error('Error adding configuration:', error);
+    //   }
+    // );
+
+    // New logic: Save config with hidden: true
     this.forecastService.addPredictiveModelConfig(config).subscribe(
       () => {
-        // Add a small delay to ensure backend has updated
         setTimeout(() => {
           this.refreshConfigurations();
         }, 500);
