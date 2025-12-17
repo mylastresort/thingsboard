@@ -44,7 +44,8 @@
     }
   }
   .tb-toast {
-    box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2), 0 6px 10px 0 rgba(0, 0, 0, 0.14), 0 1px 18px 0 rgba(0, 0, 0, 0.12);
+    box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2),
+      0 6px 10px 0 rgba(0, 0, 0, 0.14), 0 1px 18px 0 rgba(0, 0, 0, 0.12);
     color: #fff;
     font-size: 18px;
     border-radius: 4px;
@@ -83,7 +84,7 @@
       align-items: center;
       gap: 4px;
       border-radius: 4px;
-      box-shadow: -2px 2px 4px 0px rgba(0,0,0,0.2);
+      box-shadow: -2px 2px 4px 0px rgba(0, 0, 0, 0.2);
       &.info-toast {
         background: #e6e6e6;
         color: rgba(50, 50, 50, 1);
@@ -91,7 +92,6 @@
       &.warn-toast {
         background: #fff3eb;
         color: rgba(220, 109, 27, 1);
-
       }
       &.error-toast {
         background-color: #fff2f3;

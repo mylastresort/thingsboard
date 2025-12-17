@@ -15,14 +15,14 @@
  */
 /* You can add global styles to this file, and also import other style files */
 
-@import '~typeface-roboto/index.css';
-@import '~font-awesome/css/font-awesome.min.css';
-@import 'theme.scss';
-@import './scss/constants';
-@import './scss/animations';
-@import './scss/mixins';
-@import './scss/fonts';
-@import './styles-dark-mode.scss';
+@import "~typeface-roboto/index.css";
+@import "~font-awesome/css/font-awesome.min.css";
+@import "theme.scss";
+@import "./scss/constants";
+@import "./scss/animations";
+@import "./scss/mixins";
+@import "./scss/fonts";
+@import "./styles-dark-mode.scss";
 
 .leaflet-container {
   background: none !important;
@@ -84,9 +84,9 @@ a:not(.mat-mdc-button-base) {
   font-weight: 400;
   color: #106cc8;
   text-decoration: none;
-  border-bottom: 1px solid rgba(64, 84, 178, .25);
+  border-bottom: 1px solid rgba(64, 84, 178, 0.25);
 
-  transition: border-bottom .35s;
+  transition: border-bottom 0.35s;
 }
 
 a:hover,
@@ -97,11 +97,11 @@ a:focus {
 }
 
 p {
-  margin: .8em 0 1.6em;
+  margin: 0.8em 0 1.6em;
   font-size: 1.6rem;
   font-weight: 400;
   line-height: 1.6em;
-  letter-spacing: .01em;
+  letter-spacing: 0.01em;
 }
 
 strong {
@@ -112,7 +112,7 @@ blockquote {
   padding-left: 16px;
   margin-left: 0;
   font-style: italic;
-  border-left: 3px solid rgba(0, 0, 0, .12);
+  border-left: 3px solid rgba(0, 0, 0, 0.12);
 }
 
 fieldset {
@@ -139,10 +139,10 @@ section.tb-header-buttons {
   .tb-btn-header {
     margin: 6px 8px;
     position: relative !important;
-    animation: tbMoveFromTopFade .3s ease both;
+    animation: tbMoveFromTopFade 0.3s ease both;
 
     &.tb-hide {
-      animation: tbMoveToTopFade .3s ease both;
+      animation: tbMoveToTopFade 0.3s ease both;
     }
   }
 }
@@ -157,14 +157,13 @@ section.tb-footer-buttons {
   .tb-btn-footer {
     margin: 6px 8px;
     position: relative !important;
-    animation: tbMoveFromBottomFade .3s ease both;
+    animation: tbMoveFromBottomFade 0.3s ease both;
 
     &.tb-hide {
-      animation: tbMoveToBottomFade .3s ease both;
+      animation: tbMoveToBottomFade 0.3s ease both;
     }
   }
 }
-
 
 .tb-details-buttons {
   button {
@@ -186,7 +185,7 @@ label {
 
     &.tb-required::after {
       font-size: 13px;
-      color: rgba(0, 0, 0, .54);
+      color: rgba(0, 0, 0, 0.54);
       vertical-align: top;
       content: " *";
     }
@@ -213,11 +212,11 @@ label {
 }
 
 .tb-readonly-label {
-  color: rgba(0, 0, 0, .54);
+  color: rgba(0, 0, 0, 0.54);
 }
 
 .tb-disabled-label {
-  color: rgba(0, 0, 0, .44);
+  color: rgba(0, 0, 0, 0.44);
 }
 
 div {
@@ -241,7 +240,7 @@ div {
 .mat-caption {
   &.tb-required::after {
     font-size: 10px;
-    color: rgba(0, 0, 0, .54);
+    color: rgba(0, 0, 0, 0.54);
     vertical-align: top;
     content: " *";
   }
@@ -285,18 +284,16 @@ pre.tb-highlight {
   overflow: hidden;
   background: #fff;
   border-radius: 4px;
-  box-shadow:
-    0 7px 8px -4px rgba(0, 0, 0, .2),
-    0 13px 19px 2px rgba(0, 0, 0, .14),
-    0 5px 24px 4px rgba(0, 0, 0, .12);
+  box-shadow: 0 7px 8px -4px rgba(0, 0, 0, 0.2),
+    0 13px 19px 2px rgba(0, 0, 0, 0.14), 0 5px 24px 4px rgba(0, 0, 0, 0.12);
 }
 
 .tb-panel-actions {
   margin-bottom: 0;
   padding: 8px 8px 8px 16px;
 
-  .mat-button-base+.mat-button-base,
-  .mat-mdc-button-base+.mat-mdc-button-base {
+  .mat-button-base + .mat-button-base,
+  .mat-mdc-button-base + .mat-mdc-button-base {
     margin-left: 8px;
   }
 }
@@ -342,7 +339,7 @@ mat-label {
 
     &.tb-required::after {
       font-size: 13px;
-      color: rgba(0, 0, 0, .54);
+      color: rgba(0, 0, 0, 0.54);
       vertical-align: top;
       content: " *";
     }
@@ -369,7 +366,7 @@ mat-icon {
 }
 
 .tb-error-message {
-  transition: all .3s cubic-bezier(.55, 0, .55, .2);
+  transition: all 0.3s cubic-bezier(0.55, 0, 0.55, 0.2);
   padding: 10px 0 0 10px;
   overflow: hidden;
   font-size: 12px;
@@ -465,7 +462,7 @@ mat-icon {
 
         &.arg-description {
           font-size: 1rem;
-          letter-spacing: .03rem;
+          letter-spacing: 0.03rem;
           color: #444;
         }
       }
@@ -493,7 +490,6 @@ mat-icon {
 
 .tb-default,
 .tb-dark {
-
   /*********************************
    * MATERIAL DESIGN CUSTOMIZATIONS
    ********************************/
@@ -504,7 +500,6 @@ mat-icon {
   h4,
   h5,
   h6 {
-
     &,
     &.mat-headline-5 {
       margin-top: 1rem;
@@ -527,28 +522,28 @@ mat-icon {
   h3 {
     font-size: 2rem;
     font-weight: 500;
-    letter-spacing: .005em;
+    letter-spacing: 0.005em;
   }
 
   h4 {
     font-size: 1.6rem;
     font-weight: 400;
     line-height: 2.4rem;
-    letter-spacing: .01em;
+    letter-spacing: 0.01em;
   }
 
   h5 {
     font-size: 1.4rem;
     font-weight: 400;
     line-height: 2rem;
-    letter-spacing: .01em;
+    letter-spacing: 0.01em;
   }
 
   h6 {
     font-size: 1.2rem;
     font-weight: 400;
     line-height: 1.6rem;
-    letter-spacing: .01em;
+    letter-spacing: 0.01em;
   }
 
   .mat-mdc-tooltip {
@@ -576,7 +571,7 @@ mat-icon {
   }
 
   .layout-padding,
-  .layout-padding>* {
+  .layout-padding > * {
     @media #{$mat-lt-sm} {
       padding: 4px;
     }
@@ -624,7 +619,8 @@ mat-icon {
     z-index: 1;
   }
 
-  .mat-toolbar.mat-mdc-table-toolbar .mat-mdc-form-field.mat-form-field-appearance-fill,
+  .mat-toolbar.mat-mdc-table-toolbar
+    .mat-mdc-form-field.mat-form-field-appearance-fill,
   .mat-mdc-form-field.mat-form-field-appearance-fill.tb-appearance-transparent {
     .mdc-text-field--filled {
       &:before {
@@ -657,7 +653,7 @@ mat-icon {
     .mat-mdc-form-field-icon-suffix {
       align-self: end;
 
-      >.mat-icon {
+      > .mat-icon {
         padding-bottom: 4px;
       }
 
@@ -699,10 +695,11 @@ mat-icon {
 
     .mat-mdc-text-field-wrapper {
       &.mdc-text-field--outlined {
-        &:not(.mdc-text-field--focused):not(.mdc-text-field--disabled):not(.mdc-text-field--invalid) {
+        &:not(.mdc-text-field--focused):not(.mdc-text-field--disabled):not(
+            .mdc-text-field--invalid
+          ) {
           &:not(:hover) {
             .mdc-notched-outline {
-
               .mdc-notched-outline__leading,
               .mdc-notched-outline__trailing {
                 border-color: white;
@@ -712,7 +709,6 @@ mat-icon {
 
           &:hover {
             .mdc-notched-outline {
-
               .mdc-notched-outline__leading,
               .mdc-notched-outline__trailing {
                 border-color: rgba(255, 255, 255, 0.87);
@@ -723,7 +719,6 @@ mat-icon {
 
         &:not(.mdc-text-field--disabled).mdc-text-field--focused {
           .mdc-notched-outline {
-
             .mdc-notched-outline__leading,
             .mdc-notched-outline__trailing {
               border-color: rgba(255, 255, 255, 0.67);
@@ -744,7 +739,7 @@ mat-icon {
     .mat-toolbar-tools {
       padding: 0;
 
-      &>button.mat-mdc-icon-button:last-child {
+      & > button.mat-mdc-icon-button:last-child {
         margin-right: -12px;
       }
     }
@@ -755,12 +750,12 @@ mat-icon {
   .mat-expansion-panel-header {
     button.mat-mdc-icon-button {
       .mat-icon {
-        color: rgba(0, 0, 0, .54);
+        color: rgba(0, 0, 0, 0.54);
       }
 
       &[disabled][disabled] {
         .mat-icon {
-          color: rgba(0, 0, 0, .26);
+          color: rgba(0, 0, 0, 0.26);
         }
       }
     }
@@ -829,7 +824,7 @@ mat-icon {
 
   .mat-mdc-table {
     .mat-mdc-row {
-      transition: background-color .2s;
+      transition: background-color 0.2s;
 
       &:hover:not(.tb-current-entity) {
         // background-color: #f4f4f4;
@@ -851,23 +846,21 @@ mat-icon {
 
   .mat-mdc-row:not(.mat-row-select),
   .mat-mdc-header-row:not(.mat-row-select) {
-
     .mat-mdc-cell:first-child,
     .mat-mdc-footer-cell:first-child,
     .mat-mdc-header-cell:first-child {
       padding: 0 12px;
     }
 
-    .mat-mdc-cell:nth-child(n+2):nth-last-child(n+2),
-    .mat-mdc-footer-cell:nth-child(n+2):nth-last-child(n+2),
-    .mat-mdc-header-cell:nth-child(n+2):nth-last-child(n+2) {
+    .mat-mdc-cell:nth-child(n + 2):nth-last-child(n + 2),
+    .mat-mdc-footer-cell:nth-child(n + 2):nth-last-child(n + 2),
+    .mat-mdc-header-cell:nth-child(n + 2):nth-last-child(n + 2) {
       padding: 0 28px 0 0;
     }
   }
 
   .mat-mdc-row.mat-row-select,
   .mat-mdc-header-row.mat-row-select {
-
     .mat-mdc-cell:first-child,
     .mat-mdc-footer-cell:first-child,
     .mat-mdc-header-cell:first-child {
@@ -881,9 +874,9 @@ mat-icon {
       padding: 0 12px;
     }
 
-    .mat-mdc-cell:nth-child(n+3):nth-last-child(n+2),
-    .mat-mdc-footer-cell:nth-child(n+3):nth-last-child(n+2),
-    .mat-mdc-header-cell:nth-child(n+3):nth-last-child(n+2) {
+    .mat-mdc-cell:nth-child(n + 3):nth-last-child(n + 2),
+    .mat-mdc-footer-cell:nth-child(n + 3):nth-last-child(n + 2),
+    .mat-mdc-header-cell:nth-child(n + 3):nth-last-child(n + 2) {
       padding: 0 28px 0 0;
     }
 
@@ -957,7 +950,7 @@ mat-icon {
     }
 
     .mat-icon {
-      color: rgba(0, 0, 0, .54);
+      color: rgba(0, 0, 0, 0.54);
     }
 
     &.tb-pointer {
@@ -986,7 +979,7 @@ mat-icon {
 
   .mat-toolbar-tools {
     //font-size: 20px;
-    letter-spacing: .005em;
+    letter-spacing: 0.005em;
     //box-sizing: border-box;
     font-weight: 400;
     display: flex;
@@ -1117,11 +1110,11 @@ mat-icon {
     font-size: 16px;
   }
 
-  .mat-toolbar>button:first-child {
+  .mat-toolbar > button:first-child {
     margin-left: -8px;
   }
 
-  .mat-toolbar>button:last-child {
+  .mat-toolbar > button:last-child {
     margin-right: -8px;
   }
 
@@ -1165,7 +1158,7 @@ mat-icon {
     .mat-mdc-dialog-container {
       padding: 0;
 
-      >*:first-child,
+      > *:first-child,
       form {
         max-width: 100%;
         min-width: 100%;
@@ -1194,8 +1187,7 @@ mat-icon {
       inset: 0;
 
       .mat-mdc-dialog-container {
-
-        >*:first-child,
+        > *:first-child,
         form {
           min-width: 100% !important;
         }
@@ -1216,8 +1208,7 @@ mat-icon {
       inset: 0;
 
       .mat-mdc-dialog-container {
-
-        >*:first-child,
+        > *:first-child,
         form {
           min-width: 100% !important;
           height: 100%;
@@ -1253,7 +1244,7 @@ mat-icon {
   .mat-mdc-button.tb-fullscreen-button-style,
   .tb-fullscreen-button-style {
     background: #ccc;
-    opacity: .85;
+    opacity: 0.85;
 
     .mat-icon {
       color: #666;
@@ -1292,7 +1283,8 @@ mat-icon {
     content: "";
     border: 2px solid #fff;
     border-radius: 50%;
-    box-shadow: 0 3px 1px -2px rgba(0, 0, 0, .14), 0 2px 2px 0 rgba(0, 0, 0, .098), 0 1px 5px 0 rgba(0, 0, 0, .084);
+    box-shadow: 0 3px 1px -2px rgba(0, 0, 0, 0.14),
+      0 2px 2px 0 rgba(0, 0, 0, 0.098), 0 1px 5px 0 rgba(0, 0, 0, 0.084);
 
     &.box {
       border: none;
@@ -1303,7 +1295,7 @@ mat-icon {
         position: relative;
 
         &:after {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           bottom: 0;
@@ -1414,5 +1406,19 @@ mat-icon {
 
   .no-wrap {
     white-space: nowrap;
+  }
+
+  .mat-mdc-fab.mat-primary,
+  .mat-mdc-mini-fab.mat-primary {
+    --mdc-fab-container-color: unset;
+    --mdc-fab-icon-color: #fff;
+    --mat-mdc-fab-color: #fff;
+  }
+
+  .tb-rulechain button.mdc-icon-button.tb-fullscreen-button {
+    background: none !important;
+
+    box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2),
+      0px 6px 10px 0px rgba(0, 0, 0, 0.14), 0px 1px 18px 0px rgba(0, 0, 0, 0.12);
   }
 }

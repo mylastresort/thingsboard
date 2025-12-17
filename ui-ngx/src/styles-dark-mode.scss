@@ -50,10 +50,14 @@ tb-dashboard-page {
   }
 }
 
+fc-node mat-icon,
+fc-node tb-icon {
+  color: unset !important;
+}
+
 mat-icon,
 tb-icon {
   color: rgba(255, 255, 255, 0.84) !important;
-  // color: white !important;
 }
 
 mat-drawer-content {
@@ -184,6 +188,4 @@ mat-sidenav-content {
 .tb-panel-container {
   background: var(--tb-dark-background) !important;
   border: solid 1px var(--tb-dark-mat-800);
-
-  
 }
