@@ -141,6 +141,12 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
   private resizeObserver: ResizeObserver;
 
+  private windowResizeHandler = () => {
+    if (this.chart) {
+      this.chart.resize();
+    }
+  };
+
   // Data storage - array of [timestamp, value] for the selected sensor
   private telemetryData: Array<[number, number]> = [];
 
@@ -289,6 +295,9 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
       this.subscribeToForecastHistory();
     }
 
+    // Listen to window resize events to trigger chart resize
+    window.addEventListener('resize', this.windowResizeHandler);
+
     // Start time axis update interval (update every second)
     this.startTimeAxisUpdate();
 
@@ -312,6 +321,9 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     if (this.chart) {
       this.chart.dispose();
     }
+
+    // Remove window resize event listener
+    window.removeEventListener('resize', this.windowResizeHandler);
   }
 
   private initializeChart(): void {

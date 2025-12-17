@@ -254,7 +254,7 @@ class ForecastModel(BaseModel):
         TRAIN_PERCENTAGE = 0.75
         # LOOKBACK = 720
         LSTM_UNITS = 256
-        EPOCHS = 35
+        EPOCHS = 1
         BATCH_SIZE = 128
 
         models = dict()

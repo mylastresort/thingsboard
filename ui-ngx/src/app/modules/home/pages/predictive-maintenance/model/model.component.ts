@@ -786,6 +786,15 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
             }),
           );
 
+        // requestJobStatus
+        this.modelWebSocketService.requestJobStatus(this.trueId)
+        .subscribe((msg => {
+          console.log('Initial job status message received:', msg);
+          if (msg?.data?.status === 'running') {
+            this.status = 'active';
+          }
+        }));
+
         // this.subscriptions.push(this.logsObservable.subscribe((log) => {
         //   console.log('Log entry:', log);
         // }));

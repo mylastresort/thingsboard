@@ -52,6 +52,7 @@ export interface AnomalyStreamMessage {
     message?: string;
     data?: AnomalyReport | AnomalyReport[] | AnomalyLogs; // Can be single or array for historical
     timestamp?: string;
+    status?: 'pending' | 'running' | 'completed' | 'failed';
   };
   errorCode?: number;
   errorMsg?: string;
@@ -160,7 +161,7 @@ export class ModelWebSocketService {
    * Handle incoming WebSocket messages
    */
   private handleMessage(message: any): void {
-    // console.log("[ModelComponent] [handleMessage()] Received message:", message);
+    console.log('[ModelComponent] [handleMessage()] Received message:', message);
 
     switch (message.type) {
       case 'progress':
@@ -228,7 +229,7 @@ export class ModelWebSocketService {
     } else {
       this.ws$.next(cmd);
     }
-    return this.responses$.get(AnomalyStreamType.JOB_STATUS_COMMAND) as Observable<AnomalyStreamMessage>;
+    return this.subscribe(AnomalyStreamType.RESPONSE);
   }
 
   /**

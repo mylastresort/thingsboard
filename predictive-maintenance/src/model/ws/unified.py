@@ -783,23 +783,58 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
 
 async def handle_job_status(websocket: WebSocket, command_id: int, forecast_id: str):
     """Handle job status request"""
+    logger.info("\n\n\n\n\n\n\n")
+    logger.info(f"Handling job status request for forecastId: {forecast_id}")
+    logger.info("\n\n\n\n\n\n\n")
     try:
         model_id = f"{forecast_id}/anomaly_predictor"
-        job_status = get_job_status(model_id)
+        job_status_anomaly = get_job_status(model_id)
 
-        if job_status:
+        if job_status_anomaly:
             await websocket.send_json(
                 {
                     "commandId": command_id,
                     "type": "response",
                     "model": "job",
-                    "data": job_status,
+                    "model_type": "anomaly",
+                    "data": job_status_anomaly,
                     "forecastId": forecast_id,
                     "timestamp": datetime.now().isoformat() + "Z",
                 }
             )
         else:
             path = f"{forecast_id}/anomaly_predictor"
+            await websocket.send_json(
+                {
+                    "commandId": command_id,
+                    "type": "response",
+                    "model": "job",
+                    "forecastId": forecast_id,
+                    "data": {
+                        "status": "inactive",
+                        # check if model files exist
+                        "model_exists": (Path(settings.models_path) / path).exists(),
+                    },
+                    "timestamp": datetime.now().isoformat() + "Z",
+                }
+            )
+
+        model_id = f"{forecast_id}/forecast_model"
+        job_status_forecast = get_job_status(model_id)
+        if job_status_forecast:
+            await websocket.send_json(
+                {
+                    "commandId": command_id,
+                    "type": "response",
+                    "model": "job",
+                    "model_type": "forecast",
+                    "data": job_status_forecast,
+                    "forecastId": forecast_id,
+                    "timestamp": datetime.now().isoformat() + "Z",
+                }
+            )
+        else:
+            path = f"{forecast_id}/forecast_model"
             await websocket.send_json(
                 {
                     "commandId": command_id,
