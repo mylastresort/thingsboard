@@ -582,6 +582,12 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
         // Sort by timestamp
         this.forecastDataPoints.sort((a, b) => a[0] - b[0]);
 
+        // filter points within time window
+        const { minTime, maxTime } = this.calculateTimeWindow();
+        this.forecastDataPoints = this.forecastDataPoints.filter(
+          p => p[0] >= minTime && p[0] <= maxTime
+        );
+
         // Update the chart
         if (this.chart) {
           this.updateChart();
@@ -718,6 +724,11 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
           // Sort by timestamp
           this.historyForecastDataPoints.sort((a, b) => a[0] - b[0]);
+
+          // Filter points within time window
+          this.historyForecastDataPoints = this.historyForecastDataPoints.filter(
+            point => point[0] >= minTime && point[0] <= maxTime
+          );
 
           // Update chart
           if (this.chart) {

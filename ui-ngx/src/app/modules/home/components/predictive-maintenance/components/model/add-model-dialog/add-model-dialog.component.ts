@@ -225,6 +225,9 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
     this.devicesDataSource.devices$.subscribe((devices) => {
       this.devicesList = devices;
 
+      // keep only devices with name like 'PdM-Machine%'
+      this.devicesList = this.devicesList.filter(device => device.name && device.name.startsWith('PdM-Machine'));
+
       // If in edit mode, populate the form after devices are loaded
       if (this.isEditMode && this.editingForecast) {
         this.populateFormForEdit();

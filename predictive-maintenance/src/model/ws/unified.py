@@ -783,9 +783,6 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
 
 async def handle_job_status(websocket: WebSocket, command_id: int, forecast_id: str):
     """Handle job status request"""
-    logger.info("\n\n\n\n\n\n\n")
-    logger.info(f"Handling job status request for forecastId: {forecast_id}")
-    logger.info("\n\n\n\n\n\n\n")
     try:
         model_id = f"{forecast_id}/anomaly_predictor"
         job_status_anomaly = get_job_status(model_id)
