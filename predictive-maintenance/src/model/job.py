@@ -10,7 +10,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import deque
 import pandas as pd
 from typing import Dict, Callable, Set, Union
@@ -292,8 +292,11 @@ def anomaly_predict_model(
     )
     # print(f"[PREDICTION JOB] {model_id} - latest data", flush=True)
     # print(telemetry_df.head(), flush=True)
+    start_time_str = "2015-04-20 02:00:00"
+    start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
+    seconds_difference = (datetime.now() - start_time).total_seconds()
     predictions = predict_failure(
-        "2015-04-20 02:00:00",
+        start_time_str,
         {},
         telemetry_df,
         errors_df,
@@ -326,6 +329,8 @@ def anomaly_predict_model(
     # Send each prediction individually to avoid WebSocket buffer overflow
     # Instead of sending all 24 predictions in one message, send one at a time
     for idx, prediction in enumerate(predictions_json):
+        hours_to_add = idx + 1
+        prediction["datetime"] = (start_time + timedelta(seconds=seconds_difference) + timedelta(hours=hours_to_add)).strftime("%Y-%m-%d %H:%M:%S")
         add_model_log(
             model_id,
             "prediction",
