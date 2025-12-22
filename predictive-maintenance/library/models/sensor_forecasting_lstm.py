@@ -752,7 +752,7 @@ if __name__ == "__main__":
     LOOKBACK = 40
     LSTM_UNITS = 256
     # EPOCHS = 20
-    EPOCHS = 1
+    EPOCHS = 35
     BATCH_SIZE = 128
     PREDICT_HOURS = 24 * 30  # 30 days
 
