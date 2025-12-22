@@ -330,7 +330,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
               // Parse the prediction value if it's a string
               const predictionValue = typeof prediction.predictionValue === 'string'
                 ? JSON.parse(prediction.predictionValue)
-                : prediction.predictionValue;
+                : prediction.predictionValue; 
 
               // Only show predictions where failure_predicted is true
               if (predictionValue.failure_predicted === true) {
@@ -338,10 +338,9 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
                 const anomaly = this.convertPredictionToAnomaly(prediction, predictionValue);
 
                 // Add to anomalies component
-                if (this.anomaliesComponent) {
-                  this.anomaliesComponent.addAnomaly(anomaly);
-                  addedCount++;
-                }
+                // this.predictiveModelsService.anomaliesDataSubject.next(anomaly);
+                this.predictiveModelsService.sendAnomaly(anomaly);
+                addedCount++;
               } else {
                 console.log('[MODEL] Skipping prediction (failure_predicted is not true):', prediction.id);
               }
@@ -609,7 +608,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
+  ngAfterViewInit(): void {
     // Check if data was passed via the router's state
     if (history.state && history.state.forecastData) {
       this.modelsData = history.state.forecastData;
@@ -646,52 +645,6 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     this.init();
   }
 
-  ngAfterViewInit(): void {
-    // Position the tooltip after view is initialized
-    // this.displayLogsTooltip();
-
-    // set 3 random anomalies for testing
-    // const testAnomalies: AnomalyReport[] = [
-    //   {
-    //     id: '1',
-    //     reportEntity: this.deviceId,
-    //     errorName: 'Overheat',
-    //     severity: 'Critical',
-    //     creationDate: new Date().toISOString(),
-    //     componentType: 'Engine',
-    //     deviceType: 'Type A',
-    //     location: 'Factory 1',
-    //     description: 'Engine temperature exceeded threshold',
-    //     status: 'Active',
-    //     affectedMetrics: ['temperature'],
-    //     confidence: 95,
-    //     timeRange: '2024-10-01 10:00 - 2024-10-01 10:30'
-    //   },
-    //   {
-    //     id: '2',
-    //     reportEntity: this.deviceId,
-    //     errorName: 'Vibration Alert',
-    //     severity: 'Major',
-    //     creationDate: new Date().toISOString(),
-    //     componentType: 'Motor',
-    //     deviceType: 'Type B',
-    //     location: 'Factory 2',
-    //     description: 'Unusual vibration patterns detected',
-    //     status: 'Investigating',
-    //     affectedMetrics: ['vibration'],
-    //     confidence: 85,
-    //     timeRange: '2024-10-02 14:00 - 2024-10-02 14:45'
-    //   }
-    // ];
-
-    // testAnomalies.forEach((a) => {
-    //   // console.log('Adding test anomaly:', a);
-    //   this.anomaliesComponent.addAnomaly(a);
-    //   if (this.anomaliesComponent) {
-    //   }
-    // });
-  }
-
   private positionLogsTooltip(): void {
     // setTimeout(() => {
     if (this.logsButton) {
@@ -719,7 +672,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     this.routeParamsSubscription = this.route.params.pipe(
       distinctUntilChanged((prev, curr) => prev.id === curr.id)
     ).subscribe((params) => {
-      // console.log('Route params:', params);
+      console.log('Route params:', params);
       if (params.id) {
         this.trueId = params.id;
         this.id = params.id;

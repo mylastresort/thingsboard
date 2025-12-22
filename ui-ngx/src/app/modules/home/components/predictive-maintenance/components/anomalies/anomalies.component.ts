@@ -257,7 +257,7 @@ export class AnomaliesComponent implements OnInit, OnDestroy {
 
   isRefreshing = false;
 
-  // Start with empty array - will be populated only from stream
+  // Start with empty array - will be populated only from stream - local
   private anomalies: Map<string, AnomalyReport> = new Map<string, AnomalyReport>();
 
   // Date filter
@@ -273,6 +273,7 @@ export class AnomaliesComponent implements OnInit, OnDestroy {
     private overlay: Overlay,
     private viewContainerRef: ViewContainerRef,
     private translate: TranslateService,
+    private predictiveMaintenanceService: PredictiveModelsService,
   ) { }
 
   /**
@@ -326,6 +327,14 @@ export class AnomaliesComponent implements OnInit, OnDestroy {
     if (this.forecastId) {
       this.connectToAnomalyStream();
     }
+
+    this.predictiveMaintenanceService.anomalies.forEach((anomaly) => {
+      this.handleNewAnomaly(anomaly);
+    });
+
+    this.predictiveMaintenanceService.anomaliesData$.subscribe((anomaly) => {
+      this.handleNewAnomaly(anomaly);
+    });
   }
 
   ngOnDestroy(): void {
@@ -870,7 +879,7 @@ export class AnomaliesComponent implements OnInit, OnDestroy {
    * Handle new anomaly received from stream
    */
   private handleNewAnomaly(anomaly: AnomalyReport): void {
-    // console.log("[Anomalies] New anomaly received:", anomaly);
+    console.log("[Anomalies] New anomaly received:", anomaly);
 
     // Update creation date to current timestamp (real-time)
     anomaly.creationDate = new Date().toISOString();

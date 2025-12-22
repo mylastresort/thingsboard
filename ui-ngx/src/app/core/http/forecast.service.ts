@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 export interface AvailableModelsResponse {
   ForecastModel?: { model_name: string }[];
@@ -27,12 +27,22 @@ import { defaultHttpOptionsFromConfig, RequestConfig } from './http-utils'; // I
 import { PageData, PageLink } from '@app/shared/public-api';
 import { Order } from '@app/modules/home/models/predictive-maintenance.models';
 import { Forecast, ForecastCreate } from '@app/shared/models/forecast.models';
+import { AnomalyReport } from '@app/modules/home/components/predictive-maintenance/components/anomalies/anomalies.component';
 // import { Order } from '../components/forecast/forcast-page.component'; // Adjust import path as needed
 
 @Injectable({
   providedIn: 'root',
 })
 export class PredictiveModelsService {
+  anomaliesDataSubject = new Subject<AnomalyReport>();
+  anomaliesData$ = this.anomaliesDataSubject.asObservable();
+  anomalies = [];
+
+  sendAnomaly(anomaly: AnomalyReport) {
+    this.anomalies.push(anomaly);
+    this.anomaliesDataSubject.next(anomaly);
+  }
+
   /**
    * Fetch available model types and algorithms from backend
    * @returns Observable with available models structure
