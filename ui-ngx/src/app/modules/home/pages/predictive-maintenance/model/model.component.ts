@@ -1518,9 +1518,9 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
       this.progressMessage = null;
     }
     // Set status to pending if not already set
-    // if (this.status !== 'pending') {
-    //   this.status = 'pending';
-    // }
+    if (this.status !== 'pending') {
+      this.status = 'pending';
+    }
     this.modelWebSocketService.sendActivateCommand(this.trueId).subscribe((msg) => {
       this.handleWebSocketMessage(msg);
     });
