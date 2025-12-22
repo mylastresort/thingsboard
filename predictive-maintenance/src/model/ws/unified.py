@@ -678,7 +678,7 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
             # Extract per-sensor grouping intervals from attributes
             # Accept either the newer UI field `groupByMs` or legacy `grouping_interval_ms`.
             # Fallback to global forecast_grouping_ms if not set per-sensor.
-            default_group_by_ms = model_config.get("forecast_grouping_ms", 3600000)
+            default_group_by_ms = model_config.get("forecast_grouping_ms", 5000)
             group_by_ms_per_sensor = {}
             for sensor in model_config.get("attributes", []):
                 if "key" in sensor:

@@ -438,7 +438,7 @@ class ForecastModel(BaseModel):
                 results[sensor_key] = {}
 
                 results[sensor_key]["prediction_info"] = {
-                    "group_by_period_ms": self.group_by_ms_per_sensor.get(sensor_key, 3600000)
+                    "group_by_period_ms": self.group_by_ms_per_sensor.get(sensor_key, 5000)
                 }
 
                 # Populate prediction_info with this sensor's last real timestamp
@@ -453,8 +453,8 @@ class ForecastModel(BaseModel):
                 else:
                     results[sensor_key]["forecast"] = result
 
-                # Get grouping interval for this sensor (fallback to 3600000 if not set)
-                sensor_group_by_ms = self.group_by_ms_per_sensor.get(sensor_key, 3600000)
+                # Get grouping interval for this sensor (fallback to 5000 if not set)
+                sensor_group_by_ms = self.group_by_ms_per_sensor.get(sensor_key, 5000)
 
                 # create a list of future timestamps from max_timestamp steps of sensor_group_by_ms
                 future_timestamps = [
