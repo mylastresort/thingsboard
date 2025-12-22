@@ -154,7 +154,7 @@ def prediction_job_worker(
             add_model_log(model_id, "info", f"Loading model from {model_dir}...")
             hourly_models = load_models(model_dir)
             add_model_log(model_id, "info", "Model loaded successfully from disk")
-            interval = 20  # 20 seconds for testing
+            interval = 24 * 60 * 60 * 60 # every 24 hours
             # print(
             #     f"[PREDICTION JOB] {model_id} - AnomalyPredictor model loaded",
             #     flush=True,
