@@ -37,6 +37,7 @@ enum AnomalyStreamType {
 export interface AnomalyStreamMessageLogs {
   type: 'logs';
   forecast_id?: string;
+  forecastId?: string;
   message?: {
     result?: AnomalyReport[]; // Can be single or array for historical
   };
@@ -56,6 +57,7 @@ export interface AnomalyStreamMessage {
   };
   errorCode?: number;
   errorMsg?: string;
+  forecastId?: string;
 }
 
 export interface AnomalyStreamSubscription {

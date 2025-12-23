@@ -266,6 +266,8 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
 
 
   ngOnDestroy(): void {
+    console.log("ngOnDestroy()");
+    this.predictiveModelsService.anomalies = [];
     // Unsubscribe from log updates
     if (this.logsObservable) {
       // this.logsObservable.unsubscribe();
@@ -485,7 +487,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     this.subscriptions.push(anomalyPredictionLogsSubscription);
   }
 
-  subscribeToForecastPredictions() {
+  subscribeToForecastPredictions(forecastId) {
     console.log('[MODEL] Subscribing to forecast prediction logs');
     this.forecastPredictionLogs$ = this.logsObservable.pipe(
       // tap the message
@@ -733,6 +735,9 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         // map job logs to each log entry
         this.logsObservable = this.modelWebSocketService.requestJobLogs(this.trueId)
           .pipe(
+            filter((msg) => {
+              return msg.forecastId == params.id || msg.forecast_id == params.id;
+            }),
             mergeMap((msg) => flatMap(msg.data.logs)),
             tap((log) => {
               console.log('%cReceived log entry:', 'color: green;', log);
@@ -742,6 +747,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         // requestJobStatus
         this.modelWebSocketService.requestJobStatus(this.trueId)
         .subscribe((msg => {
+          if (msg.forecastId != params.id) return;
           console.log('Initial job status message received:', msg);
           if (msg?.data?.status === 'running') {
             this.status = 'active';
@@ -761,7 +767,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         console.log(`[ModelComponent] Subscribing to anomaly predictions`);
 
         this.subscribeToAnomalyPredictions();
-        this.subscribeToForecastPredictions();
+        this.subscribeToForecastPredictions(params.id);
 
         // Subscribe to real-time job status updates
         // const jobStatusSubscription = this.modelWebSocketService.subscribeToJobStatus(this.trueId, 'anomaly').subscribe((msg: any) => {
