@@ -371,7 +371,7 @@ export class AnomaliesComponent implements OnInit, OnDestroy {
 
     // Set default sort by failure time range (start time) in descending order
     this.sort.active = 'timeRange';
-    this.sort.direction = 'desc';
+    this.sort.direction = 'asc';
     this.dataSource.sort = this.sort;
   }
 

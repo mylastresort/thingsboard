@@ -4,7 +4,7 @@ args=$@
 
 echo args $args
 
-entity_token="nIeDQ9jHVGBEbthivLau"
+entity_token="BsfN0Orwh2jtP64DQWji"
 
 # path='./PdM_telemetry_MachineID11_OLD_DATA_random.csv'
 path='./PdM_telemetry_MachineID1.csv'
@@ -60,7 +60,7 @@ while true; do
     #     pressure=$(echo "$pressure + $increment_value" | bc)
     #   fi
     # fi
-    mosquitto_pub -d -q 1 -h thingsboard -p 1883 -t v1/devices/me/telemetry -u "$entity_token" -m "{rotate:$rotate}" >/dev/null
+    mosquitto_pub -d -q 1 -h thingsboard -p 1883 -t v1/devices/me/telemetry -u "$entity_token" -m "{rotate:$rotate,pressure:$pressure}" >/dev/null
   done
   echo "Restarting file read..."
 done

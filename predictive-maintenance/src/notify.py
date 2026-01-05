@@ -17,6 +17,10 @@ import time
 from requests.auth import HTTPBasicAuth
 import smtplib
 from dotenv import load_dotenv
+from src.logger import logger  # Global logger
+from src.generate_email_alarm_template import create_email_body
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,8 +29,11 @@ load_dotenv()
 # Access environment variables
 Version = "v22.0"
 AccountSid = os.getenv("AccountSid")
+logger.info(f"AccountSid {AccountSid}")
 AccountToken = os.getenv("AccountToken")
+logger.info(f"AccountToken {AccountToken}")
 TwilioSmsFrom = os.getenv("TwilioSmsFrom")
+logger.info(f"TwilioSmsFrom {TwilioSmsFrom}")
 # Handle PhoneNumberID conversion safely
 phone_number_id_str = os.getenv("PhoneNumberID")
 try:
@@ -46,12 +53,12 @@ router = APIRouter(
     tags=["notify"],
 )
 
-def send_notification(phone, body):
+def send_notification(phone, body, sms_body):
     try:
         res = requests.post(
             f"https://api.twilio.com/2010-04-01/Accounts/{AccountSid}/Messages.json",
             headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data={"From": TwilioSmsFrom, "To": phone, "Body": body},
+            data={"From": TwilioSmsFrom, "To": phone, "Body": sms_body},
             auth=HTTPBasicAuth(AccountSid, AccountToken),
         )
         bod = res.json()
@@ -134,7 +141,7 @@ def notify_new_alarm(body=Body(None)):
     phones = [row[1] for row in result if row[1] is not None]
     try:
         for i in phones:
-            send_notification(i, body)
+            send_notification(i, body, None)
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(
@@ -174,20 +181,35 @@ def notify_alarm_assignee(body=Body(None)):
         time_fmt = datetime.datetime.fromtimestamp(alarm_start_ts / 1000).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-        body = (
-            "Subject: New alarm assignment.\n\n"
-            + f"You got assigned a new alarm alert. {alarm_severity}.\nType: {alarm_type}\nStarted at: {time_fmt}"
-            + "\n\nAnalyticalBoard."
-        )
+        # body = (
+        #     "Subject: New alarm assignment.\n\n"
+        #     + f"You got assigned a new alarm alert. {alarm_severity}.\nType: {alarm_type}\nStarted at: {time_fmt}"
+        #     + "\n\nAnalyticalBoard."
+        # )
+
+        body_text, body_html = create_email_body(alarm_severity, alarm_type, time_fmt)
 
         try:
             if email is not None and email not in (
                 "tenant@thingsboard.org",
                 "sysadmin@thingsboard.org",
             ):
+                # Create message
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = "New Alarm Assignment"
+                msg['From'] = EMAIL_ADDRESS
+                msg['To'] = email
+                
+                # Attach both versions
+                part1 = MIMEText(body_text, 'plain', 'utf-8')
+                part2 = MIMEText(body_html, 'html', 'utf-8')
+                msg.attach(part1)
+                msg.attach(part2)
+                
+                # Send email
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                     server.login(EMAIL_ADDRESS, APP_PASSWORD)
-                    server.sendmail(EMAIL_ADDRESS, email, body)
+                    server.send_message(msg)  # Use send_message instead of sendmail
 
             if phone is not None:
                 send_notification(
@@ -197,6 +219,7 @@ def notify_alarm_assignee(body=Body(None)):
                         "type": alarm_type,
                         "startTs": alarm_start_ts,
                     },
+                    body_text
                 )
 
         except Exception as e:

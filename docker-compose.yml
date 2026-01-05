@@ -122,6 +122,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    env_file:
+      - ./.env
     environment:
       - WAIT_HOSTS=database:5432
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}

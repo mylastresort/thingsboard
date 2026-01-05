@@ -6,8 +6,8 @@ import json
 
 from requests.auth import HTTPBasicAuth
 
-#machine_id = "c91f5330-c92d-11f0-b124-2f32850b2dc6"
-machine_id = "7f01b860-660a-11ef-9061-853a958a524a"
+machine_id = "d398efa0-6610-11ef-9061-853a958a524a"
+#machine_id = "7f01b860-660a-11ef-9061-853a958a524a"
 #machine_id = 'ea6210e0-6610-11ef-9061-853a958a524a'
 # machine_id = "120e1d10-469d-11f0-b3d7-d5827fb4609f"
 alarm = None
@@ -119,4 +119,4 @@ if __name__ == "__main__":
     if alarm is None:
         sys.exit(f"Fatal: alarm value is not set. {alarm}")
 
-    #clear_alarm(alarm)
+    clear_alarm(alarm)

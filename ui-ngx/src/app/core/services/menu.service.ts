@@ -374,7 +374,7 @@ export class MenuService {
         id: 'home',
         name: 'home.home',
         type: 'link',
-        path: '/home',
+        path: '/',
         icon: 'home'
       },
       {
