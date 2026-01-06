@@ -204,6 +204,32 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
 
   hideSensorTelemetry = false; // Hide sensor telemetry widget
 
+  currentViewPreferences: ForecastViewPreferences; // Current view preferences with sensor colors
+
+  // Available colors for sensor color picker
+  availableColors: string[] = [
+    '#2196f3', // Blue
+    '#ff9800', // Orange
+    '#4caf50', // Green
+    '#f44336', // Red
+    '#9c27b0', // Purple
+    '#00bcd4', // Cyan
+    '#ffeb3b', // Yellow
+    '#e91e63', // Pink
+    '#009688', // Teal
+    '#ff5722', // Deep Orange
+    '#673ab7', // Deep Purple
+    '#3f51b5', // Indigo
+    '#cddc39', // Lime
+    '#ffc107', // Amber
+    '#795548', // Brown
+    '#607d8b', // Blue Grey
+    '#8bc34a', // Light Green
+    '#03a9f4', // Light Blue
+    '#ff6f00', // Amber Dark
+    '#d32f2f'  // Red Dark
+  ];
+
   showViewSelector = false;
 
   unreadLogs = false;
@@ -1688,6 +1714,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         this.selectedSensor = preferences.selectedSensor || 'rotate';
         this.hideSensorTelemetry = preferences.hideSensorTelemetry || false;
         this.timewindow = preferences.timewindow || this.timewindow;
+        this.currentViewPreferences = preferences;
       },
       (error) => {
         console.warn(
@@ -1700,6 +1727,13 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         ]; // Default fallback
         this.selectedSensor = 'rotate';
         this.hideSensorTelemetry = false;
+        this.currentViewPreferences = {
+          selectedViews: this.selectedViews,
+          selectedSensor: this.selectedSensor,
+          hideSensorTelemetry: this.hideSensorTelemetry,
+          timewindow: this.timewindow,
+          sensorColors: {},
+        };
       }
     );
   }
@@ -1717,6 +1751,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
           selectedSensor: this.selectedSensor,
           hideSensorTelemetry: this.hideSensorTelemetry,
           timewindow: this.timewindow,
+          sensorColors: this.currentViewPreferences?.sensorColors || {},
         };
 
         // Update the forecast with new view preferences
@@ -1778,6 +1813,43 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
    */
   onSensorChanged(sensor: string): void {
     this.selectedSensor = sensor;
+    this.saveViewPreferences();
+  }
+
+  /**
+   * Handle view preferences change (e.g., sensor colors updated)
+   */
+  onViewPreferencesChanged(preferences: ForecastViewPreferences): void {
+    this.currentViewPreferences = preferences;
+    this.saveViewPreferences();
+  }
+
+  /**
+   * Get the current color for a sensor
+   */
+  getSensorColor(sensor: string): string {
+    return this.currentViewPreferences?.sensorColors?.[sensor] || this.availableColors[0];
+  }
+
+  /**
+   * Update sensor color and save to preferences
+   */
+  updateSensorColor(sensor: string, color: string): void {
+    if (!this.currentViewPreferences) {
+      this.currentViewPreferences = {
+        selectedViews: this.selectedViews,
+        selectedSensor: this.selectedSensor,
+        hideSensorTelemetry: this.hideSensorTelemetry,
+        timewindow: this.timewindow,
+        sensorColors: {},
+      };
+    }
+
+    if (!this.currentViewPreferences.sensorColors) {
+      this.currentViewPreferences.sensorColors = {};
+    }
+
+    this.currentViewPreferences.sensorColors[sensor] = color;
     this.saveViewPreferences();
   }
 

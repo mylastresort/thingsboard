@@ -26,6 +26,7 @@ export interface ForecastViewPreferences {
   selectedSensor?: string; // Currently selected sensor for forecast chart (e.g., 'rotate', 'pressure', 'vibration', 'volt')
   hideSensorTelemetry?: boolean; // Hide sensor telemetry widget
   timewindow?: Timewindow; // Timewindow configuration for telemetry chart
+  sensorColors?: { [sensorName: string]: string }; // Map of sensor names to their assigned colors
 }
 
 export const DEFAULT_VIEW_PREFERENCES: ForecastViewPreferences = {
@@ -33,6 +34,7 @@ export const DEFAULT_VIEW_PREFERENCES: ForecastViewPreferences = {
   selectedSensor: 'rotate', // Default to first sensor
   hideSensorTelemetry: false, // Show sensor telemetry by default
   timewindow: undefined, // Default to undefined timewindow
+  sensorColors: {}, // Default to empty color map
 };
 
 export function parseForecastViewPreferences(
@@ -57,6 +59,7 @@ export function parseForecastViewPreferences(
           ? parsed.hideSensorTelemetry
           : DEFAULT_VIEW_PREFERENCES.hideSensorTelemetry,
         timewindow: parsed.timewindow || DEFAULT_VIEW_PREFERENCES.timewindow,
+        sensorColors: parsed.sensorColors || DEFAULT_VIEW_PREFERENCES.sensorColors,
       };
     }
 

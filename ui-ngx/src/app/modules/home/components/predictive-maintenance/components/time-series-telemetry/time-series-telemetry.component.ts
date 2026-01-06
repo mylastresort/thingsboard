@@ -60,6 +60,7 @@ import { Timewindow, QuickTimeInterval, AggregationType } from '@shared/models/t
 import { PredictiveModelsService } from '@core/http/forecast.service';
 import { startCase } from 'lodash';
 import { ForecastAttribute } from '@app/shared/models/forecast.models';
+import { ForecastViewPreferences } from '@app/shared/models/forecast-view-preferences.models';
 
 // Register ECharts components
 echarts.use([
@@ -117,6 +118,10 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
   @Input() historyPredictions: any;
 
+  @Input() viewPreferences: ForecastViewPreferences; // View preferences including sensor colors
+
+  @Output() viewPreferencesChange = new EventEmitter<ForecastViewPreferences>();
+
   // Available sensors fetched from device
   availableSensors: string[] = [];
 
@@ -172,6 +177,30 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     '#795548'  // Brown
   ];
 
+  // Public color palette for UI selection
+  public availableColors: string[] = [
+    '#2196f3', // Blue
+    '#ff9800', // Orange
+    '#4caf50', // Green
+    '#f44336', // Red
+    '#9c27b0', // Purple
+    '#00bcd4', // Cyan
+    '#ffeb3b', // Yellow
+    '#e91e63', // Pink
+    '#009688', // Teal
+    '#ff5722', // Deep Orange
+    '#673ab7', // Deep Purple
+    '#3f51b5', // Indigo
+    '#cddc39', // Lime
+    '#ffc107', // Amber
+    '#795548', // Brown
+    '#607d8b', // Blue Grey
+    '#8bc34a', // Light Green
+    '#03a9f4', // Light Blue
+    '#ff6f00', // Amber Dark
+    '#d32f2f'  // Red Dark
+  ];
+
   constructor(
     private telemetryWsService: TelemetryWebsocketService,
     private attributeService: AttributeService,
@@ -220,6 +249,15 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
           }
           this.cdr.detectChanges();
         }
+
+    // Handle viewPreferences changes (e.g., sensor colors updated)
+    if (changes.viewPreferences && !changes.viewPreferences.firstChange) {
+      this.assignColorsToSensors();
+      if (this.chart) {
+        this.updateChart();
+      }
+    }
+
     if (changes.deviceId && !changes.deviceId.firstChange) {
       // Device changed - fetch sensors and resubscribe
       if (this.telemetrySubscription) {
@@ -247,9 +285,9 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
       }
 
       // Fetch saved forecast predictions for the new sensor
-      if (this.modelId) {
-        this.fetchSensorForecastHistoryPredictions();
-      }
+      // if (this.modelId) {
+      //   this.fetchSensorForecastHistoryPredictions();
+      // }
     }
 
     if (changes.historyPredictions) {
@@ -513,14 +551,65 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
   }
 
   private assignColorsToSensors(): void {
+    // First, load colors from view preferences if available
+    if (this.viewPreferences?.sensorColors) {
+      Object.entries(this.viewPreferences.sensorColors).forEach(([sensor, color]) => {
+        if (this.availableSensors.includes(sensor)) {
+          this.sensorColors.set(sensor, color);
+        }
+      });
+    }
+
     // Assign colors to sensors that don't have colors yet
+    let hasNewColors = false;
     this.availableSensors.forEach((sensor, index) => {
       if (!this.sensorColors.has(sensor)) {
         // Assign color from palette, cycling through if we run out
         const color = this.colorPalette[index % this.colorPalette.length];
         this.sensorColors.set(sensor, color);
+        hasNewColors = true;
       }
     });
+
+    // If new colors were assigned, emit the updated view preferences
+    if (hasNewColors && this.viewPreferences) {
+      this.emitSensorColorsUpdate();
+    }
+  }
+
+  private emitSensorColorsUpdate(): void {
+    // Convert Map to object for serialization
+    const sensorColorsObj: { [key: string]: string } = {};
+    this.sensorColors.forEach((color, sensor) => {
+      sensorColorsObj[sensor] = color;
+    });
+
+    // Emit updated view preferences with sensor colors
+    const updatedPreferences: ForecastViewPreferences = {
+      ...this.viewPreferences,
+      sensorColors: sensorColorsObj,
+    };
+    this.viewPreferencesChange.emit(updatedPreferences);
+  }
+
+  /**
+   * Get the current color for a sensor
+   */
+  getSensorColor(sensor: string): string {
+    return this.sensorColors.get(sensor) || this.colorPalette[0];
+  }
+
+  /**
+   * Update sensor color and save to preferences
+   */
+  updateSensorColor(sensor: string, color: string): void {
+    this.sensorColors.set(sensor, color);
+    this.emitSensorColorsUpdate();
+    
+    // Update chart if it exists
+    if (this.chart) {
+      this.updateChart();
+    }
   }
 
   private fetchAvailableSensors(): void {
@@ -1047,6 +1136,18 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
   private clearData(): void {
     this.telemetryData = [];
+    this.historyForecastDataPoints = [];
+    this.forecastDataPoints = [];
+    if (this.chart) {
+      // Reset y-axis range to allow auto-scaling
+      this.chart.setOption({
+        yAxis: {
+          min: null,
+          max: null
+        }
+      });
+      this.updateChart();
+    }
   }
 
   private fetchHistoricalData(): Promise<void> {
@@ -1182,7 +1283,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
         this.subscribeToTelemetry();
       }
       // In history mode, also fetch forecast predictions
-      if (this.timewindow.history && this.modelId) {
+      if (this.modelId) {
         console.log('[TIME-SERIES] History mode detected - fetching forecast predictions');
         this.fetchSensorForecastHistoryPredictions();
       }

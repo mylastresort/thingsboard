@@ -252,8 +252,10 @@
           [forecastHistoryPoint$]="forecastHistoryPoint$"
           [title]="'Live Sensor Data'"
           [timewindow]="timewindow"
+          [viewPreferences]="currentViewPreferences"
           (sensorChanged)="onSensorChanged($event)"
           (timewindowChange)="onTimewindowChanged($event)"
+          (viewPreferencesChange)="onViewPreferencesChanged($event)"
           [attributes]="attributes"
         >
         </tb-time-series-telemetry>
@@ -340,7 +342,7 @@
   <div class="view-selector-overlay" (click)="showViewSelector = false"></div>
   <div class="view-selector-checkboxes" (click)="$event.stopPropagation()">
     <div class="menu-header">
-      <h4>Select Views</h4>
+      <h4>Edit View</h4>
       <button
         mat-icon-button
         (click)="showViewSelector = false"
@@ -364,6 +366,37 @@
             <span>{{ option.label }}</span>
           </div>
         </mat-checkbox>
+      </div>
+    </div>
+
+    <!-- Sensor Colors Configuration -->
+    <div class="color-config-section" (click)="$event.stopPropagation()">
+      <div class="section-header">
+        <mat-icon>palette</mat-icon>
+        <span>Sensor Colors</span>
+      </div>
+      <div class="sensor-color-item" *ngFor="let sensor of attributes">
+        <div class="sensor-color-label">
+          <div 
+            class="color-preview" 
+            [style.background-color]="getSensorColor(sensor.key)"
+          ></div>
+          <span>{{ sensor.key | titlecase }}</span>
+        </div>
+        <div class="color-picker-grid">
+          <button
+            *ngFor="let color of availableColors"
+            mat-icon-button
+            class="color-option"
+            [style.background-color]="color"
+            [class.selected]="getSensorColor(sensor.key) === color"
+            (click)="updateSensorColor(sensor.key, color)"
+            [matTooltip]="color"
+            matTooltipPosition="above"
+          >
+            <mat-icon *ngIf="getSensorColor(sensor.key) === color" class="check-icon">check</mat-icon>
+          </button>
+        </div>
       </div>
     </div>
   </div>
