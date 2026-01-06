@@ -242,7 +242,8 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
       }
       this.clearData();
       if (this.deviceId && this.selectedSensor) {
-        this.subscribeToTelemetry();
+        // this.subscribeToTelemetry();
+        this.getSensorData();
       }
 
       // Fetch saved forecast predictions for the new sensor
@@ -556,6 +557,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
       LatestTelemetry.LATEST_TELEMETRY,
       this.zone,
       [this.selectedSensor] // Pass as array with single sensor
+      // this.attributes.map(attr => attr.key) // Subscribe to all attributes
     );
 
     // Subscribe to data updates
@@ -1048,6 +1050,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
   }
 
   private fetchHistoricalData(): Promise<void> {
+    // return Promise.resolve();
     console.log('Fetching historical data for device:', this.deviceId, 'sensor:', this.selectedSensor);
     return new Promise((resolve) => {
       if (!this.deviceId || !this.selectedSensor) {
@@ -1098,6 +1101,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
         DataSortOrder.ASC
       ).subscribe({
         next: (data) => {
+          console.log('Historical data fetched successfully', data);
           // Process historical data
           if (data && data[this.selectedSensor]) {
             const { minTime: timewindowMin, maxTime: timewindowMax } = this.calculateTimeWindow();
@@ -1171,10 +1175,10 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
   getSensorData() {
     console.log('Starting historical data fetch...');
     this.fetchHistoricalData().then(() => {
-      // console.log('Historical data fetch completed');
+      console.log('Historical data fetch completed');
       // After historical data is loaded, subscribe to realtime updates if in realtime mode
       if (this.timewindow.realtime) {
-        // console.log('Re-subscribing to realtime telemetry');
+        console.log('Re-subscribing to realtime telemetry');
         this.subscribeToTelemetry();
       }
       // In history mode, also fetch forecast predictions
