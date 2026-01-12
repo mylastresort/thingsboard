@@ -229,11 +229,13 @@ class ForecastModel(BaseModel):
         #         f"Data must contain '{time_column}' and '{value_column}' columns"
         #     )
 
+        logger.info(f"Starting to fetch training data for sensors: {self.sensors}")
         data = self.fetch(
             sensor_keys=self.sensors,
             start_date=self.train_start_date,
             end_date=self.train_end_date,
         )
+        logger.info(f"Fetched training data for {len(data)} sensors")
 
         # self.sensor_name = sensor_name
         training_start = datetime.now()
@@ -254,37 +256,51 @@ class ForecastModel(BaseModel):
         TRAIN_PERCENTAGE = 0.75
         # LOOKBACK = 720
         LSTM_UNITS = 256
-        EPOCHS = 35
+        # EPOCHS = 35
+        EPOCHS = 1
         BATCH_SIZE = 128
 
         models = dict()
 
+        logger.info(f"Training LSTM models for {len(data)} sensors with lookback={self.lookback}, epochs={EPOCHS}, batch_size={BATCH_SIZE}")
+        
         for sensor_key, df in data.items():
+            logger.info(f"Processing sensor: {sensor_key} with {len(df)} data points")
             sensor = prepare_sensor_data(df, sensor=sensor_key)
+            logger.info(f"Prepared sensor data for {sensor_key}")
 
             # Scale and split data
+            logger.info(f"Scaling and splitting data for {sensor_key}")
             train_data, test_data, scaler = scale_and_split_data(
                 sensor, sensor_key, TRAIN_PERCENTAGE, self.lookback
             )
+            logger.info(f"Scaled and split data for {sensor_key}: train_size={len(train_data)}, test_size={len(test_data)}")
 
             # Create RNN datasets
+            logger.info(f"Creating RNN datasets for {sensor_key}")
             train_x, train_y = create_rnn_dataset(train_data, self.lookback)
             train_x = np.reshape(train_x, (train_x.shape[0], 1, train_x.shape[1]))
             test_x, test_y = create_rnn_dataset(test_data, self.lookback)
             test_x = np.reshape(test_x, (test_x.shape[0], 1, test_x.shape[1]))
+            logger.info(f"Created RNN datasets for {sensor_key}: train_x.shape={train_x.shape}, test_x.shape={test_x.shape}")
 
             # Build and train model
+            logger.info(f"Building LSTM model for {sensor_key}")
             model = build_lstm_model(self.lookback, LSTM_UNITS, use_gpu=USE_GPU)
+            logger.info(f"Training LSTM model for {sensor_key} with {EPOCHS} epochs...")
             model = train_lstm_model(model, train_x, train_y, EPOCHS, BATCH_SIZE)
+            logger.info(f"Finished training LSTM model for {sensor_key}")
 
             models[sensor_key] = {
                 "model": model,
                 "scaler": scaler,
             }
 
+        logger.info(f"Completed training for all {len(models)} sensors")
         self.models = models
 
         # placeholder for training metrics
+        logger.info("Generating training metrics")
         metrics = type(
             "Metrics",
             (object,),
@@ -298,6 +314,8 @@ class ForecastModel(BaseModel):
 
         self.is_trained = True
         self.last_updated = datetime.now()
+        
+        logger.info(f"Training completed successfully in {metrics.training_time:.2f}s")
 
         return {
             "algorithm": self.algorithm_name,

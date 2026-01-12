@@ -775,6 +775,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         .subscribe((msg => {
           if (msg.forecastId != params.id) return;
           console.log('Initial job status message received:', msg);
+          console.log('Job status data:', msg?.data);
           if (msg?.data?.status === 'running') {
             this.status = 'active';
           }
@@ -1849,7 +1850,15 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
       this.currentViewPreferences.sensorColors = {};
     }
 
-    this.currentViewPreferences.sensorColors[sensor] = color;
+    // Create a new object reference to trigger Angular change detection
+    this.currentViewPreferences = {
+      ...this.currentViewPreferences,
+      sensorColors: {
+        ...this.currentViewPreferences.sensorColors,
+        [sensor]: color
+      }
+    };
+
     this.saveViewPreferences();
   }
 

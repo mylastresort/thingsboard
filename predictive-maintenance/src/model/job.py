@@ -39,6 +39,10 @@ SYS_TENANT_ID = "13814000-1dd2-11b2-8080-808080808080"
 log_broadcasters: Dict[str, Set[Callable]] = {}
 broadcaster_lock = threading.Lock()
 
+# WebSocket job status subscribers: {model_id: set of callback functions}
+job_status_subscribers: Dict[str, Set[Callable]] = {}
+status_subscriber_lock = threading.Lock()
+
 
 JSONValue = Union[
     str,
@@ -729,38 +733,38 @@ def unpause_prediction_job(model_id: str) -> bool:
 
 def get_job_status(model_id: str = None) -> dict:
     """Get status of jobs"""
-    with job_lock:
-        if model_id:
-            if model_id in active_jobs:
-                job_info = active_jobs[model_id]
-                return {
-                    "model_id": job_info["model_id"],
-                    "model_type": job_info["model_type"],
-                    "device_id": job_info.get("device_id"),
-                    "status": job_info["status"],
-                    "paused": job_info.get("paused", False),
-                    "start_time": job_info["start_time"],
-                    "last_run": job_info.get("last_run"),
-                    "iterations": job_info.get("iterations", 0),
-                    "model_exists": True,
-                }
-            return None
-        else:
-            # Return all jobs
+    # with job_lock:
+    if model_id:
+        if model_id in active_jobs:
+            job_info = active_jobs[model_id]
             return {
-                model_id: {
-                    "model_id": job_info["model_id"],
-                    "model_type": job_info["model_type"],
-                    "device_id": job_info.get("device_id"),
-                    "status": job_info["status"],
-                    "paused": job_info.get("paused", False),
-                    "start_time": job_info["start_time"],
-                    "last_run": job_info.get("last_run"),
-                    "iterations": job_info.get("iterations", 0),
-                    "model_exists": True,
-                }
-                for model_id, job_info in active_jobs.items()
+                "model_id": job_info["model_id"],
+                "model_type": job_info["model_type"],
+                "device_id": job_info.get("device_id"),
+                "status": job_info["status"],
+                "paused": job_info.get("paused", False),
+                "start_time": job_info["start_time"],
+                "last_run": job_info.get("last_run"),
+                "iterations": job_info.get("iterations", 0),
+                "model_exists": True,
             }
+        return None
+    else:
+        # Return all jobs
+        return {
+            model_id: {
+                "model_id": job_info["model_id"],
+                "model_type": job_info["model_type"],
+                "device_id": job_info.get("device_id"),
+                "status": job_info["status"],
+                "paused": job_info.get("paused", False),
+                "start_time": job_info["start_time"],
+                "last_run": job_info.get("last_run"),
+                "iterations": job_info.get("iterations", 0),
+                "model_exists": True,
+            }
+            for model_id, job_info in active_jobs.items()
+        }
 
 
 def get_model_logs(model_id: str, level: str = "all", limit: int = 100) -> list:
@@ -808,3 +812,52 @@ def unsubscribe_from_logs(model_id: str, callback: Callable) -> None:
             if not log_broadcasters[model_id]:
                 del log_broadcasters[model_id]
             logger.info(f"WebSocket unsubscribed from logs for {model_id}")
+
+
+def subscribe_to_job_status(model_id: str, callback: Callable) -> None:
+    """
+    Subscribe to real-time job status updates for a model.
+
+    Args:
+        model_id: The model ID to subscribe to
+        callback: Function to call when job status changes (receives status dict)
+    """
+    with status_subscriber_lock:
+        if model_id not in job_status_subscribers:
+            job_status_subscribers[model_id] = set()
+        job_status_subscribers[model_id].add(callback)
+        logger.info(f"WebSocket subscribed to job status for {model_id}")
+
+
+def unsubscribe_from_job_status(model_id: str, callback: Callable) -> None:
+    """
+    Unsubscribe from real-time job status updates for a model.
+
+    Args:
+        model_id: The model ID to unsubscribe from
+        callback: The callback function to remove
+    """
+    with status_subscriber_lock:
+        if model_id in job_status_subscribers:
+            job_status_subscribers[model_id].discard(callback)
+            if not job_status_subscribers[model_id]:
+                del job_status_subscribers[model_id]
+            logger.info(f"WebSocket unsubscribed from job status for {model_id}")
+
+
+def notify_job_status_update(model_id: str) -> None:
+    """
+    Notify all subscribers that job status has been updated.
+
+    Args:
+        model_id: The model ID that was updated
+    """
+    with status_subscriber_lock:
+        if model_id in job_status_subscribers:
+            job_status = get_job_status(model_id)
+            if job_status:
+                for callback in job_status_subscribers[model_id].copy():
+                    try:
+                        callback(job_status)
+                    except Exception as e:
+                        logger.error(f"Error notifying job status subscriber: {str(e)}")
