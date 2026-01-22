@@ -239,26 +239,27 @@
         </h3>
       </div>
       <div
-        class="chart-content"
+        class="chart-content forecast-grid-container"
         [@slideCollapse]="timeSeriesChartCollapsed ? 'collapsed' : 'expanded'"
       >
-        <tb-time-series-telemetry
-          [deviceId]="deviceId"
-          [selectedSensor]="selectedSensor"
-          [forecastData]="forecastData"
-          [historyPredictions]="historyForecastPredictions"
-          [forecastMaxSteps]="forecastMaxSteps"
-          [modelId]="trueId"
-          [forecastHistoryPoint$]="forecastHistoryPoint$"
-          [title]="'Live Sensor Data'"
-          [timewindow]="timewindow"
-          [viewPreferences]="currentViewPreferences"
-          (sensorChanged)="onSensorChanged($event)"
-          (timewindowChange)="onTimewindowChanged($event)"
-          (viewPreferencesChange)="onViewPreferencesChanged($event)"
-          [attributes]="attributes"
-        >
-        </tb-time-series-telemetry>
+        <!-- Responsive grid of forecast graphs for each sensor -->
+        <div class="forecast-grid">
+          <tb-time-series-telemetry
+            *ngFor="let attribute of attributes"
+            [deviceId]="deviceId"
+            [selectedSensor]="attribute.key"
+            [forecastMaxSteps]="forecastMaxSteps"
+            [modelId]="trueId"
+            [title]="attribute.key"
+            [timewindow]="timewindow"
+            [viewPreferences]="currentViewPreferences"
+            (timewindowChange)="onTimewindowChanged($event)"
+            (viewPreferencesChange)="onViewPreferencesChanged($event)"
+            [attributes]="attributes"
+            [logsObservable]="logsObservable"
+          >
+          </tb-time-series-telemetry>
+        </div>
       </div>
     </div>
   </div>

@@ -255,7 +255,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   // Log tracking properties
   private lastReadLogTimestamp = 0;
 
-  private logsObservable: Observable<LogEntry> = null;
+  logsObservable: Observable<LogEntry> = null; // Made public for template access
 
   private subscriptions: Array<any> = [];
 
@@ -583,7 +583,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
             forecast,
           });
 
-          if (sensorName !== this.selectedSensor) { return; }
+          // Store forecast data for all sensors (removed filter)
           this.forecastData = {
             ...this.forecastData,
             [sensorName]: {

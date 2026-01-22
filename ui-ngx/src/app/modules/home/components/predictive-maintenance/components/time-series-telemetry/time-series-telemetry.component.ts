@@ -48,7 +48,8 @@ import {
 import { LineChart } from 'echarts/charts';
 import { UniversalTransition } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { filter, tap } from 'rxjs/operators';
 import { TelemetryWebsocketService } from '@core/ws/telemetry-websocket.service';
 import { TelemetrySubscriber, SubscriptionUpdate, LatestTelemetry, DataSortOrder } from '@shared/models/telemetry/telemetry.models';
 import { EntityId } from '@shared/models/id/entity-id';
@@ -61,6 +62,37 @@ import { PredictiveModelsService } from '@core/http/forecast.service';
 import { startCase } from 'lodash';
 import { ForecastAttribute } from '@app/shared/models/forecast.models';
 import { ForecastViewPreferences } from '@app/shared/models/forecast-view-preferences.models';
+
+// Types for forecast prediction logs
+interface LogEntry {
+  type?: string;
+  level?: string;
+  message: any;
+  timestamp?: string;
+  source?: string;
+}
+
+interface ForecastPredictionLogEntry extends LogEntry {
+  message: ForecastPredictionLogEntryMessage;
+}
+
+interface ForecastPredictionLogEntryMessage {
+  device_id: string;
+  iteration: number;
+  prediction_type: string;
+  recent_point_ts?: number;
+  sensor?: string;
+  result: ForecastSensorPrediction;
+}
+
+interface ForecastSensorPrediction {
+  prediction_info?: {
+    group_by_period_ms: number;
+    recent_point_ts: number;
+  };
+  forecast?: number[];
+  timestamp?: number[];
+}
 
 // Register ECharts components
 echarts.use([
@@ -122,11 +154,17 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
   @Output() viewPreferencesChange = new EventEmitter<ForecastViewPreferences>();
 
+  // Observable stream of logs from the parent component (model websocket)
+  @Input() logsObservable: Observable<LogEntry>;
+
   // Available sensors fetched from device
   availableSensors: string[] = [];
 
   // Subscription for real-time forecast history points
   private forecastHistorySubscription: Subscription;
+
+  // Subscription for forecast prediction logs
+  private forecastPredictionLogsSubscription: Subscription;
 
   // Track if sensor was explicitly provided vs auto-selected
   private sensorExplicitlyProvided = false;
@@ -300,6 +338,11 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
       }
     }
 
+    // Handle logsObservable changes - subscribe to forecast predictions
+    if (changes.logsObservable && this.logsObservable) {
+      this.subscribeToForecastPredictions();
+    }
+
     if (changes.forecastData) {
       console.log('[ngOnChanges] changes.forecastData', changes.forecastData);
       this.processSensorForecastData();
@@ -350,6 +393,9 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     }
     if (this.forecastHistorySubscription) {
       this.forecastHistorySubscription.unsubscribe();
+    }
+    if (this.forecastPredictionLogsSubscription) {
+      this.forecastPredictionLogsSubscription.unsubscribe();
     }
     if (this.timeAxisUpdateInterval) {
       clearInterval(this.timeAxisUpdateInterval);
@@ -683,6 +729,88 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
         if (this.chart) {
           this.updateChart();
         }
+      }
+    });
+  }
+
+  /**
+   * Subscribe to forecast prediction logs from the websocket
+   */
+  private subscribeToForecastPredictions(): void {
+    if (!this.logsObservable) {
+      console.log('[TIME-SERIES] No logsObservable available for forecast predictions');
+      return;
+    }
+
+    // Unsubscribe from previous subscription if it exists
+    if (this.forecastPredictionLogsSubscription) {
+      this.forecastPredictionLogsSubscription.unsubscribe();
+    }
+
+    console.log('[TIME-SERIES] Subscribing to forecast prediction logs for sensor:', this.selectedSensor);
+
+    // Filter logs for forecast predictions only
+    const forecastPredictionLogs$ = this.logsObservable.pipe(
+      filter((log: LogEntry) =>
+        log.level && log.level.toLowerCase() === 'prediction' &&
+        (log.type && log.type.toLowerCase() === 'forecast') || 
+        (log.source && log.source.toLowerCase() === 'forecastmodel')
+      ),
+      tap((log) => {
+        console.log('[TIME-SERIES] Processing forecast log entry:', log);
+        if (typeof log.message !== 'string') {
+          const msg = log.message as any;
+          console.log('[TIME-SERIES] Recent point timestamp:', msg?.recent_point_ts);
+        }
+      })
+    ) as Observable<ForecastPredictionLogEntry>;
+
+    // Subscribe to forecast prediction logs
+    this.forecastPredictionLogsSubscription = forecastPredictionLogs$.subscribe(log => {
+      console.log('[TIME-SERIES] Received forecast prediction log:', log.message.prediction_type);
+
+      if (log.message.prediction_type === 'forecast') {
+        const results = log.message.result as ForecastSensorPrediction;
+        
+        if (results) {
+          // Extract prediction_info for calculating forecast points
+          const predictionInfo = (results as any).prediction_info;
+          const recentPointTs = predictionInfo?.recent_point_ts;
+          const groupByPeriodMs = predictionInfo?.group_by_period_ms;
+          const sensorName: string = (log.message as any).sensor;
+          const forecast: number[] = (results as any).forecast;
+
+          console.log('[TIME-SERIES] Forecast data:', {
+            predictionInfo,
+            recentPointTs,
+            groupByPeriodMs,
+            sensorName,
+            forecast,
+            selectedSensor: this.selectedSensor
+          });
+
+          // Only process if this is for the current sensor
+          if (sensorName === this.selectedSensor) {
+            this.forecastDataPoints = forecast.map((value, i) => 
+              [recentPointTs + (i + 2) * groupByPeriodMs, value]
+            );
+            
+            console.log('[TIME-SERIES] Updated forecast points:', this.forecastDataPoints.length);
+            
+            // Update the chart
+            if (this.chart) {
+              this.updateChart();
+            }
+            
+            this.cdr.detectChanges();
+          }
+        } else {
+          console.warn('[TIME-SERIES] No forecast results to process');
+        }
+      } else if (log.message.prediction_type === 'history') {
+        // Historical forecast prediction
+        console.log('[TIME-SERIES] Processing historical forecast prediction log:', log);
+        // We could process history here if needed
       }
     });
   }

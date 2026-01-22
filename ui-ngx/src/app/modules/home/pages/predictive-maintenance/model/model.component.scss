@@ -1881,3 +1881,37 @@
     transform: translateX(-50%) translateY(0);
   }
 }
+
+// Responsive grid for forecast graphs
+.forecast-grid-container {
+  width: 100%;
+  padding: 1rem;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  
+  // Ensure each chart container has minimum height
+  > * {
+    min-height: 400px;
+  }
+
+  // Responsive breakpoints
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    > * {
+      min-height: 300px;
+    }
+  }
+}
