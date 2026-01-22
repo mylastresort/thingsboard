@@ -6,6 +6,7 @@ Uses ThingsBoard command pattern with commandId
 
 import asyncio
 from datetime import datetime
+import os
 from typing import Dict, Set, Callable
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from src.model.shared import get_data_registry, train_and_save_model
@@ -26,6 +27,7 @@ from src.settings import settings
 from src.logger import logger  # Global logger
 from pathlib import Path
 import traceback
+from random import randint, random
 
 router = APIRouter()
 
@@ -246,6 +248,7 @@ async def unified_model_stream(websocket: WebSocket):
 
             # Handle activate command
             if msg_type == "activate":
+                logger.info(f"Received activate command for forecastId={forecast_id}")
                 await handle_activate(websocket, command_id, forecast_id, data)
                 continue
 
@@ -364,18 +367,18 @@ async def unified_model_stream(websocket: WebSocket):
                 # Subscribe to anomaly predictor
                 anomaly_model_id = f"{forecast_id}/anomaly_predictor"
                 # print(f"[SUBSCRIBE DEBUG] Creating callback for {anomaly_model_id}", flush=True)
-                
+
                 callback = create_log_callback(
                     websocket, forecast_id, command_id, asyncio.get_running_loop()
                 )
                 log_callbacks[anomaly_model_id] = callback
                 # print(f"[SUBSCRIBE DEBUG] Calling subscribe_to_logs({anomaly_model_id}, {id(callback)})", flush=True)
                 subscribe_to_logs(anomaly_model_id, callback)
-                
+
                 # Subscribe to forecast model
                 forecast_model_id = f"{forecast_id}/forecast_model"
                 # print(f"[SUBSCRIBE DEBUG] Creating callback for {forecast_model_id}", flush=True)
-                
+
                 callback = create_log_callback(
                     websocket, forecast_id, command_id, asyncio.get_running_loop()
                 )
@@ -551,7 +554,7 @@ async def unified_model_stream(websocket: WebSocket):
                 unsubscribe_from_logs(model_id, callback)
             except Exception as e:
                 logger.error(f"Error unsubscribing from logs on cleanup: {str(e)}")
-        
+
         # Clean up all job status subscriptions for this connection
         for model_id, callback in job_status_callbacks.items():
             try:
@@ -568,7 +571,17 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
     # add_model_log(model_id, "info", f"calling train_and_save_model")
     # return
 
+    rand_id = os.urandom(4).hex()
+
+    logger.info(
+        f"Handling activate command for forecastId={forecast_id}", extra={"rand_id": rand_id}
+    )
+
     try:
+        logger.info(
+            f"Starting activation process for forecastId={forecast_id}",
+            extra={"rand_id": rand_id},
+        )
         # Send progress: initializing
         await websocket.send_json(
             {
@@ -581,9 +594,18 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
             }
         )
 
+        logger.info(
+            f"Data registry initialization started for forecastId={forecast_id}",
+            extra={"rand_id": rand_id},
+        )
+
         # Run synchronous data registry creation in thread pool to avoid blocking event loop
 
         data_registry = await asyncio.to_thread(get_data_registry)
+
+        logger.info(
+            f"Data registry initialized for forecastId={forecast_id}", extra={"rand_id": rand_id}
+        )
 
         # Fetch device_id from configuration
         device_id = data.get("deviceId")
@@ -599,10 +621,20 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
             }
         )
 
+        logger.info(
+            f"Fetching device configuration for forecastId={forecast_id}",
+            extra={"rand_id": rand_id},
+        )
+
         try:
             model_config = data_registry.fetch_predictive_model_config(forecast_id)
             device_id = model_config["device_id"]
+            logger.info(
+                f"Device ID fetched for forecastId={forecast_id}: {device_id}",
+                extra={"rand_id": rand_id},
+            )
         except Exception as e:
+            logger.error(f"Failed to fetch model configuration: {str(e)}")
             traceback.print_exc()
             await websocket.send_json(
                 {
@@ -625,7 +657,7 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
                 "timestamp": datetime.now().isoformat() + "Z",
             }
         )
-        
+
         try:
             algorithm = model_config.get("anomaly_algorithm", None)
             print(f"[ACTIVATE] Starting anomaly predictor training...", flush=True)
@@ -642,7 +674,7 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
                 f"[ACTIVATE] Anomaly predictor training completed: {anomaly_result}",
                 flush=True,
             )
-        
+
             await websocket.send_json(
                 {
                     "commandId": command_id,
@@ -704,6 +736,11 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
             # For backward compatibility, keep group_by_ms as default
             group_by_ms = default_group_by_ms
 
+            logger.info(
+                f"Starting ForecastModel training for forecastId={forecast_id} with sensors={sensors}, group_by_ms={group_by_ms}, group_by_ms_per_sensor={group_by_ms_per_sensor}, aggregation_funcs={aggregation_funcs}",
+                extra={"rand_id": rand_id},
+            )
+
             forecast_result = await asyncio.to_thread(
                 train_and_save_model,
                 model_id=f"{forecast_id}/forecast_model",
@@ -731,6 +768,7 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
                 }
             )
         except Exception as e:
+            logger.error(f"ForecastModel training failed: {str(e)}")
             error_trace = traceback.format_exc()
             await websocket.send_json(
                 {
@@ -791,16 +829,34 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
         )
 
 
-async def handle_job_status(websocket: WebSocket, command_id: int, forecast_id: str, job_status_callbacks: Dict[str, Callable] = None):
+async def handle_job_status(
+    websocket: WebSocket,
+    command_id: int,
+    forecast_id: str,
+    job_status_callbacks: Dict[str, Callable] = None,
+):
     """Handle job status request and subscribe to future updates"""
     try:
+        rand_id = randint(100000, 999999)
+
         # Helper function to create status update callback
         def create_status_callback(ws, fid, cmd_id, loop, model_type_str):
-            logger.info(f"Creating job status callback for {fid} - {model_type_str}")
+            logger.info(
+                f"Creating job status callback for {fid} - {model_type_str}",
+                extra={"rand_id": rand_id},
+            )
+
             def status_callback(status_data):
                 """Callback to send status updates immediately when they change (thread-safe)"""
+                logger.info(
+                    f"Job status callback triggered for {fid} - {model_type_str}: {status_data}",
+                    extra={"rand_id": rand_id},
+                )
                 try:
-                    logger.info(f"Job status update for {fid} - {model_type_str}: {status_data}")
+                    logger.info(
+                        f"Job status update for {fid} - {model_type_str}: {status_data}",
+                        extra={"rand_id": rand_id},
+                    )
                     asyncio.run_coroutine_threadsafe(
                         ws.send_json(
                             {
@@ -816,89 +872,69 @@ async def handle_job_status(websocket: WebSocket, command_id: int, forecast_id: 
                         loop,
                     )
                 except Exception as e:
-                    logger.error(f"Error sending real-time status update: {str(e)}")
+                    logger.error(
+                        f"Error sending real-time status update: {str(e)}",
+                        extra={"rand_id": rand_id},
+                    )
+
             return status_callback
-        
+
         # Handle anomaly predictor
         model_id = f"{forecast_id}/anomaly_predictor"
         job_status_anomaly = get_job_status(model_id)
-        logger.info(f"Fetched job status for {model_id}: {job_status_anomaly}")
+        logger.info(
+            f"Fetched job status for {model_id}: {job_status_anomaly}", extra={"rand_id": rand_id}
+        )
 
-        if job_status_anomaly:
-            await websocket.send_json(
-                {
-                    "commandId": command_id,
-                    "type": "response",
-                    "model": "job",
-                    "model_type": "anomaly",
-                    "data": job_status_anomaly,
-                    "forecastId": forecast_id,
-                    "timestamp": datetime.now().isoformat() + "Z",
-                }
-            )
-            
-            # Subscribe to future status updates for anomaly predictor
-            callback = create_status_callback(
-                websocket, forecast_id, command_id, asyncio.get_running_loop(), "anomaly"
-            )
-            job_status_callbacks[model_id] = callback
-            subscribe_to_job_status(model_id, callback)
-        else:
-            path = f"{forecast_id}/anomaly_predictor"
-            await websocket.send_json(
-                {
-                    "commandId": command_id,
-                    "type": "response",
-                    "model": "job",
-                    "forecastId": forecast_id,
-                    "data": {
-                        "status": "inactive",
-                        # check if model files exist
-                        "model_exists": (Path(settings.models_path) / path).exists(),
-                    },
-                    "timestamp": datetime.now().isoformat() + "Z",
-                }
-            )
+        await websocket.send_json(
+            {
+                "commandId": command_id,
+                "type": "response",
+                "model": "job",
+                "model_type": "anomaly",
+                "data": job_status_anomaly,
+                "forecastId": forecast_id,
+                "timestamp": datetime.now().isoformat() + "Z",
+            }
+        )
+
+        # Subscribe to future status updates for anomaly predictor
+        callback = create_status_callback(
+            websocket, forecast_id, command_id, asyncio.get_running_loop(), "anomaly"
+        )
+        # job_status_callbacks[model_id] = callback
+        subscribe_to_job_status(model_id, callback, rand_id=rand_id)
 
         # Handle forecast model
         model_id = f"{forecast_id}/forecast_model"
         job_status_forecast = get_job_status(model_id)
-        logger.info(f"Fetched job status for {model_id}: {job_status_forecast}")
-        if job_status_forecast:
-            await websocket.send_json(
-                {
-                    "commandId": command_id,
-                    "type": "response",
-                    "model": "job",
-                    "model_type": "forecast",
-                    "data": job_status_forecast,
-                    "forecastId": forecast_id,
-                    "timestamp": datetime.now().isoformat() + "Z",
-                }
-            )
-            
-            callback = create_status_callback(
-                websocket, forecast_id, command_id, asyncio.get_running_loop(), "forecast"
-            )
-            job_status_callbacks[model_id] = callback
-            subscribe_to_job_status(model_id, callback)
-        else:
-            path = f"{forecast_id}/forecast_model"
-            await websocket.send_json(
-                {
-                    "commandId": command_id,
-                    "type": "response",
-                    "model": "job",
-                    "forecastId": forecast_id,
-                    "data": {
-                        "status": "inactive",
-                        # check if model files exist
-                        "model_exists": (Path(settings.models_path) / path).exists(),
-                    },
-                    "timestamp": datetime.now().isoformat() + "Z",
-                }
-            )
+        logger.info(
+            f"Fetched job status for {model_id}: {job_status_forecast}", extra={"rand_id": rand_id}
+        )
+        await websocket.send_json(
+            {
+                "commandId": command_id,
+                "type": "response",
+                "model": "job",
+                "model_type": "forecast",
+                "data": job_status_forecast,
+                "forecastId": forecast_id,
+                "timestamp": datetime.now().isoformat() + "Z",
+            }
+        )
+
+        logger.info(f"Subscribing to job status updates for {model_id}", extra={"rand_id": rand_id})
+
+        callback = create_status_callback(
+            websocket, forecast_id, command_id, asyncio.get_running_loop(), "forecast"
+        )
+        logger.info(f"Storing job status callback for {model_id}", extra={"rand_id": rand_id})
+        # return active_jobs[model_id]
+        logger.info(f"Calling subscribe_to_job_status for {model_id}", extra={"rand_id": rand_id})
+        subscribe_to_job_status(model_id, callback, rand_id=rand_id)
+        logger.info(f"Subscribed to job status updates for {model_id}", extra={"rand_id": rand_id})
     except Exception as e:
+        logger.error(f"Error in job status handler: {str(e)}", exc_info=True)
         await websocket.send_json(
             {
                 "commandId": command_id,

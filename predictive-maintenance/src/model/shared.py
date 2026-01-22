@@ -11,6 +11,7 @@ from library.core.data_registry import DataRegistry
 from src.settings import settings
 from src.logger import logger  # Global logger
 from library.models.anomaly_predictor import train_model, save_models
+from src.model.utils import get_job_status, get_or_create_job_status
 
 
 def get_data_registry() -> DataRegistry:
@@ -73,20 +74,27 @@ training_results = None
 def _update_training_progress_impl(model_id: str, progress: dict, rand_id: str = None):
     """
     Internal implementation of update_training_progress that runs in a thread.
-    
+
     Args:
         model_id: The model ID
         progress: Dictionary with progress information (step, message, progress percentage)
         rand_id: Random ID for tracking
     """
     from src.model.job import active_jobs, job_lock, notify_job_status_update
-    
-    logger.info(f"{rand_id} - Updating training progress for model_id={model_id}: {progress}", extra={"rand_id": rand_id})
-    with job_lock:
-        logger.info(f"{rand_id} - Acquired job_lock for model_id={model_id}", extra={"rand_id": rand_id})
-        if model_id in active_jobs:
-            active_jobs[model_id]["training_progress"] = progress
-    
+
+    logger.info(
+        f"{rand_id} - Updating training progress for model_id={model_id}: {progress}",
+        extra={"rand_id": rand_id},
+    )
+    job = get_job_status(model_id)
+    if job is not None:
+        with job["read_lock"]:
+            logger.info(
+                f"{rand_id} - Acquired read_lock for model_id={model_id}",
+                extra={"rand_id": rand_id},
+            )
+            job["training_progress"] = progress
+
     # Notify subscribers after updating
     notify_job_status_update(model_id)
 
@@ -95,16 +103,14 @@ def update_training_progress(model_id: str, progress: dict, rand_id: str = None)
     """
     Update the training progress for a model in active_jobs and notify subscribers.
     This is non-blocking - runs in a background thread.
-    
+
     Args:
         model_id: The model ID
         progress: Dictionary with progress information (step, message, progress percentage)
         rand_id: Random ID for tracking
     """
     thread = threading.Thread(
-        target=_update_training_progress_impl,
-        args=(model_id, progress, rand_id),
-        daemon=True
+        target=_update_training_progress_impl, args=(model_id, progress, rand_id), daemon=True
     )
     thread.start()
 
@@ -119,7 +125,7 @@ def train_and_save_model(
     sensors: list = None,
     group_by_ms_per_sensor: dict = None,
     aggregation_funcs: dict = None,
-    progress_callback = None,
+    progress_callback=None,
     **kwargs,
 ) -> dict:
     """
@@ -168,26 +174,30 @@ def train_and_save_model(
 
     rand_id = os.urandom(4).hex()
 
-
     # Create active job entry for training progress tracking
     from src.model.job import active_jobs, job_lock
-    logger.info(f"{rand_id} - Creating active job entry for model_id={model_id} if not exists", extra={"rand_id": rand_id})
-    logger.info(f"{rand_id} - Acquiring job_lock for model_id={model_id}", extra={"rand_id": rand_id})
-    with job_lock:
-        logger.info(f"{rand_id} - Acquired job_lock for model_id={model_id}", extra={"rand_id": rand_id})
-        if model_id not in active_jobs:
-            active_jobs[model_id] = {
-                "model_id": model_id,
-                "model_type": model_type,
-                "device_id": device_id,
-                "status": "training",
-                "paused": False,
-                "start_time": datetime.now().isoformat() + "Z",
-                "last_run": None,
-                "iterations": 0,
-                "training_progress": None,
-                "thread": None,
-            }
+
+    logger.info(
+        f"{rand_id} - Creating active job entry for model_id={model_id} if not exists",
+        extra={"rand_id": rand_id},
+    )
+    # Lock is acquired inside get_or_create_job_status, no need to acquire it here
+    get_or_create_job_status(
+        model_id,
+        {
+            "model_id": model_id,
+            "model_type": model_type,
+            "device_id": device_id,
+            "status": "training",
+            "paused": False,
+            "start_time": datetime.now().isoformat() + "Z",
+            "last_run": None,
+            "iterations": 0,
+            "training_progress": None,
+            "thread": None,
+        },
+        rand_id=rand_id,
+    )
 
     # Train model
     if model_type == "AnomalyPredictor":
@@ -203,16 +213,17 @@ def train_and_save_model(
             # group_by_ms_per_sensor=group_by_ms_per_sensor,
             # aggregation_funcs=aggregation_funcs,
         )
-        
+
         # Update progress: fetching data
-        update_training_progress(model_id, {
-            "step": "fetching_data",
-            "message": "Fetching training data...",
-            "progress": 20
-        })
+        update_training_progress(
+            model_id,
+            {"step": "fetching_data", "message": "Fetching training data...", "progress": 20},
+        )
         if progress_callback:
-            progress_callback({"step": "fetching_data", "message": "Fetching training data...", "progress": 20})
-        
+            progress_callback(
+                {"step": "fetching_data", "message": "Fetching training data...", "progress": 20}
+            )
+
         print(
             f"[TRAIN] Fetching data for device_id={device_id} starting from 2014-01-01...",
             flush=True,
@@ -228,19 +239,22 @@ def train_and_save_model(
                 "model_id": model_id,
                 "model_type": model_type,
             }
-        
+
         # Update progress: training
-        update_training_progress(model_id, {
-            "step": "training",
-            "message": "Training AnomalyPredictor model...",
-            "progress": 40
-        })
-        if progress_callback:
-            progress_callback({"step": "training", "message": "Training AnomalyPredictor model...", "progress": 40})
-        
-        print(
-            f"[TRAIN] Training AnomalyPredictor model for device_id={device_id}...", flush=True
+        update_training_progress(
+            model_id,
+            {"step": "training", "message": "Training AnomalyPredictor model...", "progress": 40},
         )
+        if progress_callback:
+            progress_callback(
+                {
+                    "step": "training",
+                    "message": "Training AnomalyPredictor model...",
+                    "progress": 40,
+                }
+            )
+
+        print(f"[TRAIN] Training AnomalyPredictor model for device_id={device_id}...", flush=True)
         hourly_models, feature_cols, labeled_features_clean = train_model(
             telemetry_df,
             errors_df,
@@ -263,32 +277,43 @@ def train_and_save_model(
             # algorithm=algorithm,
             algorithm="random_forest",
         )
-        
+
         # Update progress: saving
-        update_training_progress(model_id, {
-            "step": "saving",
-            "message": "Saving trained model...",
-            "progress": 80
-        })
+        update_training_progress(
+            model_id, {"step": "saving", "message": "Saving trained model...", "progress": 80}
+        )
         if progress_callback:
-            progress_callback({"step": "saving", "message": "Saving trained model...", "progress": 80})
-        
+            progress_callback(
+                {"step": "saving", "message": "Saving trained model...", "progress": 80}
+            )
+
         print(f"[TRAIN] Model trained. Saving models...", flush=True)
         save_models(hourly_models, model_dir)
     elif model_type == "ForecastModel":
-        logger.info(f"{rand_id} - Starting training for ForecastModel with model_id={model_id}", extra={"rand_id": rand_id})
+        logger.info(
+            f"{rand_id} - Starting training for ForecastModel with model_id={model_id}",
+            extra={"rand_id": rand_id},
+        )
         # Update progress: initializing
-        logger.info(f"{rand_id} - Updating progress to initializing for model_id={model_id}", extra={"rand_id": rand_id})
-        update_training_progress(model_id, {
-            "step": "initializing",
-            "message": "Initializing ForecastModel...",
-            "progress": 20
-        }, rand_id=rand_id)
+        logger.info(
+            f"{rand_id} - Updating progress to initializing for model_id={model_id}",
+            extra={"rand_id": rand_id},
+        )
+        update_training_progress(
+            model_id,
+            {"step": "initializing", "message": "Initializing ForecastModel...", "progress": 20},
+            rand_id=rand_id,
+        )
         if progress_callback:
-            progress_callback({"step": "initializing", "message": "Initializing ForecastModel...", "progress": 20})
+            progress_callback(
+                {"step": "initializing", "message": "Initializing ForecastModel...", "progress": 20}
+            )
 
-        logger.info(f"{rand_id} - Initializing ForecastModel instance for model_id={model_id}", extra={"rand_id": rand_id})
-        
+        logger.info(
+            f"{rand_id} - Initializing ForecastModel instance for model_id={model_id}",
+            extra={"rand_id": rand_id},
+        )
+
         # Initialize model with data registry
         model = ModelClass(
             name=model_id,
@@ -301,41 +326,56 @@ def train_and_save_model(
             group_by_ms_per_sensor=group_by_ms_per_sensor,
             aggregation_funcs=aggregation_funcs,
         )
-        logger.info(f"{rand_id} - ForecastModel instance initialized for model_id={model_id}", extra={"rand_id": rand_id})
-        
+        logger.info(
+            f"{rand_id} - ForecastModel instance initialized for model_id={model_id}",
+            extra={"rand_id": rand_id},
+        )
+
         # Update progress: training
-        update_training_progress(model_id, {
-            "step": "training",
-            "message": "Training ForecastModel...",
-            "progress": 50
-        }, rand_id=rand_id)
-        logger.info(f"{rand_id} - Updated progress to training for model_id={model_id}", extra={"rand_id": rand_id})
+        update_training_progress(
+            model_id,
+            {"step": "training", "message": "Training ForecastModel...", "progress": 50},
+            rand_id=rand_id,
+        )
+        logger.info(
+            f"{rand_id} - Updated progress to training for model_id={model_id}",
+            extra={"rand_id": rand_id},
+        )
         if progress_callback:
-            progress_callback({"step": "training", "message": "Training ForecastModel...", "progress": 50})
-        
+            progress_callback(
+                {"step": "training", "message": "Training ForecastModel...", "progress": 50}
+            )
+
         model.train()
-        
-        logger.info(f"{rand_id} - ForecastModel trained for model_id={model_id}", extra={"rand_id": rand_id})
+
+        logger.info(
+            f"{rand_id} - ForecastModel trained for model_id={model_id}", extra={"rand_id": rand_id}
+        )
         # Update progress: saving
-        update_training_progress(model_id, {
-            "step": "saving",
-            "message": "Saving trained model...",
-            "progress": 80
-        }, rand_id=rand_id)
+        update_training_progress(
+            model_id,
+            {"step": "saving", "message": "Saving trained model...", "progress": 80},
+            rand_id=rand_id,
+        )
         if progress_callback:
-            progress_callback({"step": "saving", "message": "Saving trained model...", "progress": 80})
-        
+            progress_callback(
+                {"step": "saving", "message": "Saving trained model...", "progress": 80}
+            )
+
         model.save(model_dir)
-    
+
     # Clear training progress and remove training status when complete
     update_training_progress(model_id, None, rand_id=rand_id)
 
-    logger.info(f"{rand_id} - Removing active job entry for model_id={model_id} after training completion", extra={"rand_id": rand_id})
+    logger.info(
+        f"{rand_id} - Removing active job entry for model_id={model_id} after training completion",
+        extra={"rand_id": rand_id},
+    )
     with job_lock:
         if model_id in active_jobs and active_jobs[model_id]["status"] == "training":
             # Remove the job entry since training is done (will be recreated by start_prediction_job)
             del active_jobs[model_id]
-    
+
     return {
         "status": "success",
         "model_id": model_id,

@@ -3,6 +3,7 @@ Job management system for background prediction workers
 """
 
 import sys
+
 sys.path.append("..")
 
 import json
@@ -25,10 +26,8 @@ from .shared import get_data_registry
 import traceback
 from sqlalchemy import text
 from src.scripts.create_alarm import create_alarm, authenticate
+from src.model.utils import get_job_status, job_lock, active_jobs, get_or_create_job_status
 
-# Global job registry: {model_id: {status, thread, start_time, etc}}
-active_jobs: Dict[str, dict] = {}
-job_lock = threading.Lock()
 
 # Log storage: {model_id: deque of log entries}
 model_logs: Dict[str, deque] = {}
@@ -40,8 +39,8 @@ log_broadcasters: Dict[str, Set[Callable]] = {}
 broadcaster_lock = threading.Lock()
 
 # WebSocket job status subscribers: {model_id: set of callback functions}
-job_status_subscribers: Dict[str, Set[Callable]] = {}
-status_subscriber_lock = threading.Lock()
+# job_status_subscribers: Dict[str, Set[Callable]] = {}
+# status_subscriber_lock = threading.Lock()
 
 
 JSONValue = Union[
@@ -91,9 +90,7 @@ def add_model_log(model_id: str, level: str, message: JSONValue) -> None:
         "type": (
             "forecast"
             if "forecast" in model_id
-            else "anomaly"
-            if "anomaly" in model_id
-            else "system"
+            else "anomaly" if "anomaly" in model_id else "system"
         ),
         "source": source,
     }
@@ -140,7 +137,7 @@ def prediction_job_worker(
     add_model_log(model_id, "info", f"Prediction job started for {model_type}")
     data_registry = get_data_registry()
     try:
-        
+
         auth_token = authenticate()
 
         # print(f"[PREDICTION JOB] {model_id} - Initializing model worker", flush=True)
@@ -158,7 +155,7 @@ def prediction_job_worker(
             add_model_log(model_id, "info", f"Loading model from {model_dir}...")
             hourly_models = load_models(model_dir)
             add_model_log(model_id, "info", "Model loaded successfully from disk")
-            interval = 24 * 60 * 60 * 60 # every 24 hours
+            interval = 24 * 60 * 60 * 60  # every 24 hours
             # print(
             #     f"[PREDICTION JOB] {model_id} - AnomalyPredictor model loaded",
             #     flush=True,
@@ -239,7 +236,12 @@ def prediction_job_worker(
 
 
 def anomaly_predict_model(
-    model_id: str, iteration: int, device_id: str, hourly_models: dict, data_registry, auth_token: str
+    model_id: str,
+    iteration: int,
+    device_id: str,
+    hourly_models: dict,
+    data_registry,
+    auth_token: str,
 ):
     # Fetch latest sensor data and predict
     # print(
@@ -334,7 +336,9 @@ def anomaly_predict_model(
     # Instead of sending all 24 predictions in one message, send one at a time
     for idx, prediction in enumerate(predictions_json):
         hours_to_add = idx + 1
-        prediction["datetime"] = (start_time + timedelta(seconds=seconds_difference) + timedelta(hours=hours_to_add)).strftime("%Y-%m-%d %H:%M:%S")
+        prediction["datetime"] = (
+            start_time + timedelta(seconds=seconds_difference) + timedelta(hours=hours_to_add)
+        ).strftime("%Y-%m-%d %H:%M:%S")
         add_model_log(
             model_id,
             "prediction",
@@ -362,8 +366,11 @@ def anomaly_predict_model(
                 auth_token,
                 machine_id=device_id,
                 alarm_type="Anomaly Detected",
-                severity=
-                "CRITICAL" if confidence_score > 0.8 else "MAJOR" if confidence_score > 0.5 else "MINOR",
+                severity=(
+                    "CRITICAL"
+                    if confidence_score > 0.8
+                    else "MAJOR" if confidence_score > 0.5 else "MINOR"
+                ),
             )
             print(
                 f"[PREDICTION JOB] {model_id} - Alarm created: {alarm}",
@@ -377,7 +384,9 @@ def anomaly_predict_model(
     )
 
 
-def forecast_predict_model(model_id: str, iteration: int, device_id: str, model, data_registry, auth_token: str):
+def forecast_predict_model(
+    model_id: str, iteration: int, device_id: str, model, data_registry, auth_token: str
+):
     add_model_log(model_id, "info", f"Starting forecast (iteration {iteration})")
     result = model.forecast(predict_for=24)
     result_copy = json.loads(json.dumps(result, default=to_native))
@@ -486,7 +495,9 @@ def inner_loop(
         add_model_log(model_id, "info", f"Running prediction iteration #{iteration}")
 
         if model_type == "AnomalyPredictor":
-            anomaly_predict_model(model_id, iteration, device_id, hourly_models, data_registry, auth_token)
+            anomaly_predict_model(
+                model_id, iteration, device_id, hourly_models, data_registry, auth_token
+            )
         elif model_type == "ForecastModel":
             forecast_predict_model(model_id, iteration, device_id, model, data_registry, auth_token)
     except Exception as e:
@@ -731,42 +742,6 @@ def unpause_prediction_job(model_id: str) -> bool:
         return True
 
 
-def get_job_status(model_id: str = None) -> dict:
-    """Get status of jobs"""
-    # with job_lock:
-    if model_id:
-        if model_id in active_jobs:
-            job_info = active_jobs[model_id]
-            return {
-                "model_id": job_info["model_id"],
-                "model_type": job_info["model_type"],
-                "device_id": job_info.get("device_id"),
-                "status": job_info["status"],
-                "paused": job_info.get("paused", False),
-                "start_time": job_info["start_time"],
-                "last_run": job_info.get("last_run"),
-                "iterations": job_info.get("iterations", 0),
-                "model_exists": True,
-            }
-        return None
-    else:
-        # Return all jobs
-        return {
-            model_id: {
-                "model_id": job_info["model_id"],
-                "model_type": job_info["model_type"],
-                "device_id": job_info.get("device_id"),
-                "status": job_info["status"],
-                "paused": job_info.get("paused", False),
-                "start_time": job_info["start_time"],
-                "last_run": job_info.get("last_run"),
-                "iterations": job_info.get("iterations", 0),
-                "model_exists": True,
-            }
-            for model_id, job_info in active_jobs.items()
-        }
-
-
 def get_model_logs(model_id: str, level: str = "all", limit: int = 100) -> list:
     """Get logs for a model"""
     if model_id not in model_logs:
@@ -814,7 +789,7 @@ def unsubscribe_from_logs(model_id: str, callback: Callable) -> None:
             logger.info(f"WebSocket unsubscribed from logs for {model_id}")
 
 
-def subscribe_to_job_status(model_id: str, callback: Callable) -> None:
+def subscribe_to_job_status(model_id: str, callback: Callable, rand_id: int) -> None:
     """
     Subscribe to real-time job status updates for a model.
 
@@ -822,11 +797,39 @@ def subscribe_to_job_status(model_id: str, callback: Callable) -> None:
         model_id: The model ID to subscribe to
         callback: Function to call when job status changes (receives status dict)
     """
-    with status_subscriber_lock:
-        if model_id not in job_status_subscribers:
-            job_status_subscribers[model_id] = set()
-        job_status_subscribers[model_id].add(callback)
-        logger.info(f"WebSocket subscribed to job status for {model_id}")
+    logger.info(f"Subscribing to job status for {model_id}", extra={"rand_id": rand_id})
+    job = get_or_create_job_status(model_id, rand_id)
+    logger.info(f"Got job status for {model_id}: {job}", extra={"rand_id": rand_id})
+    with job["read_lock"]:
+        logger.info(
+            f"Inside read_lock for subscribing to job status for {model_id}",
+            extra={"rand_id": rand_id},
+        )
+        _len = len(job.get("job_status_subscribers", set()))
+        logger.info(
+            f"Acquired read_lock for subscribing to job status for {model_id}",
+            extra={"rand_id": rand_id},
+        )
+        if "job_status_subscribers" not in job:
+            logger.info(
+                f"Initializing job_status_subscribers set for {model_id}",
+                extra={"rand_id": rand_id},
+            )
+            job["job_status_subscribers"] = set()
+        logger.info(
+            f"Adding subscriber callback for job status for {model_id}",
+            extra={"rand_id": rand_id},
+        )
+        job["job_status_subscribers"].add(callback)
+        logger.info(
+            f"WebSocket subscribed to job status for {model_id}", extra={"rand_id": rand_id}
+        )
+        # print subsribers length for debugging
+        subscribers_len = len(job["job_status_subscribers"])
+        logger.info(
+            f"Total job status subscribers for {model_id} ({_len} before): {subscribers_len}",
+            extra={"rand_id": rand_id},
+        )
 
 
 def unsubscribe_from_job_status(model_id: str, callback: Callable) -> None:
@@ -837,12 +840,14 @@ def unsubscribe_from_job_status(model_id: str, callback: Callable) -> None:
         model_id: The model ID to unsubscribe from
         callback: The callback function to remove
     """
-    with status_subscriber_lock:
-        if model_id in job_status_subscribers:
-            job_status_subscribers[model_id].discard(callback)
-            if not job_status_subscribers[model_id]:
-                del job_status_subscribers[model_id]
-            logger.info(f"WebSocket unsubscribed from job status for {model_id}")
+    job = get_job_status(model_id)
+    if job:
+        with job["read_lock"]:
+            if "job_status_subscribers" in job:
+                job["job_status_subscribers"].discard(callback)
+                if not job["job_status_subscribers"]:
+                    del job["job_status_subscribers"]
+                logger.info(f"WebSocket unsubscribed from job status for {model_id}")
 
 
 def notify_job_status_update(model_id: str) -> None:
@@ -852,12 +857,15 @@ def notify_job_status_update(model_id: str) -> None:
     Args:
         model_id: The model ID that was updated
     """
-    with status_subscriber_lock:
-        if model_id in job_status_subscribers:
-            job_status = get_job_status(model_id)
-            if job_status:
-                for callback in job_status_subscribers[model_id].copy():
-                    try:
-                        callback(job_status)
-                    except Exception as e:
-                        logger.error(f"Error notifying job status subscriber: {str(e)}")
+    logger.info(f"Notifying job status update for {model_id}")
+    job = get_job_status(model_id)
+    logger.info(f"Job status for {model_id}: {job}")
+    if job:
+        subscribers = job["job_status_subscribers"].copy()
+        logger.info(f"Notifying {len(subscribers)} subscribers for job status of {model_id}")
+        for callback in subscribers:
+            try:
+                logger.info(f"Notifying subscriber {callback} for job status of {model_id}")
+                callback(job)
+            except Exception as e:
+                logger.error(f"Error notifying job status subscriber: {str(e)}")
