@@ -958,50 +958,38 @@
     padding-inline: 1rem;
     overflow-y: auto;
     min-height: 0; // Allow flex shrinking
+    height: 100%; // Take full available height
 
-    // Charts Container - Side by Side with Wrapping
-    .charts-container {
+    // Widgets Grid Container - All widgets in a responsive flex layout
+    .widgets-grid-container {
       display: flex;
-      flex-direction: column;
       flex-wrap: wrap;
       gap: 1rem;
       margin-bottom: 1rem;
-      align-items: stretch; // Don't stretch, align to top
+      flex: 1; // Take all available space
+      align-content: start; // Align to top
+      height: 100%; // Take full height
 
-      // Make both charts take equal space when side-by-side
-      > .chart-section {
-        flex: 1 1 calc(50% - 0.5rem); // Each takes 50% minus half the gap
-        min-width: 0; // Allow shrinking below 500px if needed
+      // Each chart section grows to fill row evenly
+      .chart-section {
+        flex: 1 1 40rem; // Grow to fill, can shrink, base 40rem
+        min-width: min(100%, 40rem);
+        max-width: 100%;
       }
 
-      // When one chart is collapsed, maintain the same width but minimal height
-      > .chart-section.collapsed {
-        flex: 1 1 calc(50% - 0.5rem); // Keep the same flex basis as expanded
-        min-width: 0;
+      // Anomalies section also grows to fill remaining space on its row
+      .anomalies-section {
+        flex: 1 1 40rem; // Grow to fill, can shrink, base 40rem
+        min-width: min(100%, 40rem);
+        max-width: 100%;
       }
 
-      // When screens are wide enough, enforce minimum width
-      @media (min-width: 1101px) {
-        > .chart-section:not(.collapsed) {
-          min-width: 500px; // Enforce minimum width on wide screens
-        }
-      }
-
-      // When screens are too small, stack vertically
+      // When screens are too small, single column
       @media (max-width: 1100px) {
-        flex-direction: column;
-
-        > .chart-section {
-          flex: 1 1 auto;
-          width: 100%;
-          max-width: 100%;
-        }
-
-        > .chart-section.collapsed {
-          flex: 0 0 auto;
-          width: 100%;
-          max-width: 100%;
-          align-self: stretch;
+        .chart-section,
+        .anomalies-section {
+          flex: 1 1 100%;
+          min-width: 100%;
         }
       }
     }
@@ -1012,7 +1000,8 @@
 
       display: flex;
       flex-direction: column;
-      min-height: 500px;
+      min-height: 31.25rem; // 500px in rem
+      height: 31.25rem; // Fixed height for consistent rows
       // margin: 1rem;
       border-radius: 10px;
       border: 1px solid var(--tb-dark-mat-800);
@@ -1231,189 +1220,6 @@
 
         tb-time-series-telemetry {
           overflow: hidden;
-          height: 100%;
-          display: block;
-        }
-      }
-    }
-
-    .anomalies-section {
-      background: var(--tb-dark-app-bar);
-      margin-top: 1rem;
-      flex: 1;
-      min-height: 500px;
-      overflow: auto;
-      display: flex;
-      flex-direction: column;
-      border-radius: 10px;
-      border: 1px solid var(--tb-dark-mat-800);
-      transition: all 0.3s ease;
-
-      &.collapsed {
-        flex: 0 0 auto;
-        min-height: auto;
-
-        .chart-content {
-          display: none;
-        }
-      }
-
-      .section-header {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.02);
-        border-bottom: 1px solid var(--tb-dark-mat-800);
-        user-select: none;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all 0.2s ease;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.05);
-        }
-
-        .collapse-btn {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          color: rgba(255, 255, 255, 0.7);
-          transition: all 0.2s ease;
-          margin-right: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          &:hover {
-            color: #ff9800;
-            background-color: rgba(255, 255, 255, 0.1);
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease;
-          }
-        }
-
-        .section-title {
-          font-size: 16px;
-          font-weight: 500;
-          margin: 0;
-          color: rgba(255, 255, 255, 0.9);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          line-height: 1.2;
-          flex: 1;
-
-          .section-icon {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-            color: #ff9800;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-          }
-
-          .algorithm-label {
-            font-size: 12px;
-            font-weight: 400;
-            opacity: 0.7;
-            margin-left: 8px;
-          }
-        }
-
-        .section-stats-button {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          min-height: 32px;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255, 255, 255, 0.6);
-          transition: all 0.2s ease;
-          margin-left: auto;
-          margin-right: 0;
-          opacity: 0.7;
-
-          &:hover {
-            color: #81c784;
-            background-color: rgba(129, 199, 132, 0.1);
-            opacity: 1;
-          }
-
-          &:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-
-        .section-logs-button {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          min-height: 32px;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255, 255, 255, 0.6);
-          transition: all 0.2s ease;
-          margin-left: 8px;
-          margin-right: 0;
-          opacity: 0.7;
-
-          &:hover {
-            color: #ff9800;
-            background-color: rgba(255, 152, 0, 0.1);
-            opacity: 1;
-          }
-
-          &:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-      }
-
-      .chart-content {
-        flex: 1;
-        overflow: auto;
-        padding: 16px;
-        min-height: 0; // Allow flex shrinking
-        transition: all 0.3s ease;
-
-        tb-anomalies {
           height: 100%;
           display: block;
         }
@@ -1643,16 +1449,67 @@
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 16px;
           font-size: 14px;
           font-weight: 500;
           color: rgba(0, 0, 0, 0.87);
+
+          &.clickable {
+            cursor: pointer;
+            padding: 8px;
+            margin: -8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+
+            &:hover {
+              background-color: rgba(0, 0, 0, 0.04);
+            }
+          }
 
           mat-icon {
             font-size: 20px;
             width: 20px;
             height: 20px;
             color: rgba(0, 0, 0, 0.6);
+          }
+
+          .expand-icon {
+            margin-left: auto;
+          }
+        }
+
+        .sensor-colors-content {
+          margin-top: 16px;
+        }
+
+        .widget-visibility-item {
+          padding: 8px 0;
+
+          &:first-child {
+            padding-top: 0;
+          }
+
+          &:last-child {
+            padding-bottom: 0;
+          }
+
+          mat-checkbox {
+            .option-content {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              mat-icon {
+                font-size: 20px;
+                width: 20px;
+                height: 20px;
+                color: rgba(0, 0, 0, 0.6);
+              }
+
+              span {
+                font-size: 13px;
+                color: rgba(0, 0, 0, 0.87);
+              }
+            }
           }
         }
 
@@ -1821,8 +1678,26 @@
           .section-header {
             color: rgba(255, 255, 255, 0.9);
 
+            &.clickable:hover {
+              background-color: rgba(255, 255, 255, 0.05);
+            }
+
             mat-icon {
               color: rgba(255, 255, 255, 0.7);
+            }
+          }
+
+          .widget-visibility-item {
+            mat-checkbox {
+              .option-content {
+                mat-icon {
+                  color: rgba(255, 255, 255, 0.7);
+                }
+
+                span {
+                  color: rgba(255, 255, 255, 0.9);
+                }
+              }
             }
           }
 
@@ -1891,27 +1766,34 @@
 .forecast-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
+  gap: 2rem;
   width: 100%;
   
-  // Ensure each chart container has minimum height
+  // Ensure each chart container has minimum height and visual separation
   > * {
     min-height: 400px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
   }
 
   // Responsive breakpoints
   @media (max-width: 1400px) {
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
   }
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 1.5rem;
   }
 
   @media (max-width: 600px) {
+    gap: 1rem;
     > * {
       min-height: 300px;
+      padding: 0.75rem;
     }
   }
 }

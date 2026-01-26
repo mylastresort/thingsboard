@@ -190,36 +190,31 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     }
   };
 
+  // Wheel handler - stop ECharts from handling scroll when Ctrl is not held
+  private chartWheelHandler = (event: WheelEvent) => {
+    if (!event.ctrlKey) {
+      // Stop propagation so ECharts doesn't capture it, allow page scroll
+      event.stopPropagation();
+    }
+  };
+
   // Data storage - array of [timestamp, value] for the selected sensor
   private telemetryData: Array<[number, number]> = [];
 
   // Chart colors for different sensors - dynamically assigned
   private sensorColors: Map<string, string> = new Map();
 
-  // Color palette for sensor assignment
-  private colorPalette: string[] = [
-    '#2196f3', // Blue
-    '#ff9800', // Orange
-    '#4caf50', // Green
-    '#f44336', // Red
-    '#9c27b0', // Purple
-    '#00bcd4', // Cyan
-    '#ffeb3b', // Yellow
-    '#e91e63', // Pink
-    '#009688', // Teal
-    '#ff5722', // Deep Orange
-    '#673ab7', // Deep Purple
-    '#3f51b5', // Indigo
-    '#cddc39', // Lime
-    '#ffc107', // Amber
-    '#795548'  // Brown
+  // Reserved colors for forecast and predictions series - DO NOT use for telemetry
+  public static readonly FORECAST_COLOR = '#ff9800'; // Orange - used for Forecast series
+  public static readonly PREDICTIONS_COLOR = '#4caf50'; // Green - used for Predictions (history forecast) series
+  private static readonly RESERVED_COLORS = [
+    TimeSeriesTelemetryComponent.FORECAST_COLOR,
+    TimeSeriesTelemetryComponent.PREDICTIONS_COLOR
   ];
 
-  // Public color palette for UI selection
-  public availableColors: string[] = [
+  // Full color palette (before filtering reserved colors)
+  private static readonly FULL_COLOR_PALETTE: string[] = [
     '#2196f3', // Blue
-    '#ff9800', // Orange
-    '#4caf50', // Green
     '#f44336', // Red
     '#9c27b0', // Purple
     '#00bcd4', // Cyan
@@ -238,6 +233,16 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     '#ff6f00', // Amber Dark
     '#d32f2f'  // Red Dark
   ];
+
+  // Color palette for sensor assignment (excludes reserved colors)
+  private colorPalette: string[] = TimeSeriesTelemetryComponent.FULL_COLOR_PALETTE.filter(
+    color => !TimeSeriesTelemetryComponent.RESERVED_COLORS.includes(color)
+  );
+
+  // Public color palette for UI selection (excludes reserved colors to prevent conflicts)
+  public availableColors: string[] = TimeSeriesTelemetryComponent.FULL_COLOR_PALETTE.filter(
+    color => !TimeSeriesTelemetryComponent.RESERVED_COLORS.includes(color)
+  );
 
   constructor(
     private telemetryWsService: TelemetryWebsocketService,
@@ -305,6 +310,10 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
       this.forecastDataPoints = [];
       if (this.deviceId && this.selectedSensor) {
         this.getSensorData();
+        // Also fetch history predictions for the new device
+        if (this.modelId) {
+          this.fetchSensorForecastHistoryPredictions();
+        }
       }
     }
 
@@ -323,9 +332,9 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
       }
 
       // Fetch saved forecast predictions for the new sensor
-      // if (this.modelId) {
-      //   this.fetchSensorForecastHistoryPredictions();
-      // }
+      if (this.modelId && this.selectedSensor) {
+        this.fetchSensorForecastHistoryPredictions();
+      }
     }
 
     if (changes.historyPredictions) {
@@ -341,6 +350,12 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     // Handle logsObservable changes - subscribe to forecast predictions
     if (changes.logsObservable && this.logsObservable) {
       this.subscribeToForecastPredictions();
+      
+      // Also fetch historical predictions when logsObservable becomes available
+      // This handles the case when the component is initialized with an active model
+      if (this.modelId && this.selectedSensor && this.historyForecastDataPoints.length === 0) {
+        this.fetchSensorForecastHistoryPredictions();
+      }
     }
 
     if (changes.forecastData) {
@@ -357,9 +372,9 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     // Initialize ECharts
     this.initializeChart();
 
-    // Subscribe to telemetry if device ID and sensor are available
+    // Fetch telemetry data if device ID and sensor are available
     if (this.deviceId && this.selectedSensor) {
-      // this.subscribeToTelemetry();
+      this.getSensorData();
     }
 
     // Process forecast data if available
@@ -409,6 +424,11 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
     // Remove window resize event listener
     window.removeEventListener('resize', this.windowResizeHandler);
+
+    // Remove chart wheel event listener
+    if (this.chartElement?.nativeElement) {
+      this.chartElement.nativeElement.removeEventListener('wheel', this.chartWheelHandler, true);
+    }
   }
 
   private initializeChart(): void {
@@ -423,6 +443,9 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
     this.chart = echarts.init(this.chartElement.nativeElement, null, {
       renderer: 'canvas'
     });
+
+    // Add wheel event listener in capture phase to intercept before ECharts
+    this.chartElement.nativeElement.addEventListener('wheel', this.chartWheelHandler, true);
 
     // Define chart options
     this.chartOptions = {
@@ -550,7 +573,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
           end: 100,
           zoomOnMouseWheel: true,
           moveOnMouseMove: true,
-          moveOnMouseWheel: true
+          moveOnMouseWheel: false
         },
         {
           type: 'slider',
@@ -791,6 +814,21 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
           // Only process if this is for the current sensor
           if (sensorName === this.selectedSensor) {
+            // Before replacing forecastDataPoints, move the first point of the current forecast to historyForecastDataPoints
+            // This preserves historical predictions on the chart
+            if (this.forecastDataPoints && this.forecastDataPoints.length > 0) {
+              const firstForecastPoint = this.forecastDataPoints[0];
+              // Check if this point is not already in historyForecastDataPoints
+              const alreadyExists = this.historyForecastDataPoints.some(
+                point => point[0] === firstForecastPoint[0]
+              );
+              if (!alreadyExists) {
+                this.historyForecastDataPoints.push(firstForecastPoint);
+                this.historyForecastDataPoints.sort((a, b) => a[0] - b[0]);
+                console.log('[TIME-SERIES] Moved previous forecast first point to history:', firstForecastPoint);
+              }
+            }
+
             this.forecastDataPoints = forecast.map((value, i) => 
               [recentPointTs + (i + 2) * groupByPeriodMs, value]
             );
@@ -808,9 +846,40 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
           console.warn('[TIME-SERIES] No forecast results to process');
         }
       } else if (log.message.prediction_type === 'history') {
-        // Historical forecast prediction
+        // Historical forecast prediction - add to historyForecastDataPoints
         console.log('[TIME-SERIES] Processing historical forecast prediction log:', log);
-        // We could process history here if needed
+        
+        const results = log.message.result as ForecastSensorPrediction;
+        if (results) {
+          const predictionInfo = (results as any).prediction_info;
+          const recentPointTs = predictionInfo?.recent_point_ts;
+          const groupByPeriodMs = predictionInfo?.group_by_period_ms;
+          const sensorName: string = (log.message as any).sensor;
+          const forecastValue: number = (results as any).forecast;
+
+          // Only process if this is for the current sensor
+          if (sensorName === this.selectedSensor && recentPointTs && groupByPeriodMs) {
+            const historyTimestamp = recentPointTs + groupByPeriodMs;
+            
+            // Check if this point is not already in historyForecastDataPoints
+            const alreadyExists = this.historyForecastDataPoints.some(
+              point => point[0] === historyTimestamp
+            );
+            
+            if (!alreadyExists) {
+              this.historyForecastDataPoints.push([historyTimestamp, forecastValue]);
+              this.historyForecastDataPoints.sort((a, b) => a[0] - b[0]);
+              console.log('[TIME-SERIES] Added history forecast point:', [historyTimestamp, forecastValue]);
+              
+              // Update the chart
+              if (this.chart) {
+                this.updateChart();
+              }
+              
+              this.cdr.detectChanges();
+            }
+          }
+        }
       }
     });
   }
@@ -1051,11 +1120,11 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
         symbolSize: 6, // Larger symbols for better visibility
         lineStyle: {
           width: 3, // Thicker line for better visibility
-          color: '#ff9800', // Orange color for contrast
+          color: TimeSeriesTelemetryComponent.FORECAST_COLOR, // Reserved orange color for forecast
           type: 'dashed' // Dashed line for forecast
         },
         itemStyle: {
-          color: '#ff9800',
+          color: TimeSeriesTelemetryComponent.FORECAST_COLOR,
           opacity: 1 // Full opacity for debugging
         }
       });
@@ -1083,11 +1152,11 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
         symbolSize: 6, // Larger symbols for better visibility
         lineStyle: {
           width: 3, // Thicker line for better visibility
-          color: '#4caf50', // Green color for contrast
+          color: TimeSeriesTelemetryComponent.PREDICTIONS_COLOR, // Reserved green color for predictions
           type: 'dotted' // Dotted line for predictions
         },
         itemStyle: {
-          color: '#4caf50',
+          color: TimeSeriesTelemetryComponent.PREDICTIONS_COLOR,
           opacity: 1 // Full opacity for debugging
         }
       });

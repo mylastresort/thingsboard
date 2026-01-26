@@ -163,6 +163,15 @@
         >
           <mat-icon>delete</mat-icon>
         </button>
+        <!-- <button
+          mat-icon-button
+          (click)="testAnomalyAlert()"
+          matTooltip="Test anomaly alert"
+          matTooltipPosition="below"
+          class="test-alert-button"
+        >
+          <mat-icon>notification_important</mat-icon>
+        </button> -->
         <button
           mat-stroked-button
           (click)="activateModel()"
@@ -197,22 +206,22 @@
 </div>
 
 <div class="model-dashboard">
-  <!-- Charts Container - Side by Side -->
-  <div class="charts-container">
-    <!-- Time Series Telemetry Section with Collapse Button -->
-    <!-- Sensor telemetry visibility is controlled independently via hideSensorTelemetry -->
-    <div
-      class="chart-section"
-      [class.collapsed]="timeSeriesChartCollapsed"
-      *ngIf="!hideSensorTelemetry"
-    >
+  <!-- Widgets Grid Container -->
+  <div class="widgets-grid-container">
+    <!-- Forecast widgets - One per sensor -->
+    <ng-container *ngFor="let attribute of attributes">
       <div
-        class="section-header"
-        (click)="toggleTimeSeriesChart()"
-        role="button"
-        [attr.aria-expanded]="!timeSeriesChartCollapsed"
-        aria-label="Toggle time series chart section"
+        class="chart-section"
+        [class.collapsed]="timeSeriesChartCollapsed"
+        *ngIf="isWidgetVisible(attribute.key)"
       >
+        <div
+          class="section-header"
+          (click)="toggleTimeSeriesChart()"
+          role="button"
+          [attr.aria-expanded]="!timeSeriesChartCollapsed"
+          aria-label="Toggle time series chart section"
+        >
         <button
           mat-icon-button
           class="collapse-btn"
@@ -231,44 +240,40 @@
           }}</mat-icon>
         </button>
         <h3 class="section-title">
-          <mat-icon class="section-icon">timeline</mat-icon>
-          Forecast
+          <mat-icon class="section-icon">sensors</mat-icon>
+          {{ attribute.key | titlecase }}
           <span class="algorithm-label" *ngIf="forecastAlgorithm">{{
             forecastAlgorithm
           }}</span>
         </h3>
       </div>
       <div
-        class="chart-content forecast-grid-container"
+        class="chart-content"
         [@slideCollapse]="timeSeriesChartCollapsed ? 'collapsed' : 'expanded'"
       >
-        <!-- Responsive grid of forecast graphs for each sensor -->
-        <div class="forecast-grid">
-          <tb-time-series-telemetry
-            *ngFor="let attribute of attributes"
-            [deviceId]="deviceId"
-            [selectedSensor]="attribute.key"
-            [forecastMaxSteps]="forecastMaxSteps"
-            [modelId]="trueId"
-            [title]="attribute.key"
-            [timewindow]="timewindow"
-            [viewPreferences]="currentViewPreferences"
-            (timewindowChange)="onTimewindowChanged($event)"
-            (viewPreferencesChange)="onViewPreferencesChanged($event)"
-            [attributes]="attributes"
-            [logsObservable]="logsObservable"
-          >
-          </tb-time-series-telemetry>
-        </div>
+        <tb-time-series-telemetry
+          [deviceId]="deviceId"
+          [selectedSensor]="attribute.key"
+          [forecastMaxSteps]="forecastMaxSteps"
+          [modelId]="trueId"
+          [title]="attribute.key"
+          [timewindow]="timewindowsPerSensor[attribute.key] || timewindow"
+          (timewindowChange)="onChildTimewindowChange(attribute.key, $event)"
+          [viewPreferences]="currentViewPreferences"
+          (viewPreferencesChange)="onViewPreferencesChanged($event)"
+          [attributes]="attributes"
+          [logsObservable]="logsObservable"
+        >
+        </tb-time-series-telemetry>
       </div>
     </div>
-  </div>
+    </ng-container>
 
-  <!-- Anomalies Section with Collapse Button -->
-  <div
-    class="anomalies-section"
-    [class.collapsed]="anomaliesCollapsed"
-    *ngIf="shouldShowAnomalies()"
+    <!-- Anomalies Section -->
+    <div
+      class="chart-section anomalies-section"
+      [class.collapsed]="anomaliesCollapsed"
+      *ngIf="shouldShowAnomalies() && isWidgetVisible('anomalies')"
   >
     <div
       class="section-header"
@@ -352,51 +357,70 @@
         <mat-icon>close</mat-icon>
       </button>
     </div>
-    <div class="view-options">
-      <div
-        class="view-option"
-        *ngFor="let option of viewOptions"
-        (click)="$event.stopPropagation()"
-      >
-        <mat-checkbox
-          [checked]="isViewSelected(option.value)"
-          (change)="toggleView(option.value, $event.checked)"
-        >
-          <div class="option-content">
-            <mat-icon>{{ option.icon }}</mat-icon>
-            <span>{{ option.label }}</span>
-          </div>
-        </mat-checkbox>
+
+    <!-- Widgets Visibility (Collapsible) -->
+    <div class="color-config-section" (click)="$event.stopPropagation()">
+      <div class="section-header clickable" (click)="widgetsExpanded = !widgetsExpanded">
+        <mat-icon>widgets</mat-icon>
+        <span>Widgets</span>
+        <mat-icon class="expand-icon">{{ widgetsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+      </div>
+      <div class="sensor-colors-content" *ngIf="widgetsExpanded">
+        <div class="widget-visibility-item" *ngFor="let sensor of attributes">
+          <mat-checkbox
+            [checked]="isWidgetVisible(sensor.key)"
+            (change)="toggleWidgetVisibility(sensor.key, $event.checked)"
+          >
+            <div class="option-content">
+              <mat-icon>sensors</mat-icon>
+              <span>{{ sensor.key | titlecase }}</span>
+            </div>
+          </mat-checkbox>
+        </div>
+        <div class="widget-visibility-item">
+          <mat-checkbox
+            [checked]="isWidgetVisible('anomalies')"
+            (change)="toggleWidgetVisibility('anomalies', $event.checked)"
+          >
+            <div class="option-content">
+              <mat-icon>bug_report</mat-icon>
+              <span>Anomalies</span>
+            </div>
+          </mat-checkbox>
+        </div>
       </div>
     </div>
 
-    <!-- Sensor Colors Configuration -->
+    <!-- Sensor Colors Configuration (Collapsible) -->
     <div class="color-config-section" (click)="$event.stopPropagation()">
-      <div class="section-header">
+      <div class="section-header clickable" (click)="sensorColorsExpanded = !sensorColorsExpanded">
         <mat-icon>palette</mat-icon>
         <span>Sensor Colors</span>
+        <mat-icon class="expand-icon">{{ sensorColorsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
       </div>
-      <div class="sensor-color-item" *ngFor="let sensor of attributes">
-        <div class="sensor-color-label">
-          <div 
-            class="color-preview" 
-            [style.background-color]="getSensorColor(sensor.key)"
-          ></div>
-          <span>{{ sensor.key | titlecase }}</span>
-        </div>
-        <div class="color-picker-grid">
-          <button
-            *ngFor="let color of availableColors"
-            mat-icon-button
-            class="color-option"
-            [style.background-color]="color"
-            [class.selected]="getSensorColor(sensor.key) === color"
-            (click)="updateSensorColor(sensor.key, color)"
-            [matTooltip]="color"
-            matTooltipPosition="above"
-          >
-            <mat-icon *ngIf="getSensorColor(sensor.key) === color" class="check-icon">check</mat-icon>
-          </button>
+      <div class="sensor-colors-content" *ngIf="sensorColorsExpanded">
+        <div class="sensor-color-item" *ngFor="let sensor of attributes">
+          <div class="sensor-color-label">
+            <div 
+              class="color-preview" 
+              [style.background-color]="getSensorColor(sensor.key)"
+            ></div>
+            <span>{{ sensor.key | titlecase }}</span>
+          </div>
+          <div class="color-picker-grid">
+            <button
+              *ngFor="let color of availableColors"
+              mat-icon-button
+              class="color-option"
+              [style.background-color]="color"
+              [class.selected]="getSensorColor(sensor.key) === color"
+              (click)="updateSensorColor(sensor.key, color)"
+              [matTooltip]="color"
+              matTooltipPosition="above"
+            >
+              <mat-icon *ngIf="getSensorColor(sensor.key) === color" class="check-icon">check</mat-icon>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -441,3 +465,10 @@
     </div>
   </div>
 </div>
+
+<!-- Anomaly Alerts - Stacked notifications in bottom right -->
+<tb-anomaly-alerts
+  [logsObservable]="logsObservable"
+  [maxAlerts]="5"
+  [autoCloseDelay]="15000"
+></tb-anomaly-alerts>

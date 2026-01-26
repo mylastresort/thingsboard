@@ -6,6 +6,7 @@ Uses ThingsBoard command pattern with commandId
 
 import asyncio
 from datetime import datetime
+import json
 import os
 from typing import Dict, Set, Callable
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -16,13 +17,14 @@ from src.model.job import (
     stop_prediction_job,
     pause_prediction_job,
     unpause_prediction_job,
-    get_job_status,
+    # get_job_status,
     get_model_logs,
     subscribe_to_logs,
     unsubscribe_from_logs,
     subscribe_to_job_status,
     unsubscribe_from_job_status,
 )
+from src.model.utils import get_job_status, job_lock, active_jobs, get_or_create_job_status
 from src.settings import settings
 from src.logger import logger  # Global logger
 from pathlib import Path
@@ -646,47 +648,47 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
             )
             return
 
-        # Train AnomalyPredictor
-        await websocket.send_json(
-            {
-                "commandId": command_id,
-                "type": "progress",
-                "step": "training_anomaly",
-                "message": "Training AnomalyPredictor...",
-                "progress": 20,
-                "timestamp": datetime.now().isoformat() + "Z",
-            }
-        )
+            # # Train AnomalyPredictor
+            # await websocket.send_json(
+            #     {
+            #         "commandId": command_id,
+            #         "type": "progress",
+            #         "step": "training_anomaly",
+            #         "message": "Training AnomalyPredictor...",
+            #         "progress": 20,
+            #         "timestamp": datetime.now().isoformat() + "Z",
+            #     }
+            # )
 
-        try:
-            algorithm = model_config.get("anomaly_algorithm", None)
-            print(f"[ACTIVATE] Starting anomaly predictor training...", flush=True)
-            anomaly_result = await asyncio.to_thread(
-                train_and_save_model,
-                model_id=f"{forecast_id}/anomaly_predictor",
-                model_type="AnomalyPredictor",
-                device_id=device_id,
-                data_registry=data_registry,
-                algorithm=algorithm,
-                days_back=90,
-            )
-            print(
-                f"[ACTIVATE] Anomaly predictor training completed: {anomaly_result}",
-                flush=True,
-            )
+            # try:
+            #     algorithm = model_config.get("anomaly_algorithm", None)
+            #     print(f"[ACTIVATE] Starting anomaly predictor training...", flush=True)
+            #     anomaly_result = await asyncio.to_thread(
+            #         train_and_save_model,
+            #         model_id=f"{forecast_id}/anomaly_predictor",
+            #         model_type="AnomalyPredictor",
+            #         device_id=device_id,
+            #         data_registry=data_registry,
+            #         algorithm=algorithm,
+            #         days_back=90,
+            #     )
+            #     print(
+            #         f"[ACTIVATE] Anomaly predictor training completed: {anomaly_result}",
+            #         flush=True,
+            #     )
 
-            await websocket.send_json(
-                {
-                    "commandId": command_id,
-                    "type": "progress",
-                    "step": "anomaly_complete",
-                    "message": "AnomalyPredictor trained successfully",
-                    "progress": 50,
-                    "metrics": anomaly_result.get("training_results", {}),
-                    "timestamp": datetime.now().isoformat() + "Z",
-                }
-            )
-        except Exception as e:
+            #     await websocket.send_json(
+            #         {
+            #             "commandId": command_id,
+            #             "type": "progress",
+            #             "step": "anomaly_complete",
+            #             "message": "AnomalyPredictor trained successfully",
+            #             "progress": 50,
+            #             "metrics": anomaly_result.get("training_results", {}),
+            #             "timestamp": datetime.now().isoformat() + "Z",
+            #         }
+            #     )
+            # except Exception as e:
             error_trace = traceback.format_exc()
             print(f"[ACTIVATE ERROR] Training failed: {str(e)}", flush=True)
             print(f"[ACTIVATE ERROR] Traceback:\n{error_trace}", flush=True)
@@ -782,28 +784,28 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
             )
             return  # Stop activation on training failure
 
-        # return
-        # Start prediction job
-        print(f"[ACTIVATE] Starting prediction job...")
-        await asyncio.to_thread(
-            start_prediction_job,
-            f"{forecast_id}/anomaly_predictor",
-            "AnomalyPredictor",
-            device_id,
-        )
-        print(f"[ACTIVATE] Prediction job started")
+        # # return
+        # # Start prediction job
+        # print(f"[ACTIVATE] Starting prediction job...")
+        # await asyncio.to_thread(
+        #     start_prediction_job,
+        #     f"{forecast_id}/anomaly_predictor",
+        #     "AnomalyPredictor",
+        #     device_id,
+        # )
+        # print(f"[ACTIVATE] Prediction job started")
 
-        # forecast predictions
-        logger.info(f"[ACTIVATE] Starting ForecastModel prediction job for {forecast_id}")
-        job_started = await asyncio.to_thread(
-            start_prediction_job,
-            f"{forecast_id}/forecast_model",
-            "ForecastModel",
-            device_id,
-            group_by_ms_per_sensor=group_by_ms_per_sensor,
-            aggregation_funcs=aggregation_funcs,
-        )
-        logger.info(f"[ACTIVATE] ForecastModel prediction job start result: {job_started}")
+        # # forecast predictions
+        # logger.info(f"[ACTIVATE] Starting ForecastModel prediction job for {forecast_id}")
+        # job_started = await asyncio.to_thread(
+        #     start_prediction_job,
+        #     f"{forecast_id}/forecast_model",
+        #     "ForecastModel",
+        #     device_id,
+        #     group_by_ms_per_sensor=group_by_ms_per_sensor,
+        #     aggregation_funcs=aggregation_funcs,
+        # )
+        # logger.info(f"[ACTIVATE] ForecastModel prediction job start result: {job_started}")
 
         # Send completion
         await websocket.send_json(
@@ -853,35 +855,62 @@ async def handle_job_status(
                     extra={"rand_id": rand_id},
                 )
                 try:
+                    # Make status_data JSON serializable
+                    serializable_data = json.loads(json.dumps(status_data, default=str))
                     logger.info(
-                        f"Job status update for {fid} - {model_type_str}: {status_data}",
+                        f"Job status update for {fid} - {model_type_str}: {serializable_data}",
                         extra={"rand_id": rand_id},
                     )
-                    asyncio.run_coroutine_threadsafe(
+                    # Schedule coroutine in the event loop from another thread
+                    future = asyncio.run_coroutine_threadsafe(
                         ws.send_json(
                             {
                                 "commandId": cmd_id,
                                 "type": "response",
                                 "model": "job",
                                 "model_type": model_type_str,
-                                "data": status_data,
+                                "data": serializable_data,
                                 "forecastId": fid,
                                 "timestamp": datetime.now().isoformat() + "Z",
                             }
                         ),
                         loop,
                     )
+
+                    # Wait for the result with a timeout to verify message was sent
+                    try:
+                        future.result(timeout=5.0)
+                        logger.info(
+                            f"Successfully sent real-time status update for {fid} - {model_type_str}",
+                            extra={"rand_id": rand_id},
+                        )
+                    except TimeoutError:
+                        logger.error(
+                            f"Timeout sending real-time status update for {fid} - {model_type_str}",
+                            extra={"rand_id": rand_id},
+                        )
+                    except Exception as send_error:
+                        logger.error(
+                            f"Failed to send real-time status update for {fid} - {model_type_str}: {str(send_error)}",
+                            extra={"rand_id": rand_id},
+                        )
                 except Exception as e:
                     logger.error(
-                        f"Error sending real-time status update: {str(e)}",
+                        f"Error preparing real-time status update: {str(e)}",
                         extra={"rand_id": rand_id},
                     )
+                    import traceback
+
+                    logger.error(f"Traceback: {traceback.format_exc()}")
 
             return status_callback
 
         # Handle anomaly predictor
         model_id = f"{forecast_id}/anomaly_predictor"
         job_status_anomaly = get_job_status(model_id)
+        job_status_anomaly = json.loads(
+            json.dumps(job_status_anomaly, default=str)
+        )  # make it JSON serializable
         logger.info(
             f"Fetched job status for {model_id}: {job_status_anomaly}", extra={"rand_id": rand_id}
         )
@@ -908,6 +937,9 @@ async def handle_job_status(
         # Handle forecast model
         model_id = f"{forecast_id}/forecast_model"
         job_status_forecast = get_job_status(model_id)
+        job_status_forecast = json.loads(
+            json.dumps(job_status_forecast, default=str)
+        )  # make it JSON serializable
         logger.info(
             f"Fetched job status for {model_id}: {job_status_forecast}", extra={"rand_id": rand_id}
         )

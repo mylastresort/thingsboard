@@ -60,7 +60,7 @@ while true; do
     #     pressure=$(echo "$pressure + $increment_value" | bc)
     #   fi
     # fi
-    mosquitto_pub -d -q 1 -h thingsboard -p 1883 -t v1/devices/me/telemetry -u "$entity_token" -m "{rotate:$rotate,pressure:$pressure}" >/dev/null
+    mosquitto_pub -d -q 1 -h thingsboard -p 1883 -t v1/devices/me/telemetry -u "$entity_token" -m "{rotate:$rotate,pressure:$pressure,volt:$volt,vibration:$vibration}" >/dev/null
   done
   echo "Restarting file read..."
 done

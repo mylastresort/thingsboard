@@ -1,0 +1,199 @@
+///
+/// Copyright © 2016-2024 The Thingsboard Authors
+///
+/// Licensed under the Apache License, Version 2.0 (the "License");
+/// you may not use this file except in compliance with the License.
+/// You may obtain a copy of the License at
+///
+///     http://www.apache.org/licenses/LICENSE-2.0
+///
+/// Unless required by applicable law or agreed to in writing, software
+/// distributed under the License is distributed on an "AS IS" BASIS,
+/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+/// See the License for the specific language governing permissions and
+/// limitations under the License.
+///
+
+// Host element styling
+:host {
+  display: block;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.anomaly-alerts-container {
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+
+  * {
+    pointer-events: auto;
+  }
+}
+
+.alerts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(33, 33, 33, 0.95);
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  .alerts-count {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .dismiss-all-btn {
+    color: #fff;
+    font-size: 12px;
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 4px;
+    }
+  }
+}
+
+.alerts-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alert-card {
+  display: flex;
+  background: rgba(33, 33, 33, 0.95);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 350px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateX(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  &.critical {
+    border-left: none;
+  }
+
+  &.major {
+    border-left: none;
+  }
+
+  &.minor {
+    border-left: none;
+  }
+}
+
+.alert-severity-indicator {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+  padding: 12px;
+  color: #fff;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  .severity-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .alert-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .alert-time {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .close-btn {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    margin: -4px -8px -4px 0;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    &:hover mat-icon {
+      color: #fff;
+    }
+  }
+}
+
+.alert-body {
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .alert-component,
+  .alert-probability,
+  .alert-severity-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    strong {
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+    }
+  }
+
+  .probability-value {
+    font-weight: 600;
+  }
+
+  .severity-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    text-transform: uppercase;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 480px) {
+  .anomaly-alerts-container {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    max-width: none;
+  }
+
+  .alert-card {
+    min-width: auto;
+  }
+}

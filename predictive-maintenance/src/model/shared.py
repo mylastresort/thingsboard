@@ -87,6 +87,10 @@ def _update_training_progress_impl(model_id: str, progress: dict, rand_id: str =
         extra={"rand_id": rand_id},
     )
     job = get_job_status(model_id)
+    logger.info(
+        f"{rand_id} - Retrieved job for model_id={model_id}: {job}",
+        extra={"rand_id": rand_id},
+    )
     if job is not None:
         with job["read_lock"]:
             logger.info(

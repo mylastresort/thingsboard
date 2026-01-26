@@ -1,0 +1,55 @@
+<div class="anomaly-alerts-container" *ngIf="alerts.length > 0">
+  <!-- Dismiss All button when there are multiple alerts -->
+  <div class="alerts-header" *ngIf="alerts.length > 1">
+    <span class="alerts-count">{{ alerts.length }} Anomaly Alerts</span>
+    <button mat-button class="dismiss-all-btn" (click)="dismissAllAlerts()">
+      <mat-icon>clear_all</mat-icon>
+      Dismiss All
+    </button>
+  </div>
+
+  <!-- Stacked alerts -->
+  <div class="alerts-stack">
+    <div
+      *ngFor="let alert of alerts; trackBy: trackByAlertId"
+      class="alert-card"
+      [class.critical]="alert.severity === 'Critical'"
+      [class.major]="alert.severity === 'Major'"
+      [class.minor]="alert.severity === 'Minor'"
+      [@alertAnimation]
+    >
+      <div class="alert-severity-indicator" [style.background-color]="getSeverityColor(alert.severity)"></div>
+      
+      <div class="alert-content">
+        <div class="alert-header">
+          <mat-icon class="severity-icon" [style.color]="getSeverityColor(alert.severity)">
+            {{ getSeverityIcon(alert.severity) }}
+          </mat-icon>
+          <span class="alert-title">Anomaly Detected</span>
+          <span class="alert-time">{{ formatTime(alert.timestamp) }}</span>
+          <button mat-icon-button class="close-btn" (click)="dismissAlert(alert.id)" aria-label="Dismiss alert">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        
+        <div class="alert-body">
+          <div class="alert-component">
+            <strong>Component:</strong> {{ alert.component }}
+          </div>
+          <div class="alert-probability">
+            <strong>Probability:</strong> 
+            <span class="probability-value" [style.color]="getSeverityColor(alert.severity)">
+              {{ (alert.probability * 100).toFixed(1) }}%
+            </span>
+          </div>
+          <div class="alert-severity-label">
+            <strong>Severity:</strong>
+            <span class="severity-badge" [style.background-color]="getSeverityColor(alert.severity)">
+              {{ alert.severity }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

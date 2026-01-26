@@ -71,8 +71,9 @@ import { ModelLogsNotifierService } from './model-logs-notifier.service';
 import { QuickTimeInterval, Timewindow } from '@shared/models/time/time.models';
 import { flatMap, result } from 'lodash';
 import { mergeMap, Observable } from 'rxjs';
-import { distinctUntilChanged, filter, tap } from 'rxjs/operators';
+import { distinctUntilChanged, filter, tap, share } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
+import { AnomalyAlertsComponent } from '../../../components/predictive-maintenance/components/anomaly-alerts/anomaly-alerts.component';
 
 @Component({
   selector: 'tb-forecast',
@@ -87,6 +88,7 @@ import { HttpClient } from '@angular/common/http';
     FormsModule,
     TimeSeriesTelemetryComponent,
     AnomaliesComponent,
+    AnomalyAlertsComponent,
     MatTooltipModule,
     MatCheckboxModule,
     TranslateModule,
@@ -132,6 +134,9 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
 
   // Reference to the anomalies table component
   @ViewChild(AnomaliesComponent) anomaliesComponent?: AnomaliesComponent;
+
+  // Reference to the anomaly alerts component for testing
+  @ViewChild(AnomalyAlertsComponent) anomalyAlertsComponent?: AnomalyAlertsComponent;
 
   // Reference to the logs button element
   @ViewChild('logsButton', { read: ElementRef }) logsButton?: ElementRef;
@@ -184,19 +189,52 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
 
   timeSeriesChartCollapsed = false;
 
-  // View selector options
-  viewOptions = [
-    {
-      value: ForecastViewType.FORECAST,
-      label: 'Show Forecast',
-      icon: 'trending_up',
-    },
-    {
-      value: ForecastViewType.ANOMALIES,
-      label: 'Show Anomalies',
-      icon: 'bug_report',
-    },
-  ];
+  // Per-sensor timewindow map for independent widget controls
+  timewindowsPerSensor: { [sensor: string]: Timewindow } = {};
+
+  private cloneDefaultTimewindow(): Timewindow {
+    return {
+      displayValue: '',
+      hideInterval: false,
+      hideAggregation: false,
+      hideAggInterval: false,
+      hideTimezone: false,
+      selectedTab: 0,
+      realtime: {
+        realtimeType: 0,
+        interval: 60000,
+        timewindowMs: 600000,
+        quickInterval: QuickTimeInterval.CURRENT_DAY
+      },
+      history: undefined
+    };
+  }
+
+  private initSensorTimewindows(): void {
+    if (Array.isArray(this.attributes)) {
+      const map: { [sensor: string]: Timewindow } = {};
+      this.attributes.forEach(attr => {
+        const key = attr.key;
+        // Initialize if not present to preserve user changes
+        if (!this.timewindowsPerSensor[key]) {
+          map[key] = this.cloneDefaultTimewindow();
+        } else {
+          map[key] = this.timewindowsPerSensor[key];
+        }
+      });
+      this.timewindowsPerSensor = map;
+      console.log('[MODEL] Initialized timewindows for sensors:', Object.keys(this.timewindowsPerSensor));
+      this.cdr.detectChanges();
+    }
+  }
+
+  onChildTimewindowChange(sensor: string, tw: Timewindow): void {
+    this.timewindowsPerSensor = {
+      ...this.timewindowsPerSensor,
+      [sensor]: tw
+    };
+    console.log('[MODEL] Updated timewindow for sensor:', sensor);
+  }
 
   selectedViews: ForecastViewType[] = [];
 
@@ -206,11 +244,15 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
 
   currentViewPreferences: ForecastViewPreferences; // Current view preferences with sensor colors
 
-  // Available colors for sensor color picker
-  availableColors: string[] = [
+  // Reserved colors for forecast and predictions - DO NOT allow users to select these for telemetry
+  private static readonly RESERVED_COLORS = [
+    TimeSeriesTelemetryComponent.FORECAST_COLOR,     // Orange - reserved for Forecast series
+    TimeSeriesTelemetryComponent.PREDICTIONS_COLOR   // Green - reserved for Predictions series
+  ];
+
+  // Full color palette before filtering reserved colors
+  private static readonly FULL_COLOR_PALETTE: string[] = [
     '#2196f3', // Blue
-    '#ff9800', // Orange
-    '#4caf50', // Green
     '#f44336', // Red
     '#9c27b0', // Purple
     '#00bcd4', // Cyan
@@ -230,9 +272,34 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     '#d32f2f'  // Red Dark
   ];
 
+  // Available colors for sensor color picker (excludes reserved colors to prevent conflicts with Forecast/Predictions)
+  availableColors: string[] = ModelComponent.FULL_COLOR_PALETTE.filter(
+    color => !ModelComponent.RESERVED_COLORS.includes(color)
+  );
+
   showViewSelector = false;
 
+  sensorColorsExpanded = false;
+
+  widgetsExpanded = false;
+
+  // Track which widgets are visible (by sensor key or 'anomalies')
+  hiddenWidgets: Set<string> = new Set();
+
   unreadLogs = false;
+
+  isWidgetVisible(widgetKey: string): boolean {
+    return !this.hiddenWidgets.has(widgetKey);
+  }
+
+  toggleWidgetVisibility(widgetKey: string, visible: boolean): void {
+    if (visible) {
+      this.hiddenWidgets.delete(widgetKey);
+    } else {
+      this.hiddenWidgets.add(widgetKey);
+    }
+    this.saveViewPreferences();
+  }
 
   // Initialize unread logs state from the notifier service on component creation
   private initializeUnreadLogsState(): void {
@@ -759,6 +826,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         this.subscriptions = [];
 
         // map job logs to each log entry
+        // Use share() to make this a hot observable - all subscribers receive the same data
         this.logsObservable = this.modelWebSocketService.requestJobLogs(this.trueId)
           .pipe(
             filter((msg) => {
@@ -768,6 +836,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
             tap((log) => {
               console.log('%cReceived log entry:', 'color: green;', log);
             }),
+            share() // Share the observable among all subscribers
           );
 
         // requestJobStatus
@@ -905,6 +974,9 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         this.deviceId = data.deviceId.id;
         this.Attributes = data.attributes.map((attr) => attr.key);
         this.attributes = data.attributes;
+
+        // Initialize per-sensor timewindows when attributes are available
+        this.initSensorTimewindows();
 
         // Initialize selectedSensor from model's configured attributes (first sensor)
         if (this.Attributes.length > 0 && !this.Attributes.includes(this.selectedSensor)) {
@@ -1360,6 +1432,16 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     );
   }
 
+  // Test method to trigger a test anomaly alert
+  testAnomalyAlert(): void {
+    console.log('[MODEL] Testing anomaly alert...');
+    if (this.anomalyAlertsComponent) {
+      this.anomalyAlertsComponent.addTestAlert();
+    } else {
+      console.error('[MODEL] AnomalyAlertsComponent not found');
+    }
+  }
+
   deleteModel(): void {
     if (!this.trueId) {
       console.error('No model ID available for deletion');
@@ -1693,11 +1775,12 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   }
 
   shouldShowForecastChart(): boolean {
-    return this.selectedViews.includes(ForecastViewType.FORECAST);
+    // Show forecast charts if any sensor widget is visible
+    return this.attributes?.some(attr => this.isWidgetVisible(attr.key)) ?? true;
   }
 
   shouldShowAnomalies(): boolean {
-    return this.selectedViews.includes(ForecastViewType.ANOMALIES);
+    return this.isWidgetVisible('anomalies');
   }
 
   private loadViewPreferences(): void {
@@ -1715,6 +1798,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         this.selectedSensor = preferences.selectedSensor || 'rotate';
         this.hideSensorTelemetry = preferences.hideSensorTelemetry || false;
         this.timewindow = preferences.timewindow || this.timewindow;
+        this.hiddenWidgets = new Set(preferences.hiddenWidgets || []);
         this.currentViewPreferences = preferences;
       },
       (error) => {
@@ -1728,12 +1812,14 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         ]; // Default fallback
         this.selectedSensor = 'rotate';
         this.hideSensorTelemetry = false;
+        this.hiddenWidgets = new Set();
         this.currentViewPreferences = {
           selectedViews: this.selectedViews,
           selectedSensor: this.selectedSensor,
           hideSensorTelemetry: this.hideSensorTelemetry,
           timewindow: this.timewindow,
           sensorColors: {},
+          hiddenWidgets: [],
         };
       }
     );
@@ -1753,6 +1839,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
           hideSensorTelemetry: this.hideSensorTelemetry,
           timewindow: this.timewindow,
           sensorColors: this.currentViewPreferences?.sensorColors || {},
+          hiddenWidgets: Array.from(this.hiddenWidgets),
         };
 
         // Update the forecast with new view preferences

@@ -27,6 +27,7 @@ export interface ForecastViewPreferences {
   hideSensorTelemetry?: boolean; // Hide sensor telemetry widget
   timewindow?: Timewindow; // Timewindow configuration for telemetry chart
   sensorColors?: { [sensorName: string]: string }; // Map of sensor names to their assigned colors
+  hiddenWidgets?: string[]; // List of hidden widget keys (sensor names or 'anomalies')
 }
 
 export const DEFAULT_VIEW_PREFERENCES: ForecastViewPreferences = {
@@ -35,6 +36,7 @@ export const DEFAULT_VIEW_PREFERENCES: ForecastViewPreferences = {
   hideSensorTelemetry: false, // Show sensor telemetry by default
   timewindow: undefined, // Default to undefined timewindow
   sensorColors: {}, // Default to empty color map
+  hiddenWidgets: [], // Default to no hidden widgets
 };
 
 export function parseForecastViewPreferences(
@@ -60,6 +62,7 @@ export function parseForecastViewPreferences(
           : DEFAULT_VIEW_PREFERENCES.hideSensorTelemetry,
         timewindow: parsed.timewindow || DEFAULT_VIEW_PREFERENCES.timewindow,
         sensorColors: parsed.sensorColors || DEFAULT_VIEW_PREFERENCES.sensorColors,
+        hiddenWidgets: parsed.hiddenWidgets || DEFAULT_VIEW_PREFERENCES.hiddenWidgets,
       };
     }
 

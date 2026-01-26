@@ -88,8 +88,8 @@ services:
       context: ./send-telemetry/
       dockerfile: dashboard-script.Dockerfile
     container_name: dashboard-script
-    mem_limit: 512m
-    cpus: 0.5
+    # mem_limit: 512m
+    # cpus: 0.5
     depends_on:
       thingsboard:
         condition: service_healthy
