@@ -367,9 +367,9 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
       this.logsObservable = null;
     }
 
-    // Unsubscribe from job status updates
+    // Unsubscribe from model status and logs
     if (this.trueId) {
-      this.modelWebSocketService.unsubscribeFromJobStatus(this.trueId, 'anomaly');
+      this.modelWebSocketService.unsubscribeFromModelStatus(this.trueId);
       this.modelWebSocketService.unsubscribeFromLogs(this.trueId);
     }
     this.modelWebSocketService.disconnect();
@@ -839,23 +839,30 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
             share() // Share the observable among all subscribers
           );
 
-        // requestJobStatus
-        this.modelWebSocketService.requestJobStatus(this.trueId)
-        .subscribe((msg => {
-          if (msg.forecastId != params.id) return;
-          console.log('Initial job status message received:', msg);
-          console.log('Job status data:', msg?.data);
-          if (msg?.data?.status === 'running') {
-            this.status = 'active';
-          }
-        }));
+        // Subscribe to predictive model status updates (inactive, pending, active, error)
+        const modelStatusSubscription = this.modelWebSocketService.requestModelStatus(this.trueId)
+          .subscribe((msg: any) => {
+            if (msg.forecastId != params.id) return;
+            console.log('Predictive model status update:', msg);
+            if (msg?.data?.status) {
+              const modelStatus = msg.data.status.toLowerCase();
+              // Map backend status to frontend status
+              if (modelStatus === 'inactive' || modelStatus === 'pending' || modelStatus === 'active' || modelStatus === 'error') {
+                this.status = modelStatus === 'error' ? 'failed' : modelStatus;
+              }
+              // Update progress if pending
+              if (modelStatus === 'pending' && msg.data.trainingProgress !== undefined) {
+                this.progressMessage = {
+                  step: msg.data.trainingStep || 'Training',
+                  progress: msg.data.trainingProgress || 0
+                };
+              } else if (modelStatus !== 'pending') {
+                this.progressMessage = null;
+              }
+            }
+          });
+        this.subscriptions.push(modelStatusSubscription);
 
-        // this.subscriptions.push(this.logsObservable.subscribe((log) => {
-        //   console.log('Log entry:', log);
-        // }));
-        //
-        //
-        //
         console.log(`[ModelComponent] Fetch history of predictions`);
 
         this.fetchAnomalyHistoryPredictions();
@@ -864,41 +871,6 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
 
         this.subscribeToAnomalyPredictions();
         this.subscribeToForecastPredictions(params.id);
-
-        // Subscribe to real-time job status updates
-        // const jobStatusSubscription = this.modelWebSocketService.subscribeToJobStatus(this.trueId, 'anomaly').subscribe((msg: any) => {
-        //   // if (msg.type === 'prediction') {
-        //   //   console.log('Job prediction:', msg.data.logs);
-        //   // } else {
-        //   //   console.log('Job status message received:', msg);
-        //   // }
-        //   if (msg?.data) {
-        //     this.currentIteration = msg.data.iteration || 0;
-        //     this.jobStatus = msg.data.status;
-        //     this.lastRunTime = msg.data.last_run;
-
-        //     // Update main status if job is running (ensure it's a string)
-        //     // if (this.jobStatus === 'running') {
-        //     //   this.status = 'active';
-        //     // } else if (this.jobStatus === 'stopped' || this.jobStatus === 'not_found') {
-        //     //   this.status = 'inactive';
-        //     // }
-        //     if (msg.data.model_exists) {
-        //       // this.status = 'active';
-        //       this.status = 'inactive';
-        //       this.anomaliesComponent?.setStreamStatus(true, null);
-        //     } else {
-        //       this.status = 'inactive';
-        //     }
-        //   }
-        // }, (err) => {
-        //   console.error('Error subscribing to job status:', err);
-        //   this.anomaliesComponent?.setStreamStatus(false, 'Error subscribing to job status');
-        // });
-        // this.subscriptions.push(jobStatusSubscription);
-
-        // Fetch status from the service to ensure it's up-to-date
-        // this.getModelStatus();
       }
 
       // Clean up previous notifier subscription before creating new one
@@ -989,9 +961,6 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         this.forecastAlgorithm = data.forecastAlgorithm;
         this.anomalyAlgorithm = data.anomalyAlgorithm;
         this.forecastGrouping = JSON.parse(data.additionalData || '{}').forecastGrouping || 'hourly';
-
-        // Check forecast job status after loading model
-        this.checkForecastJobStatus();
 
         // Fetch device name
         this.deviceService.getDevice(data.deviceId.id).subscribe(
@@ -1223,38 +1192,6 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     this.cdr.detectChanges();
 
     console.log('[MODEL] Unpause command sent:', command);
-  }
-
-  // Check forecast job status to initialize pause/unpause button state
-  checkForecastJobStatus(): void {
-    if (!this.trueId) {
-      return;
-    }
-
-    console.log('[MODEL] Checking forecast job status for', this.trueId);
-
-    // Subscribe to job status updates
-    // this.modelWebSocketService.subscribeToJobStatus(this.trueId, 'forecast').subscribe({
-    //   next: (response: any) => {
-    //     console.log('[MODEL] Forecast job status response:', response);
-    //     if (response.data) {
-    //       const status = response.data.status || response.data.data?.status;
-    //       const paused = response.data.paused || response.data.data?.paused || false;
-
-    //       this.forecastJobRunning = status === 'running';
-    //       this.forecastJobPaused = paused;
-    //       this.cdr.detectChanges();
-
-    //       console.log('[MODEL] Updated forecast job state:', {
-    //         running: this.forecastJobRunning,
-    //         paused: this.forecastJobPaused
-    //       });
-    //     }
-    //   },
-    //   error: (error) => {
-    //     console.error('[MODEL] Error checking forecast job status:', error);
-    //   }
-    // });
   }
 
   openForecastStatsDialog(): void {
@@ -1565,12 +1502,6 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   isWsConnected = false;
 
   progressMessage: { step: string; progress: number } | null = null;
-
-  currentIteration = 0;
-
-  lastRunTime: string | null = null;
-
-  jobStatus: 'running' | 'stopped' | 'not_found' | null = null;
 
   activateModel(): void {
     // console.log('Activating model:', this.trueId);

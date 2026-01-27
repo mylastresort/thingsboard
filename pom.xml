@@ -171,15 +171,15 @@
     <modules>
         <module>netty-mqtt</module>
         <module>common</module>
-        <!-- <module>rule-engine</module> -->
+        <module>rule-engine</module>
         <module>dao</module>
         <module>transport</module>
         <module>ui-ngx</module>
-        <!-- <module>tools</module> -->
+        <module>tools</module>
         <module>application</module>
-        <!-- <module>msa</module> -->
+        <module>msa</module>
         <module>rest-client</module>
-        <!-- <module>monitoring</module> -->
+        <module>monitoring</module>
     </modules>
 
     <profiles>

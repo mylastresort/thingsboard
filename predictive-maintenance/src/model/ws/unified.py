@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime
 import json
 import os
-from typing import Dict, Set, Callable
+from typing import Dict, Set, Callable, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from src.model.shared import get_data_registry, train_and_save_model
 from src.model.job import (
@@ -25,6 +25,16 @@ from src.model.job import (
     unsubscribe_from_job_status,
 )
 from src.model.utils import get_job_status, job_lock, active_jobs, get_or_create_job_status
+from src.model.predictive_model import (
+    PredictiveModel,
+    ModelStatus,
+    get_predictive_model,
+    get_or_create_predictive_model,
+    subscribe_to_model_status,
+    unsubscribe_from_model_status,
+    get_model_status,
+    set_model_status,
+)
 from src.settings import settings
 from src.logger import logger  # Global logger
 from pathlib import Path
@@ -140,11 +150,39 @@ async def unified_model_stream(websocket: WebSocket):
     """
     await websocket.accept()
 
+    # Helper function for non-blocking sends
+    async def send_response(data: dict):
+        """Send a response without blocking the message loop"""
+        try:
+            await websocket.send_json(data)
+        except Exception as e:
+            logger.error(f"Error sending response: {str(e)}")
+
+    def send_response_bg(data: dict):
+        """Fire-and-forget send as background task"""
+        create_logged_task(send_response(data), "send_response")
+
+    def create_logged_task(coro, name: str = "unnamed"):
+        """Create a background task with exception logging"""
+        task = asyncio.create_task(coro)
+
+        def handle_task_exception(t):
+            try:
+                exc = t.exception()
+                if exc:
+                    logger.error(f"Background task '{name}' failed: {exc}")
+            except asyncio.CancelledError:
+                logger.debug(f"Background task '{name}' was cancelled")
+
+        task.add_done_callback(handle_task_exception)
+        return task
+
     # Track subscriptions for this connection
     prediction_subscriptions: Dict[str, Set[str]] = {}  # {forecastId: {modelTypes}}
     log_subscriptions: Set[str] = set()  # {forecastIds}
     log_callbacks: Dict[str, Callable] = {}  # {model_id: callback_function}
     job_status_callbacks: Dict[str, Callable] = {}  # {model_id: callback_function}
+    model_status_callbacks: Dict[str, Callable] = {}  # {forecast_id: callback_function}
     last_iterations: Dict[str, int] = {}  # {model_id: last_iteration}
 
     try:
@@ -216,7 +254,7 @@ async def unified_model_stream(websocket: WebSocket):
 
             # Validate commandId (except for connection/ping messages from Java backend)
             if command_id is None and msg_type not in ["connection", "ping"]:
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "type": "error",
                         "message": "Missing required field: commandId",
@@ -227,7 +265,7 @@ async def unified_model_stream(websocket: WebSocket):
 
             # Handle ping
             if msg_type == "ping":
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "pong",
@@ -238,7 +276,7 @@ async def unified_model_stream(websocket: WebSocket):
 
             # Validate forecastId for other types (except connection/ping)
             if not forecast_id and msg_type not in ["ping", "connection"]:
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "error",
@@ -248,20 +286,55 @@ async def unified_model_stream(websocket: WebSocket):
                 )
                 continue
 
-            # Handle activate command
+            # Handle activate command - run as background task so message loop continues
             if msg_type == "activate":
                 logger.info(f"Received activate command for forecastId={forecast_id}")
-                await handle_activate(websocket, command_id, forecast_id, data)
+                create_logged_task(
+                    handle_activate(websocket, command_id, forecast_id, data), "handle_activate"
+                )
                 continue
 
-            # Handle job_status command
+            # Handle job_status command - run as background task
             if msg_type == "job_status":
-                await handle_job_status(websocket, command_id, forecast_id)
+                create_logged_task(
+                    handle_job_status(websocket, command_id, forecast_id), "handle_job_status"
+                )
                 continue
 
-            # Handle job_logs command
+            # Handle model_status command (get overall predictive model status) - run as background task
+            if msg_type == "model_status":
+                logger.info(
+                    f"[MODEL_STATUS] Received model_status command for forecastId={forecast_id}, commandId={command_id}"
+                )
+                create_logged_task(
+                    handle_model_status(websocket, command_id, forecast_id, model_status_callbacks),
+                    "handle_model_status",
+                )
+                continue
+
+            # Handle unsubscribe_model_status command
+            if msg_type == "unsubscribe_model_status":
+                if forecast_id in model_status_callbacks:
+                    callback = model_status_callbacks[forecast_id]
+                    unsubscribe_from_model_status(forecast_id, callback)
+                    del model_status_callbacks[forecast_id]
+                    logger.info(f"Unsubscribed from model status for {forecast_id}")
+
+                send_response_bg(
+                    {
+                        "commandId": command_id,
+                        "type": "response",
+                        "message": f"Unsubscribed from model status for {forecast_id}",
+                        "timestamp": datetime.now().isoformat() + "Z",
+                    }
+                )
+                continue
+
+            # Handle job_logs command - run as background task
             if msg_type == "job_logs":
-                await handle_job_logs(websocket, command_id, forecast_id, data)
+                create_logged_task(
+                    handle_job_logs(websocket, command_id, forecast_id, data), "handle_job_logs"
+                )
                 continue
 
             # Handle subscribe_predictions or job_listen command (both supported for compatibility)
@@ -288,7 +361,7 @@ async def unified_model_stream(websocket: WebSocket):
                 if job_status:
                     last_iterations[model_id] = job_status.get("iterations", 0)
 
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "response",
@@ -315,7 +388,7 @@ async def unified_model_stream(websocket: WebSocket):
                     if not prediction_subscriptions[forecast_id]:
                         del prediction_subscriptions[forecast_id]
 
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "response",
@@ -388,7 +461,7 @@ async def unified_model_stream(websocket: WebSocket):
                 # print(f"[SUBSCRIBE DEBUG] Calling subscribe_to_logs({forecast_model_id}, {id(callback)})", flush=True)
                 subscribe_to_logs(forecast_model_id, callback)
 
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "response",
@@ -415,7 +488,7 @@ async def unified_model_stream(websocket: WebSocket):
                     unsubscribe_from_logs(model_id, log_callbacks[model_id])
                     del log_callbacks[model_id]
 
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "response",
@@ -442,7 +515,7 @@ async def unified_model_stream(websocket: WebSocket):
                     if success:
                         success_list.append("forecast")
 
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "response",
@@ -468,7 +541,7 @@ async def unified_model_stream(websocket: WebSocket):
 
                 success = pause_prediction_job(model_id)
 
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "response",
@@ -496,7 +569,7 @@ async def unified_model_stream(websocket: WebSocket):
 
                 success = unpause_prediction_job(model_id)
 
-                await websocket.send_json(
+                send_response_bg(
                     {
                         "commandId": command_id,
                         "type": "response",
@@ -520,7 +593,7 @@ async def unified_model_stream(websocket: WebSocket):
                 continue
 
             # Unknown command type
-            await websocket.send_json(
+            send_response_bg(
                 {
                     "commandId": command_id,
                     "type": "error",
@@ -546,10 +619,6 @@ async def unified_model_stream(websocket: WebSocket):
         except:
             pass
     finally:
-        # Cancel updater task
-        if "updater_task" in locals():
-            updater_task.cancel()
-
         # Clean up all log subscriptions for this connection
         for model_id, callback in log_callbacks.items():
             try:
@@ -563,6 +632,13 @@ async def unified_model_stream(websocket: WebSocket):
                 unsubscribe_from_job_status(model_id, callback)
             except Exception as e:
                 logger.error(f"Error unsubscribing from job status on cleanup: {str(e)}")
+
+        # Clean up all model status subscriptions for this connection
+        for forecast_id, callback in model_status_callbacks.items():
+            try:
+                unsubscribe_from_model_status(forecast_id, callback)
+            except Exception as e:
+                logger.error(f"Error unsubscribing from model status on cleanup: {str(e)}")
 
         logger.info("Unified WebSocket connection closed")
 
@@ -579,11 +655,32 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
         f"Handling activate command for forecastId={forecast_id}", extra={"rand_id": rand_id}
     )
 
+    # Get or create the PredictiveModel instance
+    predictive_model = get_or_create_predictive_model(forecast_id)
+
+    # Set status to pending (training)
+    predictive_model.set_status(ModelStatus.PENDING)
+    logger.info(
+        f"PredictiveModel status set to PENDING for forecastId={forecast_id}",
+        extra={"rand_id": rand_id},
+    )
+    predictive_model.update_training_progress(0, "initializing", "Starting activation...")
+    logger.info(
+        f"PredictiveModel training progress initialized for forecastId={forecast_id}",
+        extra={"rand_id": rand_id},
+    )
+
     try:
         logger.info(
             f"Starting activation process for forecastId={forecast_id}",
             extra={"rand_id": rand_id},
         )
+
+        # Update predictive model progress
+        predictive_model.update_training_progress(
+            5, "initializing", "Initializing data registry..."
+        )
+
         # Send progress: initializing
         await websocket.send_json(
             {
@@ -631,6 +728,13 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
         try:
             model_config = data_registry.fetch_predictive_model_config(forecast_id)
             device_id = model_config["device_id"]
+
+            # Update predictive model with device_id
+            predictive_model.device_id = device_id
+            predictive_model.update_training_progress(
+                10, "fetching_config", "Configuration fetched"
+            )
+
             logger.info(
                 f"Device ID fetched for forecastId={forecast_id}: {device_id}",
                 extra={"rand_id": rand_id},
@@ -638,6 +742,12 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
         except Exception as e:
             logger.error(f"Failed to fetch model configuration: {str(e)}")
             traceback.print_exc()
+
+            # Set predictive model status to error
+            predictive_model.set_status(
+                ModelStatus.ERROR, f"Failed to fetch configuration: {str(e)}"
+            )
+
             await websocket.send_json(
                 {
                     "commandId": command_id,
@@ -647,62 +757,6 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
                 }
             )
             return
-
-            # # Train AnomalyPredictor
-            # await websocket.send_json(
-            #     {
-            #         "commandId": command_id,
-            #         "type": "progress",
-            #         "step": "training_anomaly",
-            #         "message": "Training AnomalyPredictor...",
-            #         "progress": 20,
-            #         "timestamp": datetime.now().isoformat() + "Z",
-            #     }
-            # )
-
-            # try:
-            #     algorithm = model_config.get("anomaly_algorithm", None)
-            #     print(f"[ACTIVATE] Starting anomaly predictor training...", flush=True)
-            #     anomaly_result = await asyncio.to_thread(
-            #         train_and_save_model,
-            #         model_id=f"{forecast_id}/anomaly_predictor",
-            #         model_type="AnomalyPredictor",
-            #         device_id=device_id,
-            #         data_registry=data_registry,
-            #         algorithm=algorithm,
-            #         days_back=90,
-            #     )
-            #     print(
-            #         f"[ACTIVATE] Anomaly predictor training completed: {anomaly_result}",
-            #         flush=True,
-            #     )
-
-            #     await websocket.send_json(
-            #         {
-            #             "commandId": command_id,
-            #             "type": "progress",
-            #             "step": "anomaly_complete",
-            #             "message": "AnomalyPredictor trained successfully",
-            #             "progress": 50,
-            #             "metrics": anomaly_result.get("training_results", {}),
-            #             "timestamp": datetime.now().isoformat() + "Z",
-            #         }
-            #     )
-            # except Exception as e:
-            error_trace = traceback.format_exc()
-            print(f"[ACTIVATE ERROR] Training failed: {str(e)}", flush=True)
-            print(f"[ACTIVATE ERROR] Traceback:\n{error_trace}", flush=True)
-            await websocket.send_json(
-                {
-                    "commandId": command_id,
-                    "type": "error",
-                    "step": "anomaly_failed",
-                    "message": f"AnomalyPredictor training failed: {str(e)}",
-                    "progress": 50,
-                    "timestamp": datetime.now().isoformat() + "Z",
-                }
-            )
-            return  # Stop activation on training failure
 
         try:
             # Train ForecastModel
@@ -743,6 +797,12 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
                 extra={"rand_id": rand_id},
             )
 
+            # Update predictive model progress
+            predictive_model.update_training_progress(
+                20, "training_forecast", "Training ForecastModel..."
+            )
+            predictive_model.set_sub_model_status("forecast_model", "training")
+
             forecast_result = await asyncio.to_thread(
                 train_and_save_model,
                 model_id=f"{forecast_id}/forecast_model",
@@ -758,13 +818,19 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
                 group_by_ms_per_sensor=group_by_ms_per_sensor,
                 aggregation_funcs=aggregation_funcs,
             )
+            # Update predictive model - forecast trained successfully
+            predictive_model.set_sub_model_status("forecast_model", "trained", trained=True)
+            predictive_model.update_training_progress(
+                50, "forecast_complete", "ForecastModel trained successfully"
+            )
+
             await websocket.send_json(
                 {
                     "commandId": command_id,
                     "type": "progress",
                     "step": "forecast_complete",
                     "message": "ForecastModel trained successfully",
-                    "progress": 90,
+                    "progress": 50,
                     "metrics": forecast_result.get("training_results", {}),
                     "timestamp": datetime.now().isoformat() + "Z",
                 }
@@ -772,40 +838,123 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
         except Exception as e:
             logger.error(f"ForecastModel training failed: {str(e)}")
             error_trace = traceback.format_exc()
+
+            # Set predictive model status to error
+            predictive_model.set_sub_model_status("forecast_model", "error")
+            predictive_model.set_status(
+                ModelStatus.ERROR, f"ForecastModel training failed: {str(e)}"
+            )
+
             await websocket.send_json(
                 {
                     "commandId": command_id,
                     "type": "error",
                     "step": "forecast_failed",
                     "message": f"ForecastModel training failed: {str(e)}",
-                    "progress": 90,
+                    "progress": 50,
                     "timestamp": datetime.now().isoformat() + "Z",
                 }
             )
             return  # Stop activation on training failure
 
-        # # return
-        # # Start prediction job
-        # print(f"[ACTIVATE] Starting prediction job...")
-        # await asyncio.to_thread(
-        #     start_prediction_job,
-        #     f"{forecast_id}/anomaly_predictor",
-        #     "AnomalyPredictor",
-        #     device_id,
-        # )
-        # print(f"[ACTIVATE] Prediction job started")
+        # Train AnomalyPredictor model
+        try:
+            logger.info(
+                f"Starting AnomalyPredictor training for forecastId={forecast_id}",
+                extra={"rand_id": rand_id},
+            )
 
-        # # forecast predictions
-        # logger.info(f"[ACTIVATE] Starting ForecastModel prediction job for {forecast_id}")
-        # job_started = await asyncio.to_thread(
-        #     start_prediction_job,
-        #     f"{forecast_id}/forecast_model",
-        #     "ForecastModel",
-        #     device_id,
-        #     group_by_ms_per_sensor=group_by_ms_per_sensor,
-        #     aggregation_funcs=aggregation_funcs,
-        # )
-        # logger.info(f"[ACTIVATE] ForecastModel prediction job start result: {job_started}")
+            # Update predictive model progress
+            predictive_model.update_training_progress(
+                55, "training_anomaly", "Training AnomalyPredictor..."
+            )
+            predictive_model.set_sub_model_status("anomaly_predictor", "training")
+
+            await websocket.send_json(
+                {
+                    "commandId": command_id,
+                    "type": "progress",
+                    "step": "training_anomaly",
+                    "message": "Training AnomalyPredictor model...",
+                    "progress": 55,
+                    "timestamp": datetime.now().isoformat() + "Z",
+                }
+            )
+
+            anomaly_result = await asyncio.to_thread(
+                train_and_save_model,
+                model_id=f"{forecast_id}/anomaly_predictor",
+                model_type="AnomalyPredictor",
+                device_id=device_id,
+                data_registry=data_registry,
+                sensors=sensors,
+            )
+
+            # Update predictive model - anomaly predictor trained successfully
+            predictive_model.set_sub_model_status("anomaly_predictor", "trained", trained=True)
+            predictive_model.update_training_progress(
+                95, "anomaly_complete", "AnomalyPredictor trained successfully"
+            )
+
+            await websocket.send_json(
+                {
+                    "commandId": command_id,
+                    "type": "progress",
+                    "step": "anomaly_complete",
+                    "message": "AnomalyPredictor trained successfully",
+                    "progress": 95,
+                    "metrics": anomaly_result.get("training_results", {}),
+                    "timestamp": datetime.now().isoformat() + "Z",
+                }
+            )
+        except Exception as e:
+            logger.error(f"AnomalyPredictor training failed: {str(e)}")
+            error_trace = traceback.format_exc()
+
+            # Set predictive model status to error
+            predictive_model.set_sub_model_status("anomaly_predictor", "error")
+            predictive_model.set_status(
+                ModelStatus.ERROR, f"AnomalyPredictor training failed: {str(e)}"
+            )
+
+            await websocket.send_json(
+                {
+                    "commandId": command_id,
+                    "type": "error",
+                    "step": "anomaly_failed",
+                    "message": f"AnomalyPredictor training failed: {str(e)}",
+                    "progress": 95,
+                    "timestamp": datetime.now().isoformat() + "Z",
+                }
+            )
+            return  # Stop activation on training failure
+
+        # Set predictive model status to active (training complete)
+        predictive_model.set_status(ModelStatus.ACTIVE)
+        predictive_model.update_training_progress(100, "complete", "Model activation complete")
+
+
+        # start predictions (Forecast + Anomaly) automatically after activation
+        logger.info(f"[ACTIVATE] Starting AnomalyPredictor prediction job for {forecast_id}")
+        await asyncio.to_thread(
+            start_prediction_job,
+            f"{forecast_id}/anomaly_predictor",
+            "AnomalyPredictor",
+            device_id,
+        )
+        logger.info(f"[ACTIVATE] AnomalyPredictor prediction job started")
+
+        # forecast predictions
+        logger.info(f"[ACTIVATE] Starting ForecastModel prediction job for {forecast_id}")
+        job_started = await asyncio.to_thread(
+            start_prediction_job,
+            f"{forecast_id}/forecast_model",
+            "ForecastModel",
+            device_id,
+            group_by_ms_per_sensor=group_by_ms_per_sensor,
+            aggregation_funcs=aggregation_funcs,
+        )
+        logger.info(f"[ACTIVATE] ForecastModel prediction job start result: {job_started}")
 
         # Send completion
         await websocket.send_json(
@@ -821,6 +970,10 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
 
     except Exception as e:
         logger.error(f"Error in activate handler: {str(e)}", exc_info=True)
+
+        # Set predictive model status to error
+        predictive_model.set_status(ModelStatus.ERROR, str(e))
+
         await websocket.send_json(
             {
                 "commandId": command_id,
@@ -835,7 +988,7 @@ async def handle_job_status(
     websocket: WebSocket,
     command_id: int,
     forecast_id: str,
-    job_status_callbacks: Dict[str, Callable] = None,
+    job_status_callbacks: Optional[Dict[str, Callable]] = None,
 ):
     """Handle job status request and subscribe to future updates"""
     try:
@@ -877,23 +1030,20 @@ async def handle_job_status(
                         loop,
                     )
 
-                    # Wait for the result with a timeout to verify message was sent
-                    try:
-                        future.result(timeout=5.0)
-                        logger.info(
-                            f"Successfully sent real-time status update for {fid} - {model_type_str}",
-                            extra={"rand_id": rand_id},
-                        )
-                    except TimeoutError:
-                        logger.error(
-                            f"Timeout sending real-time status update for {fid} - {model_type_str}",
-                            extra={"rand_id": rand_id},
-                        )
-                    except Exception as send_error:
-                        logger.error(
-                            f"Failed to send real-time status update for {fid} - {model_type_str}: {str(send_error)}",
-                            extra={"rand_id": rand_id},
-                        )
+                    # Don't block with future.result() - it causes deadlock when called from event loop thread
+                    # Use add_done_callback instead for logging
+                    def log_job_result(f):
+                        try:
+                            f.result()
+                            logger.debug(
+                                f"Successfully sent real-time status update for {fid} - {model_type_str}"
+                            )
+                        except Exception as send_error:
+                            logger.error(
+                                f"Failed to send real-time status update for {fid} - {model_type_str}: {str(send_error)}"
+                            )
+
+                    future.add_done_callback(log_job_result)
                 except Exception as e:
                     logger.error(
                         f"Error preparing real-time status update: {str(e)}",
@@ -965,6 +1115,10 @@ async def handle_job_status(
         logger.info(f"Calling subscribe_to_job_status for {model_id}", extra={"rand_id": rand_id})
         subscribe_to_job_status(model_id, callback, rand_id=rand_id)
         logger.info(f"Subscribed to job status updates for {model_id}", extra={"rand_id": rand_id})
+
+        # Note: Predictive model status subscription is handled separately by handle_model_status
+        # to avoid duplicate subscriptions when both commands are called
+
     except Exception as e:
         logger.error(f"Error in job status handler: {str(e)}", exc_info=True)
         await websocket.send_json(
@@ -977,8 +1131,135 @@ async def handle_job_status(
         )
 
 
+async def handle_model_status(
+    websocket: WebSocket,
+    command_id: int,
+    forecast_id: str,
+    model_status_callbacks: Dict[str, Callable],
+):
+    """
+    Handle model status request for the overall predictive model.
+    Returns the current status (inactive, pending, active, error) and subscribes to updates.
+    """
+    logger.info(
+        f"[MODEL_STATUS] ENTER handle_model_status: forecast_id={forecast_id}, command_id={command_id}"
+    )
+    try:
+        rand_id = randint(100000, 999999)
+        logger.info(f"[MODEL_STATUS] Step 1: Generated rand_id={rand_id}")
+
+        # Unsubscribe existing callback if any (prevent duplicates)
+        logger.info(
+            f"[MODEL_STATUS] Step 2: Checking existing callbacks, keys={list(model_status_callbacks.keys())}"
+        )
+        if forecast_id in model_status_callbacks:
+            old_callback = model_status_callbacks[forecast_id]
+            logger.info(f"[MODEL_STATUS] Step 2a: Unsubscribing old callback for {forecast_id}")
+            unsubscribe_from_model_status(forecast_id, old_callback)
+            del model_status_callbacks[forecast_id]
+            logger.info(f"[MODEL_STATUS] Step 2b: Old callback removed")
+        else:
+            logger.info(f"[MODEL_STATUS] Step 2a: No existing callback for {forecast_id}")
+
+        # Get or create the predictive model (creates with inactive status if doesn't exist)
+        logger.info(f"[MODEL_STATUS] Step 3: Getting/creating predictive model for {forecast_id}")
+        model = get_or_create_predictive_model(forecast_id)
+        logger.info(f"[MODEL_STATUS] Step 3a: Got model, status={model.status}")
+        model_status = model.to_dict()
+        logger.info(
+            f"[MODEL_STATUS] Step 3b: Model dict created, status={model_status.get('status')}, progress={model_status.get('trainingProgress')}"
+        )
+
+        # Send current status
+        logger.info(f"[MODEL_STATUS] Step 4: Sending response to websocket, commandId={command_id}")
+        await websocket.send_json(
+            {
+                "commandId": command_id,
+                "type": "response",
+                "model": "predictive_model",
+                "data": model_status,
+                "forecastId": forecast_id,
+                "timestamp": datetime.now().isoformat() + "Z",
+            }
+        )
+        logger.info(f"[MODEL_STATUS] Step 4a: Response sent successfully")
+
+        # Subscribe to future updates
+        logger.info(f"[MODEL_STATUS] Step 5: Creating callback for future updates")
+
+        def create_model_status_callback(ws, fid, cmd_id, loop):
+            def model_status_callback(status_data):
+                """Callback for predictive model status updates - fire and forget to avoid deadlock"""
+                try:
+                    future = asyncio.run_coroutine_threadsafe(
+                        ws.send_json(
+                            {
+                                "commandId": cmd_id,
+                                "type": "response",
+                                "model": "predictive_model",
+                                "data": status_data,
+                                "forecastId": fid,
+                                "timestamp": datetime.now().isoformat() + "Z",
+                            }
+                        ),
+                        loop,
+                    )
+
+                    # Don't block with future.result() - it causes deadlock when called from event loop thread
+                    # Use add_done_callback instead for logging
+                    def log_result(f):
+                        try:
+                            f.result()  # This will raise if there was an error
+                            logger.debug(
+                                f"Successfully sent predictive model status update for {fid}"
+                            )
+                        except Exception as send_error:
+                            logger.error(
+                                f"Failed to send predictive model status update for {fid}: {str(send_error)}"
+                            )
+
+                    future.add_done_callback(log_result)
+                except Exception as e:
+                    logger.error(f"Error in model status callback: {str(e)}")
+
+            return model_status_callback
+
+        callback = create_model_status_callback(
+            websocket, forecast_id, command_id, asyncio.get_running_loop()
+        )
+        logger.info(f"[MODEL_STATUS] Step 5a: Callback created")
+
+        model.subscribe(callback)
+        logger.info(
+            f"[MODEL_STATUS] Step 5b: Subscribed callback, total subscribers: {len(model._status_subscribers)}"
+        )
+
+        # Store callback for later unsubscription
+        model_status_callbacks[forecast_id] = callback
+        logger.info(
+            f"[MODEL_STATUS] Step 6: Stored callback in model_status_callbacks, keys now: {list(model_status_callbacks.keys())}"
+        )
+
+        logger.info(f"[MODEL_STATUS] EXIT handle_model_status: success for {forecast_id}")
+
+    except Exception as e:
+        logger.error(f"[MODEL_STATUS] ERROR in handle_model_status: {str(e)}", exc_info=True)
+        await websocket.send_json(
+            {
+                "commandId": command_id,
+                "type": "error",
+                "message": str(e),
+                "timestamp": datetime.now().isoformat() + "Z",
+            }
+        )
+
+
 async def handle_job_logs(
-    websocket: WebSocket, command_id: int, forecast_id: str, data: dict, source: str
+    websocket: WebSocket,
+    command_id: int,
+    forecast_id: str,
+    data: dict,
+    source: str = "forecast_model",
 ):
     """Handle job logs request"""
     try:

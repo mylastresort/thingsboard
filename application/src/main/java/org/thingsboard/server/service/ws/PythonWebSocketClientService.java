@@ -354,6 +354,12 @@ public class PythonWebSocketClientService {
                 case "activate":
                     handleActivate(sessionId, jsonMessage);
                     break;
+                case "model_status":
+                    handleModelStatus(sessionId, jsonMessage);
+                    break;
+                case "unsubscribe_model_status":
+                    handleUnsubscribeModelStatus(sessionId, jsonMessage);
+                    break;
                 case "ping":
                     handlePing(sessionId, jsonMessage);
                     break;
@@ -569,6 +575,62 @@ public class PythonWebSocketClientService {
     }
 
     /**
+     * Handle model_status request from UI - subscribes to predictive model status updates
+     */
+    private void handleModelStatus(String sessionId, JsonNode message) throws IOException {
+        String forecastId = message.get("forecastId").asText();
+
+        int commandId = commandIdCounter.getAndIncrement();
+        commandToSession.put(commandId, sessionId);
+
+        log.info("[MODEL_STATUS] Created commandId {} mapping to sessionId {} for forecast {}",
+                commandId, sessionId, forecastId);
+
+        // Create model_status message for Python unified endpoint
+        ObjectNode pythonMessage = objectMapper.createObjectNode();
+        pythonMessage.put("commandId", commandId);
+        pythonMessage.put("type", "model_status");
+        pythonMessage.put("forecastId", forecastId);
+
+        if (message.has("data")) {
+            pythonMessage.set("data", message.get("data"));
+        }
+
+        log.info("[MODEL_STATUS] Sending to Python: {}", pythonMessage.toString());
+
+        sendOrQueueToPython(pythonMessage.toString(),
+            () -> log.info("[MODEL_STATUS] Successfully sent model_status command to Python for forecast {}", forecastId),
+            () -> sendErrorToUi(sessionId, "Python service not connected")
+        );
+    }
+
+    /**
+     * Handle unsubscribe_model_status request from UI - unsubscribes from predictive model status updates
+     */
+    private void handleUnsubscribeModelStatus(String sessionId, JsonNode message) throws IOException {
+        String forecastId = message.get("forecastId").asText();
+
+        int commandId = commandIdCounter.getAndIncrement();
+        commandToSession.put(commandId, sessionId);
+
+        log.info("[UNSUBSCRIBE_MODEL_STATUS] Created commandId {} mapping to sessionId {} for forecast {}",
+                commandId, sessionId, forecastId);
+
+        // Create unsubscribe_model_status message for Python unified endpoint
+        ObjectNode pythonMessage = objectMapper.createObjectNode();
+        pythonMessage.put("commandId", commandId);
+        pythonMessage.put("type", "unsubscribe_model_status");
+        pythonMessage.put("forecastId", forecastId);
+
+        log.info("[UNSUBSCRIBE_MODEL_STATUS] Sending to Python: {}", pythonMessage.toString());
+
+        sendOrQueueToPython(pythonMessage.toString(),
+            () -> log.info("[UNSUBSCRIBE_MODEL_STATUS] Successfully sent unsubscribe_model_status command to Python for forecast {}", forecastId),
+            () -> sendErrorToUi(sessionId, "Python service not connected")
+        );
+    }
+
+    /**
      * Handle response from Python service
      */
     private void handlePythonResponse(JsonNode message) {
@@ -619,6 +681,13 @@ public class PythonWebSocketClientService {
                 }
 
                 // Route to UI session - always route regardless of commandId
+                routeToUiSession(message);
+
+            } else if ("predictive_model".equals(type)) {
+                // Forward predictive model status updates to UI
+                log.info("[handlePythonResponse] Received predictive_model status: commandId={}, forecastId={}",
+                        message.has("commandId") ? message.get("commandId").asText() : "N/A",
+                        message.has("forecastId") ? message.get("forecastId").asText() : "N/A");
                 routeToUiSession(message);
 
             } else if ("connection".equals(type)) {

@@ -34,7 +34,7 @@ compile:
 		-e NODE_OPTIONS="--max-old-space-size=8192" \
 		--network thingsboard_thingsboard \
 		thingsboard-thingsboard \
-		mvn install -DskipTests -Dmaven.test.skip
+		mvn install -U -DskipTests
 
 # Compile with debug output
 compile-debug:
@@ -49,7 +49,7 @@ compile-debug:
 		-e NODE_OPTIONS="--max-old-space-size=8192" \
 		--network thingsboard_thingsboard \
 		thingsboard-thingsboard \
-		mvn -X install -DskipTests -Dmaven.test.skip
+		mvn -X install -U -DskipTests
 
 # Build all Docker services
 build-all:

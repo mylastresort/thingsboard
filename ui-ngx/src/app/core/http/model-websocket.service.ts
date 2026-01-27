@@ -26,6 +26,7 @@ enum AnomalyStreamType {
   ACTIVATE_COMMAND = 'activate',
   PING_COMMAND = 'ping',
   JOB_STATUS_COMMAND = 'job_status',
+  MODEL_STATUS_COMMAND = 'model_status',
   SUBSCRIBE_PREDICTIONS_COMMAND = 'subscribe_predictions',
   UNSUBSCRIBE_PREDICTIONS_COMMAND = 'unsubscribe_predictions',
   UNSUBSCRIBE_JOB_LOGS_COMMAND = 'unsubscribe_logs',
@@ -190,6 +191,11 @@ export class ModelWebSocketService {
         this.responses$.get(AnomalyStreamType.SUBSCRIBE_PREDICTIONS_COMMAND)?.next(message);
         break;
       case 'response':
+        // Check if this is a predictive_model response
+        if (message.model === 'predictive_model') {
+          console.log('[AnomalyStream] Predictive model status update:', message);
+          this.responses$.get(AnomalyStreamType.MODEL_STATUS_COMMAND)?.next(message);
+        }
         this.responses$.get(AnomalyStreamType.RESPONSE)?.next(message);
         break;
       default:
@@ -232,6 +238,47 @@ export class ModelWebSocketService {
       this.ws$.next(cmd);
     }
     return this.subscribe(AnomalyStreamType.RESPONSE);
+  }
+
+  /**
+   * Request and subscribe to predictive model status updates
+   * Returns the overall model status: inactive, pending, active, error
+   */
+  requestModelStatus(forecastId: string): Observable<AnomalyStreamMessage> {
+    const cmdId = this.cmdIdCounter++;
+    const cmd = {
+      commandId: cmdId,
+      forecastId,
+      type: AnomalyStreamType.MODEL_STATUS_COMMAND,
+    };
+    if (!this.isConnected()) {
+      this.onConnect(() => {
+        this.ws$.next(cmd);
+      });
+    } else {
+      this.ws$.next(cmd);
+    }
+    console.log('[AnomalyStream] Requested model status for forecast:', forecastId);
+    return this.subscribe(AnomalyStreamType.MODEL_STATUS_COMMAND);
+  }
+
+  /**
+   * Unsubscribe from predictive model status updates
+   */
+  unsubscribeFromModelStatus(forecastId: string): void {
+    if (!this.isConnected()) {
+      console.warn('[AnomalyStream] Cannot unsubscribe from model status - not connected');
+      return;
+    }
+
+    const cmd = {
+      commandId: this.cmdIdCounter++,
+      type: 'unsubscribe_model_status',
+      forecastId,
+    };
+
+    this.ws$.next(cmd);
+    console.log('[AnomalyStream] Unsubscribed from model status for forecast:', forecastId);
   }
 
   /**
