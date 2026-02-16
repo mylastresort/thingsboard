@@ -177,15 +177,15 @@ services:
       # Java heap size: 2GB as recommended by ThingsBoard docs
       - JAVA_OPTS=-Xms2G -Xmx2G -XX:+UseG1GC -XX:MaxGCPauseMillis=200
       # Changed to false - only load once, not on every startup
-      - PM_LOAD_SAMPLE_DATA=false
-      - PM_LOAD_SAMPLE_DATA_UPDATE_TO_CURRENT_TIME=false
+      - PM_LOAD_SAMPLE_DATA=true
+      - PM_LOAD_SAMPLE_DATA_UPDATE_TO_CURRENT_TIME=true
       - PM_AUTO_LOAD_ON_STARTUP=false
       - PM_TENANT_EMAIL=${PM_TENANT_EMAIL:-tenant@thingsboard.org}
       - PM_MACHINE_IDS=${PM_MACHINE_IDS:-1,11}
       - PM_MAX_MACHINES=${PM_MAX_MACHINES:-10}
       - PM_ROLLBACK_ON_FAILURE=${PM_ROLLBACK_ON_FAILURE:-true}
       - PM_EXIT_ON_FAILURE=${PM_EXIT_ON_FAILURE:-true}
-      - PM_END_DATE_MACHINES=${PM_END_DATE_MACHINES:-2025-04-20 02:00:00,2024-12-31 00:00:00}
+      - PM_END_DATE_MACHINES=${PM_END_DATE_MACHINES:-2015-04-20 06:00:00,2024-12-31 00:00:00}
       - PM_DATA_PATH=${PM_DATA_PATH:-predictive-maintenance/data}
 
   ui-ngx:

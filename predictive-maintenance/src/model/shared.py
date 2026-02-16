@@ -12,6 +12,7 @@ from src.settings import settings
 from src.logger import logger  # Global logger
 from library.models.anomaly_predictor import train_model, save_models
 from src.model.utils import get_job_status, get_or_create_job_status
+import pandas as pd
 
 
 def get_data_registry() -> DataRegistry:
@@ -206,6 +207,11 @@ def train_and_save_model(
     # Train model
     if model_type == "AnomalyPredictor":
         # Initialize model with data registry
+        train_start_date = kwargs.get(
+            "train_start_date",
+            datetime.now() - pd.Timedelta(days=365 * 2),  # Default to last 2 years
+        )
+        train_end_date = kwargs.get("train_end_date", datetime.now())
         model = ModelClass(
             name=model_id,
             algorithm_name=algorithm,
@@ -216,24 +222,37 @@ def train_and_save_model(
             sensors=sensors,
             # group_by_ms_per_sensor=group_by_ms_per_sensor,
             # aggregation_funcs=aggregation_funcs,
+            train_start_date=train_start_date,
+            train_end_date=train_end_date,
         )
 
         # Update progress: fetching data
         update_training_progress(
             model_id,
-            {"step": "fetching_data", "message": "Fetching training data...", "progress": 20},
+            {
+                "step": "fetching_data",
+                "message": f"Fetching training data from {model.train_start_date} to {model.train_end_date}...",
+                "progress": 20,
+            },
         )
         if progress_callback:
             progress_callback(
-                {"step": "fetching_data", "message": "Fetching training data...", "progress": 20}
+                {
+                    "step": "fetching_data",
+                    "message": f"Fetching training data from {model.train_start_date} to {model.train_end_date}...",
+                    "progress": 20,
+                }
             )
 
         print(
-            f"[TRAIN] Fetching data for device_id={device_id} starting from 2014-01-01...",
+            f"[TRAIN] Fetching data for device_id={device_id} starting from {model.train_start_date} to {model.train_end_date}",
             flush=True,
         )
         telemetry_df, failures_df, maintenance_df, machines_df, errors_df = model.fetch(
-            device_id=device_id, start_date=datetime(2014, 1, 1)
+            device_id=device_id,
+            start_date=model.train_start_date,
+            end_date=model.train_end_date,
+            **kwargs,
         )
         print(f"[TRAIN] Data fetched. Training model...", flush=True)
         if failures_df.empty:

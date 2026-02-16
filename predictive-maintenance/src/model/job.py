@@ -298,9 +298,10 @@ def anomaly_predict_model(
     )
     # print(f"[PREDICTION JOB] {model_id} - latest data", flush=True)
     # print(telemetry_df.head(), flush=True)
-    start_time_str = "2015-04-20 02:00:00"
-    start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
-    seconds_difference = (datetime.now() - start_time).total_seconds()
+    # Use the latest datetime from the telemetry data instead of a hardcoded date
+    telemetry_df["datetime"] = pd.to_datetime(telemetry_df["datetime"])
+    start_time = telemetry_df["datetime"].max()
+    start_time_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
     predictions = predict_failure(
         start_time_str,
         {},
@@ -336,9 +337,13 @@ def anomaly_predict_model(
     # Instead of sending all 24 predictions in one message, send one at a time
     for idx, prediction in enumerate(predictions_json):
         hours_to_add = idx + 1
-        prediction["datetime"] = (
-            start_time + timedelta(seconds=seconds_difference) + timedelta(hours=hours_to_add)
-        ).strftime("%Y-%m-%d %H:%M:%S")
+        # Convert start_time to Python datetime if it's a pandas Timestamp
+        start_time_dt = (
+            start_time.to_pydatetime() if hasattr(start_time, "to_pydatetime") else start_time
+        )
+        prediction["datetime"] = (start_time_dt + timedelta(hours=hours_to_add)).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
         add_model_log(
             model_id,
             "prediction",

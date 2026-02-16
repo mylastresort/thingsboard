@@ -888,6 +888,8 @@ async def handle_activate(websocket: WebSocket, command_id: int, forecast_id: st
                 device_id=device_id,
                 data_registry=data_registry,
                 sensors=sensors,
+                train_start_date=model_config.get("anomaly_start_date", datetime(2014, 1, 1)),
+                train_end_date=model_config.get("anomaly_end_date", datetime(2016, 1, 1)),
             )
 
             # Update predictive model - anomaly predictor trained successfully

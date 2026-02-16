@@ -60,6 +60,8 @@ class AnomalyPredictor(BaseModel):
         device_id: str = None,
         additional_info: Optional[Dict[str, Any]] = None,
         sensors: Optional[List[str]] = None,
+        train_start_date = datetime.now() - pd.Timedelta(days=365 * 2),  # Default to last 2 years
+        train_end_date=datetime.now(),
     ):
         """
         Initialize the anomaly predictor model.
@@ -77,6 +79,8 @@ class AnomalyPredictor(BaseModel):
         self.device_id = device_id
         self.sensors = sensors or ["volt", "rotate", "pressure", "vibration"]
         self.additional_info = additional_info or {}
+        self.train_start_date = train_start_date
+        self.train_end_date = train_end_date
 
         # Algorithm will be created during training once we know the features
         self.algorithm = None

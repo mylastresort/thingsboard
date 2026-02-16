@@ -437,6 +437,7 @@ public class PredictiveMaintenanceDataLoader implements CommandLineRunner {
                 Integer machineId = entry.getKey();
                 Date maxDate = entry.getValue();
                 long timeDiff = currentTimeMs - maxDate.getTime();
+                timeDiff -= timeDiff % (24 * 60 * 60 * 1000); // Round to nearest day for cleaner timestamps
                 machineTimeDiffMap.put(machineId, timeDiff);
                 log.debug("Machine {}: time difference = {} ms", machineId, timeDiff);
             }
