@@ -12,8 +12,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - application_source_code:/app
+      - ../psql_data/main:/var/lib/postgresql/data
+      - .:/app
     networks:
       - thingsboard
     env_file:
@@ -81,7 +81,7 @@ services:
     networks:
       - thingsboard
     volumes:
-      - application_source_code:/app
+      - .:/app
 
   dashboard-script:
     build:
@@ -94,7 +94,7 @@ services:
       thingsboard:
         condition: service_healthy
     volumes:
-      - application_source_code:/app
+      - .:/app
     networks:
       - thingsboard
 
@@ -107,9 +107,9 @@ services:
     # mem_reservation: 512mb
     # cpus: 0.75
     volumes:
-      - application_source_code:/app
-      - application_pip_cache:/root/.cache/pip
-      - application_models_cache:/models
+      - .:/app
+      - ../thingsboard_pip_cache:/root/.cache/pip
+      - ../thingsboard_models_cache:/models
     depends_on:
       - database
     ports:
@@ -148,13 +148,13 @@ services:
     # mem_reservation: 512m
     # cpus: 2.0
     volumes:
-      - application_source_code:/app
-      - application_m2_cache:/root/.m2
-      - application_npm_cache:/root/.npm
-      - application_gradle_cache:/root/.gradle
+      - .:/app
+      - ../thingsboard_m2_cache:/root/.m2
+      - ../thingsboard_npm_cache:/root/.npm
+      - ../thingsboard_gradle:/root/.gradle
     ports:
       - "8080:8080"
-      - "1883:1883"
+      - "1884:1884"
       - "7071:7071"
       - "8883:8883"
     networks:
@@ -197,8 +197,8 @@ services:
     # mem_reservation: 1g
     # cpus: 1.0
     volumes:
-      - application_source_code:/app
-      - application_npm_cache:/root/.npm
+      - .:/app
+      - ../thingsboard_npm_cache:/root/.npm
     ports:
       - "4200:4200"
     networks:
@@ -224,50 +224,6 @@ services:
       timeout: 30s
       retries: 3
       start_period: 90s
-
-volumes:
-  postgres_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ../psql_data/main
-  application_source_code:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: .
-  application_m2_cache:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ../thingsboard_m2_cache
-  application_npm_cache:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ../thingsboard_npm_cache/
-  application_gradle_cache:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ../thingsboard_gradle/
-  application_pip_cache:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ../thingsboard_pip_cache/
-  application_models_cache:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ../thingsboard_models_cache/
 
 networks:
   thingsboard:
