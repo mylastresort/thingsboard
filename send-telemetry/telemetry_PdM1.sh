@@ -4,7 +4,8 @@ args=$@
 
 echo args $args
 
-entity_token="BsfN0Orwh2jtP64DQWji"
+# entity_token="BsfN0Orwh2jtP64DQWji"
+entity_token="kvwS3Jp5RRQcmARmgcF1"
 
 # path='./PdM_telemetry_MachineID11_OLD_DATA_random.csv'
 path='./PdM_telemetry_MachineID1.csv'

@@ -18,7 +18,7 @@ version: '3.0'
 
 services:
   postgres:
-    restart: always
+    restart: "no"
     image: "postgres:15"
     ports:
       - "5432"
@@ -28,7 +28,7 @@ services:
     volumes:
       - ./tb-node/postgres:/var/lib/postgresql/data
   cassandra:
-    restart: always
+    restart: "no"
     image: "cassandra:4.1"
     ports:
       - "9042"

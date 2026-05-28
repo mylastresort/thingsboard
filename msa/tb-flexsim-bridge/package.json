@@ -1,0 +1,29 @@
+{
+  "name": "tb-flexsim-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node.js microservice bridge between ThingsBoard and FlexSim",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "mqtt": "^5.10.3",
+    "pino": "^9.6.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.22",
+    "@types/node": "^22.14.1",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

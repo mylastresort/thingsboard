@@ -1329,7 +1329,7 @@ if __name__ == "__main__":
     failures["datetime"] = pd.to_datetime(failures["datetime"], errors="coerce")
     failures = failures.loc[failures["datetime"] > cutoff].reset_index(drop=True)
 
-    # end_date = pd.to_datetime("2016-01-02 02:00:00")
+    end_date = pd.to_datetime("2016-01-02 02:00:00")
     #
     telemetry = telemetry[telemetry["machineID"] == 1]
     # telemetry = telemetry[telemetry["datetime"] <= end_date]

@@ -2,7 +2,9 @@
 COMPOSE=docker compose
 
 # Default: compile all modules (Java + rebuild all Docker images)
-all: compile-all
+# all: compile-all (old make target)
+all: up
+	@echo "✅ All services are up and running!"
 
 # Compile all modules: Java code + rebuild all Docker services
 compile-all: compile build-all
@@ -82,12 +84,20 @@ rebuild-ui:
 	$(COMPOSE) build ui-ngx
 	$(COMPOSE) up -d ui-ngx
 
-# Start all services
+# Start microservices (default)
 up:
+	cd docker && ./docker-start-services.sh
+
+# Stop microservices (default)
+down:
+	cd docker && ./docker-stop-services.sh
+
+# Start monolith services
+up-monolith:
 	$(COMPOSE) up -d
 
-# Stop all services
-down:
+# Stop monolith services
+down-monolith:
 	$(COMPOSE) down
 
 # View logs
@@ -122,4 +132,8 @@ restart-model:
 restart-ui:
 	$(COMPOSE) restart ui-ngx
 
-.PHONY: all compile-all backup clean clean-mvn fclean compile compile-debug build-all build-thingsboard build-model build-ui rebuild-thingsboard rebuild-model rebuild-ui up down logs logs-thingsboard logs-model logs-ui restart restart-thingsboard restart-model restart-ui
+# Docker microservices installation
+install:
+	cd docker && ./docker-install-tb.sh
+
+.PHONY: all compile-all backup clean clean-mvn fclean compile compile-debug build-all build-thingsboard build-model build-ui rebuild-thingsboard rebuild-model rebuild-ui up down up-monolith down-monolith logs logs-thingsboard logs-model logs-ui restart restart-thingsboard restart-model restart-ui install

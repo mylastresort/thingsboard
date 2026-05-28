@@ -72,6 +72,7 @@ services:
     build:
       context: ./send-telemetry/
       dockerfile: ws-events.Dockerfile
+    image: ws-events:3.7-alab
     container_name: ws-events
     mem_limit: 512m
     cpus: 0.5
@@ -87,6 +88,7 @@ services:
     build:
       context: ./send-telemetry/
       dockerfile: dashboard-script.Dockerfile
+    image: dashboard-script:3.7-alab
     container_name: dashboard-script
     # mem_limit: 512m
     # cpus: 0.5
@@ -102,6 +104,7 @@ services:
     build:
       context: ./predictive-maintenance
       dockerfile: .Dockerfile
+    image: model:3.7-alab
     container_name: model
     # mem_limit: 2g
     # mem_reservation: 512mb
@@ -140,10 +143,11 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
 
   thingsboard:
-    container_name: thingsboard
     build:
       context: .
       dockerfile: .Dockerfile
+    image: thingsboard:3.7-alab
+    container_name: thingsboard
     # mem_limit: 3g
     # mem_reservation: 512m
     # cpus: 2.0
@@ -174,9 +178,7 @@ services:
       - WAIT_HOSTS=database:5432,model:8000
       - FASTAPI_BASE_URL=http://model:8000/api/v1/
       - FASTAPI_WS_URL=ws://model:8000/models/ws/unified
-      # Java heap size: 2GB as recommended by ThingsBoard docs
       - JAVA_OPTS=-Xms2G -Xmx2G -XX:+UseG1GC -XX:MaxGCPauseMillis=200
-      # Changed to false - only load once, not on every startup
       - PM_LOAD_SAMPLE_DATA=true
       - PM_LOAD_SAMPLE_DATA_UPDATE_TO_CURRENT_TIME=true
       - PM_AUTO_LOAD_ON_STARTUP=false
@@ -192,6 +194,7 @@ services:
     build:
       context: ui-ngx
       dockerfile: .Dockerfile
+    image: ui-ngx:3.7-alab
     container_name: thingsboard-dev
     # mem_limit: 10g
     # mem_reservation: 1g
@@ -208,15 +211,10 @@ services:
         condition: service_healthy
     environment:
       - WAIT_HOSTS=thingsboard:8080
-      # Keep 8GB for stability
       - NODE_OPTIONS=--max-old-space-size=8192
-      # Disable polling to reduce CPU usage
       - CHOKIDAR_USEPOLLING=false
-      # Increase debounce interval to reduce file watch overhead
       - CHOKIDAR_INTERVAL=3000
-      # Disable analytics
       - NG_CLI_ANALYTICS=false
-      # Reduce TypeScript compilation overhead
       - NG_BUILD_CACHE=.angular/cache
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:4200 || exit 1"]

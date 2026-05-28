@@ -18,7 +18,7 @@ version: '3.0'
 
 services:
   postgres:
-    restart: always
+    restart: "no"
     image: "postgres:15"
     ports:
     - "5432"
