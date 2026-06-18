@@ -156,7 +156,7 @@ services:
     volumes:
       - ./ui-ngx:/app
     environment:
-      - HOSTS=http://node:8080
+      - HOSTS=http://thingsboard:8080
       - MODEL_URL=http://model:8000
     command: sh ./entrypoint.sh
     ports:
