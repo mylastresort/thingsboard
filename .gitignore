@@ -38,3 +38,5 @@ rebuild-docker.sh
 .run/**
 .run
 **/__pycache__
+.claude
+.planning

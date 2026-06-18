@@ -781,6 +781,28 @@ public class DefaultWebSocketService implements WebSocketService {
                 .build();
     }
 
+    private TbTimeSeriesSubscription getTsSubscription(Map<String, Long> subState, Lock subLock, String sessionId, WebSocketSessionRef sessionRef, TimeseriesSubscriptionCmd cmd, EntityId entityId, long queryTs, boolean allKeys) {
+        return TbTimeSeriesSubscription.builder()
+                .serviceId(serviceId)
+                .sessionId(sessionId)
+                .subscriptionId(registerNewSessionSubId(sessionId, sessionRef, cmd.getCmdId()))
+                .tenantId(sessionRef.getSecurityCtx().getTenantId())
+                .entityId(entityId)
+                .updateProcessor((subscription, update) -> {
+                    subLock.lock();
+                    try {
+                        sendUpdate(subscription.getSessionId(), cmd.getCmdId(), update);
+                    } finally {
+                        subLock.unlock();
+                    }
+                })
+                .queryTs(queryTs)
+                .allKeys(allKeys)
+                .keyStates(subState)
+                .latestValues(LATEST_TELEMETRY_SCOPE.equals(cmd.getScope()))
+                .build();
+    }
+
     private FutureCallback<List<TsKvEntry>> getSubscriptionCallback(final WebSocketSessionRef sessionRef, final TimeseriesSubscriptionCmd cmd,
                                                                     final String sessionId, final EntityId entityId, final long queryTs, final long startTs, final List<String> keys) {
         return new FutureCallback<>() {

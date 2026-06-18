@@ -53,6 +53,11 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
     @Value("${server.ws.max_binary_message_buffer_size:32768}")
     private int maxBinaryMessageBufferSize;
 
+    @Value("${server.ws.max_text_message_buffer_size:32768}")
+    private int maxTextMessageBufferSize;
+    @Value("${server.ws.max_binary_message_buffer_size:32768}")
+    private int maxBinaryMessageBufferSize;
+
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();

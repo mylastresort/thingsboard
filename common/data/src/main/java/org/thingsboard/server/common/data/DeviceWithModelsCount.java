@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,34 @@
  */
 package org.thingsboard.server.common.data;
 
+<<<<<<<< HEAD:common/data/src/main/java/org/thingsboard/server/common/data/DeviceWithModelsCount.java
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+========
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+>>>>>>>> lts-4.3:common/data/src/main/java/org/thingsboard/server/common/data/TbResourceDataInfo.java
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+<<<<<<<< HEAD:common/data/src/main/java/org/thingsboard/server/common/data/DeviceWithModelsCount.java
 public class DeviceWithModelsCount implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Device device;
     private Long modelsCount;
+========
+@NoArgsConstructor
+public class TbResourceDataInfo {
+
+    private byte[] data;
+    private JsonNode descriptor;
+
+>>>>>>>> lts-4.3:common/data/src/main/java/org/thingsboard/server/common/data/TbResourceDataInfo.java
 }

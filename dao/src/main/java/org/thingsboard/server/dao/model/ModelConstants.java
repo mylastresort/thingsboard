@@ -767,6 +767,51 @@ public class ModelConstants {
     public static final String API_KEY_DESCRIPTION_COLUMN_NAME = "description";
 
     /**
+     * Calculated fields constants.
+     */
+    public static final String CALCULATED_FIELD_TABLE_NAME = "calculated_field";
+    public static final String CALCULATED_FIELD_TENANT_ID_COLUMN = TENANT_ID_COLUMN;
+    public static final String CALCULATED_FIELD_ENTITY_TYPE = ENTITY_TYPE_COLUMN;
+    public static final String CALCULATED_FIELD_ENTITY_ID = ENTITY_ID_COLUMN;
+    public static final String CALCULATED_FIELD_TYPE = "type";
+    public static final String CALCULATED_FIELD_NAME = "name";
+    public static final String CALCULATED_FIELD_CONFIGURATION_VERSION = "configuration_version";
+    public static final String CALCULATED_FIELD_CONFIGURATION = "configuration";
+    public static final String CALCULATED_FIELD_VERSION = "version";
+    public static final String CALCULATED_FIELD_ADDITIONAL_INFO = ADDITIONAL_INFO_PROPERTY;
+
+    /**
+     * Tasks constants.
+     */
+    public static final String JOB_TABLE_NAME = "job";
+    public static final String JOB_TYPE_PROPERTY = "type";
+    public static final String JOB_KEY_PROPERTY = "key";
+    public static final String JOB_ENTITY_ID_PROPERTY = "entity_id";
+    public static final String JOB_ENTITY_TYPE_PROPERTY = "entity_type";
+    public static final String JOB_STATUS_PROPERTY = "status";
+    public static final String JOB_CONFIGURATION_PROPERTY = "configuration";
+    public static final String JOB_RESULT_PROPERTY = "result";
+
+    /**
+     * AI model constants.
+     */
+    public static final String AI_MODEL_TABLE_NAME = "ai_model";
+    public static final String AI_MODEL_TENANT_ID_COLUMN_NAME = TENANT_ID_COLUMN;
+    public static final String AI_MODEL_NAME_COLUMN_NAME = NAME_PROPERTY;
+    public static final String AI_MODEL_CONFIGURATION_COLUMN_NAME = "configuration";
+
+    /**
+     * Api Key constants.
+     */
+    public static final String API_KEY_TABLE_NAME = "api_key";
+    public static final String API_KEY_TENANT_ID_COLUMN_NAME = TENANT_ID_COLUMN;
+    public static final String API_KEY_USER_ID_COLUMN_NAME = USER_ID_PROPERTY;
+    public static final String API_KEY_VALUE_COLUMN_NAME = "value";
+    public static final String API_KEY_EXPIRATION_TIME_COLUMN_NAME = "expiration_time";
+    public static final String API_KEY_ENABLED_COLUMN_NAME = "enabled";
+    public static final String API_KEY_DESCRIPTION_COLUMN_NAME = "description";
+
+    /**
      * Predictive Model constants.
      */
     public static final String PREDICTIVE_MODEL_TABLE_NAME = "predictive_maintenance_config";
