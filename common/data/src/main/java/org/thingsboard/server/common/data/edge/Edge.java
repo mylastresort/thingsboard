@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,17 @@
  */
 package org.thingsboard.server.common.data.edge;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.thingsboard.server.common.data.BaseDataWithAdditionalInfo;
 import org.thingsboard.server.common.data.HasCustomerId;
 import org.thingsboard.server.common.data.HasLabel;
 import org.thingsboard.server.common.data.HasTenantId;
+import org.thingsboard.server.common.data.HasVersion;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.EdgeId;
 import org.thingsboard.server.common.data.id.RuleChainId;
@@ -34,7 +37,7 @@ import org.thingsboard.server.common.data.validation.NoXss;
 @EqualsAndHashCode(callSuper = true)
 @ToString
 @Setter
-public class Edge extends BaseDataWithAdditionalInfo<EdgeId> implements HasLabel, HasTenantId, HasCustomerId {
+public class Edge extends BaseDataWithAdditionalInfo<EdgeId> implements HasLabel, HasTenantId, HasCustomerId, HasVersion {
 
     private static final long serialVersionUID = 4934987555236873728L;
 
@@ -57,6 +60,9 @@ public class Edge extends BaseDataWithAdditionalInfo<EdgeId> implements HasLabel
     @Length(fieldName = "secret")
     private String secret;
 
+    @Getter
+    private Long version;
+
     public Edge() {
         super();
     }
@@ -70,22 +76,24 @@ public class Edge extends BaseDataWithAdditionalInfo<EdgeId> implements HasLabel
         this.tenantId = edge.getTenantId();
         this.customerId = edge.getCustomerId();
         this.rootRuleChainId = edge.getRootRuleChainId();
+        this.name = edge.getName();
         this.type = edge.getType();
         this.label = edge.getLabel();
-        this.name = edge.getName();
         this.routingKey = edge.getRoutingKey();
         this.secret = edge.getSecret();
+        this.version = edge.getVersion();
     }
 
     public void update(Edge edge) {
         this.tenantId = edge.getTenantId();
         this.customerId = edge.getCustomerId();
         this.rootRuleChainId = edge.getRootRuleChainId();
+        this.name = edge.getName();
         this.type = edge.getType();
         this.label = edge.getLabel();
-        this.name = edge.getName();
         this.routingKey = edge.getRoutingKey();
         this.secret = edge.getSecret();
+        this.version = edge.getVersion();
     }
 
     @Schema(description = "JSON object with the Edge Id. " +
@@ -144,6 +152,15 @@ public class Edge extends BaseDataWithAdditionalInfo<EdgeId> implements HasLabel
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Edge secret ('password') to authorize on cloud")
     public String getSecret() {
         return this.secret;
+    }
+
+    @Schema(description = "Additional parameters of the edge. " +
+            "May include: 'description' (string).",
+            implementation = com.fasterxml.jackson.databind.JsonNode.class,
+            example = "{\"description\":\"Edge at location A\"}")
+    @Override
+    public JsonNode getAdditionalInfo() {
+        return super.getAdditionalInfo();
     }
 
 }

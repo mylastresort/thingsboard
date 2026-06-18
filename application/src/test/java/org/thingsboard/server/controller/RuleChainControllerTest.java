@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.rule.engine.action.TbCreateAlarmNode;
 import org.thingsboard.rule.engine.action.TbCreateAlarmNodeConfiguration;
+import org.thingsboard.rule.engine.debug.TbMsgGeneratorNode;
+import org.thingsboard.rule.engine.debug.TbMsgGeneratorNodeConfiguration;
 import org.thingsboard.rule.engine.metadata.TbGetRelatedAttributeNode;
 import org.thingsboard.rule.engine.metadata.TbGetRelatedDataNodeConfiguration;
 import org.thingsboard.server.common.data.StringUtils;
@@ -45,12 +47,17 @@ import org.thingsboard.server.common.data.rule.RuleChainMetaData;
 import org.thingsboard.server.common.data.rule.RuleChainType;
 import org.thingsboard.server.common.data.rule.RuleNode;
 import org.thingsboard.server.common.data.security.Authority;
-import org.thingsboard.server.dao.exception.DataValidationException;
+import org.thingsboard.server.exception.DataValidationException;
 import org.thingsboard.server.dao.rule.RuleChainDao;
 import org.thingsboard.server.dao.service.DaoSqlTest;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -120,7 +127,7 @@ public class RuleChainControllerTest extends AbstractControllerTest {
                 ActionType.ADDED);
 
         savedRuleChain.setName("New RuleChain");
-        doPost("/api/ruleChain", savedRuleChain, RuleChain.class);
+        savedRuleChain = doPost("/api/ruleChain", savedRuleChain, RuleChain.class);
         RuleChain foundRuleChain = doGet("/api/ruleChain/" + savedRuleChain.getId().getId().toString(), RuleChain.class);
         Assert.assertEquals(savedRuleChain.getName(), foundRuleChain.getName());
 
@@ -228,6 +235,44 @@ public class RuleChainControllerTest extends AbstractControllerTest {
         Assert.assertNotNull(foundRuleChain);
         Assert.assertEquals(savedRuleChain, foundRuleChain);
     }
+
+    @Test
+    public void testFindRuleChainsByIds() throws Exception {
+        List<RuleChain> ruleChains = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            RuleChain ruleChain = new RuleChain();
+            ruleChain.setName("RuleChain " + i);
+            ruleChains.add(doPost("/api/ruleChain", ruleChain, RuleChain.class));
+        }
+
+        List<RuleChain> expected = ruleChains.subList(5, 15);
+
+        String idsParam = expected.stream()
+                .map(rc -> rc.getId().getId().toString())
+                .collect(Collectors.joining(","));
+
+        RuleChain[] result = doGet(
+                "/api/ruleChains?ruleChainIds=" + idsParam,
+                RuleChain[].class
+        );
+
+        Assert.assertNotNull(result);
+        Assert.assertEquals(expected.size(), result.length);
+
+        Map<UUID, RuleChain> rcById = Arrays.stream(result)
+                .collect(Collectors.toMap(rc -> rc.getId().getId(), Function.identity()));
+
+        for (RuleChain rc : expected) {
+            UUID id = rc.getId().getId();
+            RuleChain found = rcById.get(id);
+            Assert.assertNotNull("RuleChain not found for id " + id, found);
+
+            Assert.assertEquals(rc.getId(), found.getId());
+            Assert.assertEquals(rc.getName(), found.getName());
+            Assert.assertEquals(rc.getTenantId(), found.getTenantId());
+        }
+    }
+
 
     @Test
     public void testDeleteRuleChain() throws Exception {
@@ -356,10 +401,68 @@ public class RuleChainControllerTest extends AbstractControllerTest {
         assertThat(error).contains("alarmType is malformed");
     }
 
+    @Test
+    public void testSaveRuleChainWithOutdatedVersion() throws Exception {
+        RuleChain ruleChain = createRuleChain("My rule chain");
+
+        RuleChainMetaData ruleChainMetaData = new RuleChainMetaData();
+        ruleChainMetaData.setRuleChainId(ruleChain.getId());
+        RuleNode ruleNode = new RuleNode();
+        ruleNode.setName("Test");
+        ruleNode.setType(TbMsgGeneratorNode.class.getName());
+        TbMsgGeneratorNodeConfiguration config = new TbMsgGeneratorNodeConfiguration();
+        ruleNode.setConfiguration(JacksonUtil.valueToTree(config));
+        List<RuleNode> ruleNodes = new ArrayList<>();
+        ruleNodes.add(ruleNode);
+        ruleChainMetaData.setFirstNodeIndex(0);
+        ruleChainMetaData.setNodes(ruleNodes);
+
+        ruleChainMetaData = doPost("/api/ruleChain/metadata", ruleChainMetaData, RuleChainMetaData.class);
+        assertThat(ruleChainMetaData.getVersion()).isEqualTo(2);
+
+        ruleChain = doGet("/api/ruleChain/" + ruleChain.getId(), RuleChain.class);
+        assertThat(ruleChain.getVersion()).isEqualTo(2);
+
+        ruleChain.setName("Updated");
+        ruleChain = doPost("/api/ruleChain", ruleChain, RuleChain.class);
+        assertThat(ruleChain.getVersion()).isEqualTo(3);
+
+        ruleChain.setVersion(1L);
+        doPost("/api/ruleChain", ruleChain)
+                .andExpect(status().isConflict());
+        ruleChainMetaData.setVersion(1L);
+        doPost("/api/ruleChain/metadata", ruleChainMetaData)
+                .andExpect(status().isConflict());
+
+        ruleChainMetaData.setVersion(3L);
+        ruleChainMetaData = doPost("/api/ruleChain/metadata", ruleChainMetaData, RuleChainMetaData.class);
+        assertThat(ruleChainMetaData.getVersion()).isEqualTo(4);
+        ruleChain.setVersion(4L);
+        ruleChain = doPost("/api/ruleChain", ruleChain, RuleChain.class);
+        assertThat(ruleChain.getVersion()).isEqualTo(5);
+    }
+
     private RuleChain createRuleChain(String name) {
         RuleChain ruleChain = new RuleChain();
         ruleChain.setName(name);
         return doPost("/api/ruleChain", ruleChain, RuleChain.class);
+    }
+
+    @Test
+    public void testScriptForbiddenForCustomer() throws Exception {
+        loginCustomerUser();
+
+        doPost("/api/ruleChain/testScript", (Object) """
+                {
+                  "script": "return msg;",
+                  "scriptType": "update",
+                  "argNames": ["msg", "metadata", "msgType"],
+                  "msg": "{}",
+                  "metadata": {},
+                  "msgType": "POST_TELEMETRY_REQUEST"
+                }
+                """)
+                .andExpect(status().isForbidden());
     }
 
 }

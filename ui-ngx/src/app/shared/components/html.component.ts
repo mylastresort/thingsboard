@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -34,26 +34,26 @@ import { AppState } from '@core/core.state';
 import { UtilsService } from '@core/services/utils.service';
 import { TranslateService } from '@ngx-translate/core';
 import { CancelAnimationFrame, RafService } from '@core/services/raf.service';
-import { ResizeObserver } from '@juggle/resize-observer';
 import { beautifyHtml } from '@shared/models/beautify.models';
 
 @Component({
-  selector: 'tb-html',
-  templateUrl: './html.component.html',
-  styleUrls: ['./html.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => HtmlComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => HtmlComponent),
-      multi: true,
-    }
-  ],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-html',
+    templateUrl: './html.component.html',
+    styleUrls: ['./html.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => HtmlComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => HtmlComponent),
+            multi: true,
+        }
+    ],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class HtmlComponent implements OnInit, OnDestroy, ControlValueAccessor, Validator {
 
@@ -127,7 +127,17 @@ export class HtmlComponent implements OnInit, OnDestroy, ControlValueAccessor, V
         });
         // @ts-ignore
         this.htmlEditor.session.on('changeAnnotation', () => {
-          const annotations = this.htmlEditor.session.getAnnotations();
+          const annotations = this.htmlEditor.session.getAnnotations() || [];
+          const length = annotations.length;
+          let i = length;
+          while (i--) {
+            if(annotations[i].text.includes('Named entity expected')) {
+              annotations.splice(i, 1);
+            }
+          }
+          if (length > annotations.length) {
+            this.htmlEditor.session.setAnnotations(annotations);
+          }
           const hasErrors = annotations.filter(annotation => annotation.type === 'error').length > 0;
           if (this.hasErrors !== hasErrors) {
             this.hasErrors = hasErrors;

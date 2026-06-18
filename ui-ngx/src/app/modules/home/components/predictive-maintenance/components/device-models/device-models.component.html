@@ -17,7 +17,7 @@
 -->
 <div class="tb-device-models-page mat-content">
     <section class="tb-device-models-toolbar mat-elevation-z1">
-        <mat-toolbar class="mat-mdc-table-toolbar" [fxShow]="!textSearchMode">
+        <mat-toolbar class="mat-mdc-table-toolbar" [class.hidden]="textSearchMode">
             <div class="mat-toolbar-tools">
                 <div class="tb-device-models-toolbar-wrapper">
                     <div class="tb-device-models-action-panels">
@@ -56,12 +56,12 @@
                 </div>
             </div>
         </mat-toolbar>
-        <mat-toolbar class="mat-mdc-table-toolbar" [fxShow]="textSearchMode">
+        <mat-toolbar class="mat-mdc-table-toolbar" [class.hidden]="!textSearchMode">
             <div class="mat-toolbar-tools">
                 <button mat-icon-button matTooltip="{{ 'action.search' | translate }}" matTooltipPosition="above">
                     <mat-icon>search</mat-icon>
                 </button>
-                <mat-form-field fxFlex>
+                <mat-form-field class="flex-1">
                     <mat-label>&nbsp;</mat-label>
                     <input #searchInput matInput [formControl]="textSearch" (input)="applyFilter($event)"
                         placeholder="{{ 'common.enter-search' | translate }}" />

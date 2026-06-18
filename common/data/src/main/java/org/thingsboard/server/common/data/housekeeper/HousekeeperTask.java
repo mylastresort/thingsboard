@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.thingsboard.server.common.data.User;
 import org.thingsboard.server.common.data.id.EntityId;
 import org.thingsboard.server.common.data.id.TenantId;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -44,6 +45,9 @@ import java.io.Serializable;
 @Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class HousekeeperTask implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = -2585974110832225152L;
 
     private TenantId tenantId;
     private EntityId entityId;
@@ -79,6 +83,14 @@ public class HousekeeperTask implements Serializable {
 
     public static HousekeeperTask deleteTenantEntities(TenantId tenantId, EntityType entityType) {
         return new TenantEntitiesDeletionHousekeeperTask(tenantId, entityType);
+    }
+
+    public static HousekeeperTask deleteCalculatedFields(TenantId tenantId, EntityId entityId) {
+        return new HousekeeperTask(tenantId, entityId, HousekeeperTaskType.DELETE_CALCULATED_FIELDS);
+    }
+
+    public static HousekeeperTask deleteJobs(TenantId tenantId, EntityId entityId) {
+        return new HousekeeperTask(tenantId, entityId, HousekeeperTaskType.DELETE_JOBS);
     }
 
     @JsonIgnore

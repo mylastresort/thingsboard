@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -35,18 +35,19 @@ import { BranchInfo } from '@shared/models/vc.models';
 import { EntitiesVersionControlService } from '@core/http/entities-version-control.service';
 import { isNotEmptyStr } from '@core/utils';
 import { MatAutocomplete, MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { SubscriptSizing } from '@angular/material/form-field';
+import { MatFormFieldAppearance, SubscriptSizing } from '@angular/material/form-field';
 
 @Component({
-  selector: 'tb-branch-autocomplete',
-  templateUrl: './branch-autocomplete.component.html',
-  styleUrls: ['./branch-autocomplete.component.scss'],
-  providers: [{
-    provide: NG_VALUE_ACCESSOR,
-    useExisting: forwardRef(() => BranchAutocompleteComponent),
-    multi: true
-  }],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-branch-autocomplete',
+    templateUrl: './branch-autocomplete.component.html',
+    styleUrls: ['./branch-autocomplete.component.scss'],
+    providers: [{
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => BranchAutocompleteComponent),
+            multi: true
+        }],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class BranchAutocompleteComponent implements ControlValueAccessor, OnInit, AfterViewInit {
 
@@ -56,6 +57,9 @@ export class BranchAutocompleteComponent implements ControlValueAccessor, OnInit
 
   @Input()
   subscriptSizing: SubscriptSizing = 'fixed';
+
+  @Input()
+  appearance: MatFormFieldAppearance = 'fill';
 
   private requiredValue: boolean;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,7 @@
  */
 package org.thingsboard.server.service.edge.instructions;
 
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.thingsboard.server.common.data.AttributeScope;
@@ -32,47 +29,36 @@ import org.thingsboard.server.dao.attributes.AttributesService;
 import org.thingsboard.server.queue.util.TbCoreComponent;
 import org.thingsboard.server.service.install.InstallScripts;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "edges", value = "enabled", havingValue = "true")
 @TbCoreComponent
-public class DefaultEdgeUpgradeInstructionsService implements EdgeUpgradeInstructionsService {
+public class DefaultEdgeUpgradeInstructionsService extends BaseEdgeInstallUpgradeInstructionsService implements EdgeUpgradeInstructionsService {
 
     private static final Map<String, EdgeUpgradeInfo> upgradeVersionHashMap = new HashMap<>();
 
-    private static final String EDGE_DIR = "edge";
-    private static final String INSTRUCTIONS_DIR = "instructions";
     private static final String UPGRADE_DIR = "upgrade";
 
-    private final InstallScripts installScripts;
     private final AttributesService attributesService;
 
-    @Value("${app.version:unknown}")
-    @Setter
-    private String appVersion;
+    public DefaultEdgeUpgradeInstructionsService(AttributesService attributesService, InstallScripts installScripts) {
+        super(installScripts);
+        this.attributesService = attributesService;
+    }
 
     @Override
     public EdgeInstructions getUpgradeInstructions(String edgeVersion, String upgradeMethod) {
-        String tbVersion = appVersion.replace("-SNAPSHOT", "");
         String currentEdgeVersion = convertEdgeVersionToDocsFormat(edgeVersion);
-        switch (upgradeMethod.toLowerCase()) {
-            case "docker":
-                return getDockerUpgradeInstructions(tbVersion, currentEdgeVersion);
-            case "ubuntu":
-            case "centos":
-                return getLinuxUpgradeInstructions(tbVersion, currentEdgeVersion, upgradeMethod.toLowerCase());
-            default:
-                throw new IllegalArgumentException("Unsupported upgrade method for Edge: " + upgradeMethod);
-        }
+        return switch (upgradeMethod.toLowerCase()) {
+            case "docker" -> getDockerUpgradeInstructions(this.platformEdgeVersion, currentEdgeVersion);
+            case "ubuntu", "centos" ->
+                    getLinuxUpgradeInstructions(this.platformEdgeVersion, currentEdgeVersion, upgradeMethod.toLowerCase());
+            default -> throw new IllegalArgumentException("Unsupported upgrade method for Edge: " + upgradeMethod);
+        };
     }
 
     @Override
@@ -87,7 +73,7 @@ public class DefaultEdgeUpgradeInstructionsService implements EdgeUpgradeInstruc
         Optional<AttributeKvEntry> attributeKvEntryOpt = attributesService.find(tenantId, edgeId, AttributeScope.SERVER_SCOPE, DataConstants.EDGE_VERSION_ATTR_KEY).get();
         if (attributeKvEntryOpt.isPresent()) {
             String edgeVersionFormatted = convertEdgeVersionToDocsFormat(attributeKvEntryOpt.get().getValueAsString());
-            return isVersionGreaterOrEqualsThan(edgeVersionFormatted, "3.6.0") && !isVersionGreaterOrEqualsThan(edgeVersionFormatted, appVersion);
+            return isVersionGreaterOrEqualsThan(edgeVersionFormatted, "3.6.0") && !isVersionGreaterOrEqualsThan(edgeVersionFormatted, platformEdgeVersion);
         }
         return false;
     }
@@ -110,13 +96,13 @@ public class DefaultEdgeUpgradeInstructionsService implements EdgeUpgradeInstruc
         return true;
     }
 
-    private EdgeInstructions getDockerUpgradeInstructions(String tbVersion, String currentEdgeVersion) {
+    private EdgeInstructions getDockerUpgradeInstructions(String platformEdgeVersion, String currentEdgeVersion) {
         EdgeUpgradeInfo edgeUpgradeInfo = upgradeVersionHashMap.get(currentEdgeVersion);
-        if (edgeUpgradeInfo == null || edgeUpgradeInfo.getNextEdgeVersion() == null || tbVersion.equals(currentEdgeVersion)) {
+        if (edgeUpgradeInfo == null || edgeUpgradeInfo.getNextEdgeVersion() == null || platformEdgeVersion.equals(currentEdgeVersion)) {
             return new EdgeInstructions("Edge upgrade instruction for " + currentEdgeVersion + "EDGE is not available.");
         }
         StringBuilder result = new StringBuilder(readFile(resolveFile("docker", "upgrade_preparing.md")));
-        while (edgeUpgradeInfo.getNextEdgeVersion() != null && !tbVersion.equals(currentEdgeVersion)) {
+        while (edgeUpgradeInfo.getNextEdgeVersion() != null && !platformEdgeVersion.equals(currentEdgeVersion)) {
             String edgeVersion = edgeUpgradeInfo.getNextEdgeVersion();
             String dockerUpgradeInstructions = readFile(resolveFile("docker", "instructions.md"));
             if (edgeUpgradeInfo.isRequiresUpdateDb()) {
@@ -137,15 +123,15 @@ public class DefaultEdgeUpgradeInstructionsService implements EdgeUpgradeInstruc
         return new EdgeInstructions(result.toString());
     }
 
-    private EdgeInstructions getLinuxUpgradeInstructions(String tbVersion, String currentEdgeVersion, String os) {
+    private EdgeInstructions getLinuxUpgradeInstructions(String platformEdgeVersion, String currentEdgeVersion, String os) {
         EdgeUpgradeInfo edgeUpgradeInfo = upgradeVersionHashMap.get(currentEdgeVersion);
-        if (edgeUpgradeInfo == null || edgeUpgradeInfo.getNextEdgeVersion() == null || tbVersion.equals(currentEdgeVersion)) {
+        if (edgeUpgradeInfo == null || edgeUpgradeInfo.getNextEdgeVersion() == null || platformEdgeVersion.equals(currentEdgeVersion)) {
             return new EdgeInstructions("Edge upgrade instruction for " + currentEdgeVersion + "EDGE is not available.");
         }
         String upgrade_preparing = readFile(resolveFile("upgrade_preparing.md"));
         upgrade_preparing = upgrade_preparing.replace("${OS}", os.equals("centos") ? "RHEL/CentOS 7/8" : "Ubuntu");
         StringBuilder result = new StringBuilder(upgrade_preparing);
-        while (edgeUpgradeInfo.getNextEdgeVersion() != null && !tbVersion.equals(currentEdgeVersion)) {
+        while (edgeUpgradeInfo.getNextEdgeVersion() != null && !platformEdgeVersion.equals(currentEdgeVersion)) {
             String edgeVersion = edgeUpgradeInfo.getNextEdgeVersion();
             String linuxUpgradeInstructions = readFile(resolveFile(os, "instructions.md"));
             if (edgeUpgradeInfo.isRequiresUpdateDb()) {
@@ -167,28 +153,9 @@ public class DefaultEdgeUpgradeInstructionsService implements EdgeUpgradeInstruc
         return new EdgeInstructions(result.toString());
     }
 
-    private String getTagVersion(String version) {
-        return version.endsWith(".0") ? version.substring(0, version.length() - 2) : version;
+    @Override
+    protected String getBaseDirName() {
+        return UPGRADE_DIR;
     }
 
-    private String convertEdgeVersionToDocsFormat(String edgeVersion) {
-        return edgeVersion.replace("_", ".").substring(2);
-    }
-
-    private String readFile(Path file) {
-        try {
-            return Files.readString(file);
-        } catch (IOException e) {
-            log.warn("Failed to read file: {}", file, e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    private Path resolveFile(String subDir, String... subDirs) {
-        return getEdgeInstallInstructionsDir().resolve(Paths.get(subDir, subDirs));
-    }
-
-    private Path getEdgeInstallInstructionsDir() {
-        return Paths.get(installScripts.getDataDir(), InstallScripts.JSON_DIR, EDGE_DIR, INSTRUCTIONS_DIR, UPGRADE_DIR);
-    }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,11 @@
  */
 package org.thingsboard.server.dao.dashboard;
 
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.exception.ConstraintViolationException;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -49,16 +50,20 @@ import org.thingsboard.server.dao.entity.EntityCountService;
 import org.thingsboard.server.dao.eventsourcing.ActionEntityEvent;
 import org.thingsboard.server.dao.eventsourcing.DeleteEntityEvent;
 import org.thingsboard.server.dao.eventsourcing.SaveEntityEvent;
-import org.thingsboard.server.dao.exception.DataValidationException;
+import org.thingsboard.server.exception.DataValidationException;
 import org.thingsboard.server.dao.resource.ImageService;
+import org.thingsboard.server.dao.resource.ResourceService;
 import org.thingsboard.server.dao.service.DataValidator;
 import org.thingsboard.server.dao.service.PaginatedRemover;
 import org.thingsboard.server.dao.service.Validator;
 import org.thingsboard.server.dao.sql.JpaExecutorService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+import static org.thingsboard.server.dao.DaoUtil.toUUIDs;
 import static org.thingsboard.server.dao.service.Validator.validateId;
 
 @Service("DashboardDaoService")
@@ -68,6 +73,7 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
 
     public static final String INCORRECT_DASHBOARD_ID = "Incorrect dashboardId ";
     public static final String INCORRECT_TENANT_ID = "Incorrect tenantId ";
+
     @Autowired
     private DashboardDao dashboardDao;
 
@@ -82,6 +88,9 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
 
     @Autowired
     private ImageService imageService;
+
+    @Autowired
+    private ResourceService resourceService;
 
     @Autowired
     private DataValidator<Dashboard> dashboardValidator;
@@ -152,18 +161,28 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
 
     @Override
     public Dashboard saveDashboard(Dashboard dashboard, boolean doValidate) {
+        return saveEntity(dashboard, () -> doSaveDashboard(dashboard, doValidate));
+    }
+
+    private Dashboard doSaveDashboard(Dashboard dashboard, boolean doValidate) {
         log.trace("Executing saveDashboard [{}]", dashboard);
         if (doValidate) {
             dashboardValidator.validate(dashboard, DashboardInfo::getTenantId);
         }
         try {
-            imageService.replaceBase64WithImageUrl(dashboard);
-            var saved = dashboardDao.save(dashboard.getTenantId(), dashboard);
+            TenantId tenantId = dashboard.getTenantId();
+            if (CollectionUtils.isNotEmpty(dashboard.getResources())) {
+                resourceService.importResources(tenantId, dashboard.getResources());
+            }
+            imageService.updateImagesUsage(dashboard);
+            resourceService.updateResourcesUsage(tenantId, dashboard);
+
+            var saved = dashboardDao.save(tenantId, dashboard);
             publishEvictEvent(new DashboardTitleEvictEvent(saved.getId()));
-            eventPublisher.publishEvent(SaveEntityEvent.builder().tenantId(saved.getTenantId())
-                    .entityId(saved.getId()).created(dashboard.getId() == null).build());
+            eventPublisher.publishEvent(SaveEntityEvent.builder().tenantId(tenantId)
+                    .entityId(saved.getId()).entity(saved).created(dashboard.getId() == null).build());
             if (dashboard.getId() == null) {
-                countService.publishCountEntityEvictEvent(saved.getTenantId(), EntityType.DASHBOARD);
+                countService.publishCountEntityEvictEvent(tenantId, EntityType.DASHBOARD);
             }
             return saved;
         } catch (Exception e) {
@@ -235,13 +254,12 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
             publishEvictEvent(new DashboardTitleEvictEvent(dashboardId));
             countService.publishCountEntityEvictEvent(tenantId, EntityType.DASHBOARD);
             eventPublisher.publishEvent(DeleteEntityEvent.builder().tenantId(tenantId).entityId(dashboardId).build());
-        } catch (Exception t) {
-            ConstraintViolationException e = extractConstraintViolationException(t).orElse(null);
-            if (e != null && e.getConstraintName() != null && e.getConstraintName().equalsIgnoreCase("fk_default_dashboard_device_profile")) {
-                throw new DataValidationException("The dashboard referenced by the device profiles cannot be deleted!");
-            } else {
-                throw t;
-            }
+        } catch (Exception e) {
+            checkConstraintViolation(e, Map.of(
+                    "fk_default_dashboard_device_profile", "The dashboard is referenced by a device profile",
+                    "fk_default_dashboard_asset_profile", "The dashboard is referenced by an asset profile"
+            ));
+            throw e;
         }
     }
 
@@ -305,7 +323,7 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
         if (customer == null) {
             throw new DataValidationException("Can't unassign dashboards from non-existent customer!");
         }
-        new CustomerDashboardsUnassigner(customer).removeEntities(tenantId, customer);
+        new CustomerDashboardsRemover(customer).removeEntities(tenantId, customer);
     }
 
     @Override
@@ -386,6 +404,22 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
         return dashboardDao.findByTenantIdAndTitle(tenantId.getId(), title);
     }
 
+    @Override
+    public boolean existsById(TenantId tenantId, DashboardId dashboardId) {
+        return dashboardDao.existsById(tenantId, dashboardId.getId());
+    }
+
+    @Override
+    public PageData<DashboardId> findAllDashboardsIds(PageLink pageLink) {
+        return dashboardDao.findAllIds(pageLink);
+    }
+
+    @Override
+    public List<DashboardInfo> findDashboardInfoByIds(TenantId tenantId, List<DashboardId> dashboardIds) {
+        log.trace("Executing findDashboardInfoByIds, dashboardIds [{}]", dashboardIds);
+        return dashboardInfoDao.findDashboardsByIds(tenantId.getId(), toUUIDs(dashboardIds));
+    }
+
     private final PaginatedRemover<TenantId, DashboardId> tenantDashboardsRemover = new PaginatedRemover<>() {
 
         @Override
@@ -405,6 +439,12 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
     }
 
     @Override
+    public FluentFuture<Optional<HasId<?>>> findEntityAsync(TenantId tenantId, EntityId entityId) {
+        return FluentFuture.from(findDashboardByIdAsync(tenantId, new DashboardId(entityId.getId())))
+                .transform(Optional::ofNullable, directExecutor());
+    }
+
+    @Override
     public long countByTenantId(TenantId tenantId) {
         return dashboardDao.countByTenantId(tenantId);
     }
@@ -414,11 +454,11 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
         return EntityType.DASHBOARD;
     }
 
-    private class CustomerDashboardsUnassigner extends PaginatedRemover<Customer, DashboardInfo> {
+    private class CustomerDashboardsRemover extends PaginatedRemover<Customer, DashboardInfo> {
 
-        private Customer customer;
+        private final Customer customer;
 
-        CustomerDashboardsUnassigner(Customer customer) {
+        CustomerDashboardsRemover(Customer customer) {
             this.customer = customer;
         }
 
@@ -436,7 +476,7 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
 
     private class CustomerDashboardsUpdater extends PaginatedRemover<Customer, DashboardInfo> {
 
-        private Customer customer;
+        private final Customer customer;
 
         CustomerDashboardsUpdater(Customer customer) {
             this.customer = customer;

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -21,27 +21,34 @@ import {
   EventEmitter,
   Input,
   OnDestroy,
-  Output,
-} from "@angular/core";
-import { PageComponent } from "@shared/components/page.component";
-import { Store } from "@ngrx/store";
-import { AppState } from "@core/core.state";
-import { UntypedFormGroup } from "@angular/forms";
-import { Subscription } from "rxjs";
+  Output
+} from '@angular/core';
+import { PageComponent } from '@shared/components/page.component';
+import { Store } from '@ngrx/store';
+import { AppState } from '@core/core.state';
+import { UntypedFormGroup } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { coerceBoolean } from '@shared/decorators/coercion';
 
 @Component({
-  selector: "tb-details-panel",
-  templateUrl: "./details-panel.component.html",
-  styleUrls: ["./details-panel.component.scss"],
+    selector: 'tb-details-panel',
+    templateUrl: './details-panel.component.html',
+    styleUrls: ['./details-panel.component.scss'],
+    standalone: false
 })
 export class DetailsPanelComponent extends PageComponent implements OnDestroy {
+
   @Input() headerHeightPx = 100;
-  @Input() headerTitle = "";
-  @Input() headerSubtitle = "";
+  @Input() headerTitle = '';
+  @Input() headerSubtitle = '';
   @Input() isReadOnly = false;
   @Input() isAlwaysEdit = false;
   @Input() isShowSearch = false;
-  @Input() backgroundColor = "#FFF";
+  @Input() backgroundColor = '#FFF';
+
+  @Input()
+  @coerceBoolean()
+  showCloseDetails = true;
 
   private theFormValue: UntypedFormGroup;
   private formSubscription: Subscription = null;
@@ -54,12 +61,8 @@ export class DetailsPanelComponent extends PageComponent implements OnDestroy {
         this.formSubscription = null;
       }
       this.theFormValue = value;
-      console.log("form value === ", this.theFormValue);
       if (this.theFormValue !== null) {
-        this.formSubscription = this.theFormValue.valueChanges.subscribe(() => {
-          console.log("hello from details panel");
-          this.cd.detectChanges();
-        });
+        this.formSubscription = this.theFormValue.valueChanges.subscribe(() => this.cd.detectChanges());
       }
     }
   }
@@ -93,7 +96,9 @@ export class DetailsPanelComponent extends PageComponent implements OnDestroy {
     this.isEditChange.emit(this.isEditValue);
   }
 
-  constructor(protected store: Store<AppState>, private cd: ChangeDetectorRef) {
+
+  constructor(protected store: Store<AppState>,
+              private cd: ChangeDetectorRef) {
     super(store);
   }
 

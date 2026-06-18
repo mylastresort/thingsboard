@@ -1,6 +1,6 @@
 <!--
 
-    Copyright © 2016-2024 The Thingsboard Authors
+    Copyright © 2016-2026 The Thingsboard Authors
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.thingsboard</groupId>
-        <version>3.7.0</version>
+        <version>4.3.1.2-SNAPSHOT</version>
         <artifactId>thingsboard</artifactId>
     </parent>
     <artifactId>application</artifactId>
@@ -35,7 +35,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <main.dir>${basedir}/..</main.dir>
         <pkg.type>java</pkg.type>
-        <pkg.disabled>false</pkg.disabled>
         <pkg.process-resources.phase>process-resources</pkg.process-resources.phase>
         <pkg.package.phase>package</pkg.package.phase>
         <pkg.name>thingsboard</pkg.name>
@@ -130,6 +129,14 @@
             <artifactId>edge-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.thingsboard.common</groupId>
+            <artifactId>edqs</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.common</groupId>
+            <artifactId>discovery-api</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.thingsboard</groupId>
             <artifactId>dao</artifactId>
             <type>test-jar</type>
@@ -183,8 +190,8 @@
             <artifactId>jjwt</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.freemarker</groupId>
-            <artifactId>freemarker</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-freemarker</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -288,6 +295,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.thingsboard.client</groupId>
+            <artifactId>thingsboard-ce-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
@@ -374,6 +386,52 @@
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-azure-open-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-google-ai-gemini</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-vertex-ai-gemini</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-mistral-ai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-anthropic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-bedrock</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-github-models</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.azure</groupId>
+                    <artifactId>azure-core-test</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.thingsboard.langchain4j</groupId>
+            <artifactId>langchain4j-ollama</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -396,6 +454,10 @@
         </resources>
         <plugins>
             <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
@@ -405,6 +467,7 @@
                 <configuration>
                     <systemPropertyVariables>
                         <spring.config.name>thingsboard</spring.config.name>
+                        <project.version>${project.version}</project.version>
                     </systemPropertyVariables>
                     <excludes>
                         <exclude>**/nosql/*Test.java</exclude>
@@ -440,10 +503,6 @@
                 <artifactId>maven-assembly-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>
             </plugin>
@@ -453,6 +512,105 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>openapi-spec</id>
+            <properties>
+                <pkg.disabled>true</pkg.disabled>
+                <pkg.package.phase>none</pkg.package.phase>
+                <pkg.process-resources.phase>none</pkg.process-resources.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>org.thingsboard.server.ThingsboardServerApplication</mainClass>
+                            <jmxPort>9001</jmxPort>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>build-info</id>
+                                <goals><goal>build-info</goal></goals>
+                                <configuration>
+                                    <skip>false</skip>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>openapi-start</id>
+                                <goals><goal>start</goal></goals>
+                                <configuration>
+                                    <skip>false</skip>
+                                    <useTestClasspath>true</useTestClasspath>
+                                    <jvmArguments>-Xmx1024m</jvmArguments>
+                                    <arguments>
+                                        <argument>--spring.config.name=thingsboard</argument>
+                                        <argument>--spring.profiles.active=openapi</argument>
+                                    </arguments>
+                                    <maxAttempts>180</maxAttempts>
+                                    <wait>2000</wait>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>openapi-stop</id>
+                                <goals><goal>stop</goal></goals>
+                                <configuration>
+                                    <skip>false</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.springdoc</groupId>
+                        <artifactId>springdoc-openapi-maven-plugin</artifactId>
+                        <version>1.4</version>
+                        <executions>
+                            <execution>
+                                <id>generate-openapi-spec</id>
+                                <goals><goal>generate</goal></goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <apiDocsUrl>http://localhost:8080/v3/api-docs/thingsboard</apiDocsUrl>
+                            <outputFileName>openapi.json</outputFileName>
+                            <outputDir>${project.build.directory}</outputDir>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-enforcer-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>verify-openapi-spec-generated</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>enforce</goal>
+                                </goals>
+                                <configuration>
+                                    <rules>
+                                        <requireFilesExist>
+                                            <files>
+                                                <file>${project.build.directory}/openapi.json</file>
+                                            </files>
+                                            <message>OpenAPI spec was not generated — target/openapi.json is missing. The springdoc-openapi-maven-plugin logs HTTP failures but does not fail the build; scan the log above for "An error has occured" or a 5xx response from /v3/api-docs/thingsboard and fix the underlying issue (e.g. duplicate @Schema names rejected by SwaggerConfiguration).</message>
+                                        </requireFilesExist>
+                                    </rules>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <repositories>
         <repository>
             <id>jenkins</id>

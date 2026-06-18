@@ -45,7 +45,6 @@ import {
   MatDatetimepickerModule,
   MatNativeDatetimeModule,
 } from '@mat-datetimepicker/core';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import { Direction, EntityType } from '@app/shared/public-api';
 import { ForecastField } from '@app/modules/home/models/predictive-maintenance.models';
 import { Forecast, ForecastCreate } from '@app/shared/models/forecast.models';
@@ -71,7 +70,6 @@ import { startCase } from 'lodash';
     FormsModule,
     ReactiveFormsModule, // For reactive form
     MatAutocompleteModule, // For autocomplete
-    FlexLayoutModule, // For flex layout directives
   ],
 })
 export class AddModelDialogComponent implements OnInit, OnDestroy {

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@ import {
   Input,
   OnDestroy,
   OnInit,
-  QueryList, ViewChild,
+  QueryList,
+  ViewChild,
   ViewChildren
 } from '@angular/core';
 import { PageComponent } from '@shared/components/page.component';
@@ -29,11 +30,12 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { Authority } from '@shared/models/authority.enum';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { getCurrentAuthUser } from '@core/auth/auth.selectors';
+import { getCurrentAuthState, getCurrentAuthUser } from '@core/auth/auth.selectors';
 import { WidgetContext } from '@home/models/widget-component.models';
 import {
   AbstractUserDashboardInfo,
-  LastVisitedDashboardInfo, StarredDashboardInfo,
+  LastVisitedDashboardInfo,
+  StarredDashboardInfo,
   UserDashboardAction,
   UserDashboardsInfo
 } from '@shared/models/user-settings.models';
@@ -46,11 +48,19 @@ import { Direction, SortOrder } from '@shared/models/page/sort-order';
 import { MatSort } from '@angular/material/sort';
 import { DashboardInfo } from '@shared/models/dashboard.models';
 import { DashboardAutocompleteComponent } from '@shared/components/dashboard-autocomplete.component';
+import { UtilsService } from '@core/services/utils.service';
+import { Datasource, DatasourceType, widgetType } from '@shared/models/widget.models';
+import { IWidgetSubscription, WidgetSubscriptionOptions } from '@core/api/widget-api.models';
+import { formattedDataFormDatasourceData } from '@core/utils';
+import { AliasFilterType } from '@shared/models/alias.models';
+import { DataKeyType } from '@shared/models/telemetry/telemetry.models';
+import { EntityType } from '@shared/models/entity-type.models';
 
 @Component({
-  selector: 'tb-recent-dashboards-widget',
-  templateUrl: './recent-dashboards-widget.component.html',
-  styleUrls: ['./home-page-widget.scss', './recent-dashboards-widget.component.scss']
+    selector: 'tb-recent-dashboards-widget',
+    templateUrl: './recent-dashboards-widget.component.html',
+    styleUrls: ['./home-page-widget.scss', './recent-dashboards-widget.component.scss'],
+    standalone: false
 })
 export class RecentDashboardsWidgetComponent extends PageComponent implements OnInit, AfterViewInit, OnDestroy {
 
@@ -75,19 +85,62 @@ export class RecentDashboardsWidgetComponent extends PageComponent implements On
 
   starredDashboardValue = null;
   hasDashboardsAccess = true;
+  hasDevice = true;
 
   dirty = false;
+  public customerId: string;
+  private isFullscreenMode = getCurrentAuthState(this.store).forceFullscreen;
+  private subscription: IWidgetSubscription;
 
   constructor(protected store: Store<AppState>,
               private cd: ChangeDetectorRef,
+              private utils: UtilsService,
               private userSettingService: UserSettingsService) {
     super(store);
   }
 
   ngOnInit() {
+    if (this.authUser.authority === Authority.CUSTOMER_USER) {
+      this.customerId = this.authUser.customerId;
+    }
     this.hasDashboardsAccess = [Authority.TENANT_ADMIN, Authority.CUSTOMER_USER].includes(this.authUser.authority);
     if (this.hasDashboardsAccess) {
       this.reload();
+
+      if (window.location.pathname.startsWith('/home') && this.authUser.authority === Authority.TENANT_ADMIN) {
+        const ds: Datasource = {
+          type: DatasourceType.entityCount,
+          name: '',
+          entityFilter: {
+            entityType: EntityType.DEVICE,
+            type: AliasFilterType.entityType
+          },
+          dataKeys: [this.utils.createKey({ name: 'count'}, DataKeyType.count)]
+        }
+
+        const apiUsageSubscriptionOptions: WidgetSubscriptionOptions = {
+          datasources: [ds],
+          useDashboardTimewindow: false,
+          type: widgetType.latest,
+          callbacks: {
+            onDataUpdated: (subscription) => {
+              const data = formattedDataFormDatasourceData(subscription.data);
+              this.hasDevice = (data[0].count || 0) !== 0;
+              this.cd.detectChanges();
+            }
+          }
+        };
+        this.ctx.subscriptionApi.createSubscription(apiUsageSubscriptionOptions, true).subscribe((subscription) => {
+          this.subscription = subscription;
+        });
+      }
+    }
+  }
+
+  ngOnDestroy() {
+    super.ngOnDestroy();
+    if (this.subscription) {
+      this.ctx.subscriptionApi.removeSubscription(this.subscription.id);
     }
   }
 
@@ -108,6 +161,11 @@ export class RecentDashboardsWidgetComponent extends PageComponent implements On
         this.cd.markForCheck();
       }
     );
+  }
+
+  public createDashboardUrl(id: string): string {
+    const baseUrl = this.isFullscreenMode ? '/dashboard/' : '/dashboards/';
+    return baseUrl + id;
   }
 
   toggleValueChange(value: 'last' | 'starred') {

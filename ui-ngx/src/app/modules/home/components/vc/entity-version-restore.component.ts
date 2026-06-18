@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -33,11 +33,13 @@ import { delay, share } from 'rxjs/operators';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Observable, Subscription } from 'rxjs';
 import { parseHttpErrorMessage } from '@core/utils';
+import { EntityType } from '@shared/models/entity-type.models';
 
 @Component({
-  selector: 'tb-entity-version-restore',
-  templateUrl: './entity-version-restore.component.html',
-  styleUrls: ['./version-control.scss']
+    selector: 'tb-entity-version-restore',
+    templateUrl: './entity-version-restore.component.html',
+    styleUrls: ['./version-control.scss'],
+    standalone: false
 })
 export class EntityVersionRestoreComponent extends PageComponent implements OnInit, OnDestroy {
 
@@ -62,6 +64,8 @@ export class EntityVersionRestoreComponent extends PageComponent implements OnIn
 
   errorMessage: SafeHtml;
 
+  EntityType = EntityType;
+
   versionLoadResult$: Observable<VersionLoadResult>;
 
   private versionLoadResultSubscription: Subscription;
@@ -79,7 +83,8 @@ export class EntityVersionRestoreComponent extends PageComponent implements OnIn
     this.restoreFormGroup = this.fb.group({
       loadAttributes: [true, []],
       loadRelations: [true, []],
-      loadCredentials: [true, []]
+      loadCredentials: [true, []],
+      loadCalculatedFields: [true, []]
     });
     this.entitiesVersionControlService.getEntityDataInfo(this.externalEntityId, this.versionId).subscribe((data) => {
       this.entityDataInfo = data;
@@ -110,7 +115,8 @@ export class EntityVersionRestoreComponent extends PageComponent implements OnIn
       config: {
         loadRelations: this.entityDataInfo.hasRelations ? this.restoreFormGroup.get('loadRelations').value : false,
         loadAttributes: this.entityDataInfo.hasAttributes ? this.restoreFormGroup.get('loadAttributes').value : false,
-        loadCredentials: this.entityDataInfo.hasCredentials ? this.restoreFormGroup.get('loadCredentials').value : false
+        loadCredentials: this.entityDataInfo.hasCredentials ? this.restoreFormGroup.get('loadCredentials').value : false,
+        loadCalculatedFields: this.entityDataInfo.hasCalculatedFields ? this.restoreFormGroup.get('loadCalculatedFields').value : false
       },
       type: VersionLoadRequestType.SINGLE_ENTITY
     };

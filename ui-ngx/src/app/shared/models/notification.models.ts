@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -129,7 +129,7 @@ export interface NotificationRule extends Omit<BaseData<NotificationRuleId>, 'la
 export type NotificationRuleTriggerConfig = Partial<AlarmNotificationRuleTriggerConfig & DeviceInactivityNotificationRuleTriggerConfig &
   EntityActionNotificationRuleTriggerConfig & AlarmCommentNotificationRuleTriggerConfig & AlarmAssignmentNotificationRuleTriggerConfig &
   RuleEngineLifecycleEventNotificationRuleTriggerConfig & EntitiesLimitNotificationRuleTriggerConfig &
-  ApiUsageLimitNotificationRuleTriggerConfig & RateLimitsNotificationRuleTriggerConfig>;
+  ApiUsageLimitNotificationRuleTriggerConfig & RateLimitsNotificationRuleTriggerConfig & ResourceUsageShortageNotificationRuleTriggerConfig>;
 
 export interface AlarmNotificationRuleTriggerConfig {
   alarmTypes?: Array<string>;
@@ -181,6 +181,12 @@ export interface RuleEngineLifecycleEventNotificationRuleTriggerConfig {
 export interface EntitiesLimitNotificationRuleTriggerConfig {
   entityTypes: EntityType[];
   threshold: number;
+}
+
+export interface ResourceUsageShortageNotificationRuleTriggerConfig {
+  cpuThreshold: number;
+  ramThreshold: number;
+  storageThreshold: number;
 }
 
 export interface ApiUsageLimitNotificationRuleTriggerConfig {
@@ -290,6 +296,7 @@ export interface SlackNotificationTargetConfig {
 export interface MicrosoftTeamsNotificationTargetConfig {
   webhookUrl: string;
   channelName: string;
+  useOldApi?: boolean;
 }
 export enum NotificationTargetType {
   PLATFORM_USERS = 'PLATFORM_USERS',
@@ -365,6 +372,7 @@ interface SlackDeliveryMethodNotificationTemplate {
 interface MicrosoftTeamsDeliveryMethodNotificationTemplate {
   subject?: string;
   button: NotificationButtonConfig;
+  themeColor?: string;
 }
 
 interface MobileDeliveryMethodNotificationTemplate {
@@ -518,13 +526,15 @@ export enum NotificationType {
   ALARM_ASSIGNMENT = 'ALARM_ASSIGNMENT',
   RULE_ENGINE_COMPONENT_LIFECYCLE_EVENT = 'RULE_ENGINE_COMPONENT_LIFECYCLE_EVENT',
   ENTITIES_LIMIT = 'ENTITIES_LIMIT',
+  ENTITIES_LIMIT_INCREASE_REQUEST = 'ENTITIES_LIMIT_INCREASE_REQUEST',
   API_USAGE_LIMIT = 'API_USAGE_LIMIT',
   NEW_PLATFORM_VERSION = 'NEW_PLATFORM_VERSION',
   RULE_NODE = 'RULE_NODE',
   RATE_LIMITS = 'RATE_LIMITS',
   EDGE_CONNECTION = 'EDGE_CONNECTION',
   EDGE_COMMUNICATION_FAILURE = 'EDGE_COMMUNICATION_FAILURE',
-  TASK_PROCESSING_FAILURE = 'TASK_PROCESSING_FAILURE'
+  TASK_PROCESSING_FAILURE = 'TASK_PROCESSING_FAILURE',
+  RESOURCES_SHORTAGE = 'RESOURCES_SHORTAGE'
 }
 
 export const NotificationTypeIcons = new Map<NotificationType, string | null>([
@@ -535,19 +545,11 @@ export const NotificationTypeIcons = new Map<NotificationType, string | null>([
   [NotificationType.ALARM_ASSIGNMENT, 'assignment_turned_in'],
   [NotificationType.RULE_ENGINE_COMPONENT_LIFECYCLE_EVENT, 'settings_ethernet'],
   [NotificationType.ENTITIES_LIMIT, 'data_thresholding'],
+  [NotificationType.ENTITIES_LIMIT_INCREASE_REQUEST, 'mdi:file-cog'],
   [NotificationType.API_USAGE_LIMIT, 'insert_chart'],
-  [NotificationType.TASK_PROCESSING_FAILURE, 'warning']
+  [NotificationType.TASK_PROCESSING_FAILURE, 'warning'],
+  [NotificationType.RESOURCES_SHORTAGE, 'warning']
 ]);
-
-export const AlarmSeverityNotificationColors = new Map<AlarmSeverity, string>(
-  [
-    [AlarmSeverity.CRITICAL, '#D12730'],
-    [AlarmSeverity.MAJOR, '#FEAC0C'],
-    [AlarmSeverity.MINOR, '#F2DA05'],
-    [AlarmSeverity.WARNING, '#F66716'],
-    [AlarmSeverity.INDETERMINATE, '#00000061']
-  ]
-);
 
 export enum ActionButtonLinkType {
   LINK = 'LINK',
@@ -613,6 +615,12 @@ export const NotificationTemplateTypeTranslateMap = new Map<NotificationType, No
       helpId: 'notification/entities_limit'
     }
   ],
+  [NotificationType.ENTITIES_LIMIT_INCREASE_REQUEST,
+    {
+      name: 'notification.template-type.entities-limit-increase-request',
+      helpId: 'notification/entities_limit_increase_request'
+    }
+  ],
   [NotificationType.API_USAGE_LIMIT,
     {
       name: 'notification.template-type.api-usage-limit',
@@ -655,6 +663,12 @@ export const NotificationTemplateTypeTranslateMap = new Map<NotificationType, No
       helpId: 'notification/task_processing_failure'
     }
   ],
+  [NotificationType.RESOURCES_SHORTAGE,
+    {
+      name: 'notification.template-type.resources-shortage',
+      helpId: 'notification/resources_shortage'
+    }
+  ]
 ]);
 
 export enum TriggerType {
@@ -671,6 +685,7 @@ export enum TriggerType {
   EDGE_CONNECTION = 'EDGE_CONNECTION',
   EDGE_COMMUNICATION_FAILURE = 'EDGE_COMMUNICATION_FAILURE',
   TASK_PROCESSING_FAILURE = 'TASK_PROCESSING_FAILURE',
+  RESOURCES_SHORTAGE = 'RESOURCES_SHORTAGE'
 }
 
 export const TriggerTypeTranslationMap = new Map<TriggerType, string>([
@@ -686,7 +701,8 @@ export const TriggerTypeTranslationMap = new Map<TriggerType, string>([
   [TriggerType.RATE_LIMITS, 'notification.trigger.rate-limits'],
   [TriggerType.EDGE_CONNECTION, 'notification.trigger.edge-connection'],
   [TriggerType.EDGE_COMMUNICATION_FAILURE, 'notification.trigger.edge-communication-failure'],
-  [TriggerType.TASK_PROCESSING_FAILURE, 'notification.trigger.task-processing-failure']
+  [TriggerType.TASK_PROCESSING_FAILURE, 'notification.trigger.task-processing-failure'],
+  [TriggerType.RESOURCES_SHORTAGE, 'notification.trigger.resources-shortage']
 ]);
 
 export interface NotificationUserSettings {

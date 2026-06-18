@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -35,6 +35,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { WidgetService } from '@core/http/widget.service';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { IAliasController } from 'src/app/core/api/widget-api.models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export function flotDataKeyDefaultSettings(chartType: ChartType): TbFlotKeySettings {
   const settings: TbFlotKeySettings = {
@@ -90,21 +91,22 @@ export function flotDataKeyDefaultSettings(chartType: ChartType): TbFlotKeySetti
 }
 
 @Component({
-  selector: 'tb-flot-key-settings',
-  templateUrl: './flot-key-settings.component.html',
-  styleUrls: ['./../widget-settings.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => FlotKeySettingsComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => FlotKeySettingsComponent),
-      multi: true,
-    }
-  ]
+    selector: 'tb-flot-key-settings',
+    templateUrl: './flot-key-settings.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => FlotKeySettingsComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => FlotKeySettingsComponent),
+            multi: true,
+        }
+    ],
+    standalone: false
 })
 export class FlotKeySettingsComponent extends PageComponent implements OnInit, ControlValueAccessor, Validator {
 
@@ -128,7 +130,8 @@ export class FlotKeySettingsComponent extends PageComponent implements OnInit, C
   constructor(protected store: Store<AppState>,
               private translate: TranslateService,
               private widgetService: WidgetService,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
@@ -189,23 +192,33 @@ export class FlotKeySettingsComponent extends PageComponent implements OnInit, C
 
     });
 
-    this.flotKeySettingsFormGroup.get('showLines').valueChanges.subscribe(() => {
+    this.flotKeySettingsFormGroup.get('showLines').valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateValidators(false);
     });
 
-    this.flotKeySettingsFormGroup.get('fillLines').valueChanges.subscribe(() => {
+    this.flotKeySettingsFormGroup.get('fillLines').valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateValidators(false);
     });
 
-    this.flotKeySettingsFormGroup.get('showPoints').valueChanges.subscribe(() => {
+    this.flotKeySettingsFormGroup.get('showPoints').valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateValidators(false);
     });
 
-    this.flotKeySettingsFormGroup.get('comparisonSettings.showValuesForComparison').valueChanges.subscribe(() => {
+    this.flotKeySettingsFormGroup.get('comparisonSettings.showValuesForComparison').valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateValidators(false);
     });
 
-    this.flotKeySettingsFormGroup.valueChanges.subscribe(() => {
+    this.flotKeySettingsFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
 

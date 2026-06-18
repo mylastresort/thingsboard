@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -20,12 +20,20 @@ import {
   EntityTableConfig
 } from '@home/models/entity/entities-table-config.models';
 import {
+  ActionStatus,
   actionStatusTranslations,
+  ActionType,
   actionTypeTranslations,
   AuditLog,
-  AuditLogMode
+  AuditLogMode,
+  AuditLogFilter
 } from '@shared/models/audit-log.models';
-import { EntityTypeResource, entityTypeTranslations } from '@shared/models/entity-type.models';
+import {
+  AliasEntityType,
+  EntityType,
+  EntityTypeResource,
+  entityTypeTranslations
+} from '@shared/models/entity-type.models';
 import { AuditLogService } from '@core/http/audit-log.service';
 import { TranslateService } from '@ngx-translate/core';
 import { DatePipe } from '@angular/common';
@@ -41,6 +49,8 @@ import {
   AuditLogDetailsDialogComponent,
   AuditLogDetailsDialogData
 } from '@home/components/audit-log/audit-log-details-dialog.component';
+import { deepClone } from '@app/core/utils';
+import { AuditLogHeaderComponent } from '@home/components/audit-log/audit-log-header.component';
 
 export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLink> {
 
@@ -64,6 +74,7 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
     this.searchEnabled = true;
     this.addEnabled = false;
     this.entitiesDeleteEnabled = false;
+    this.headerComponent = AuditLogHeaderComponent;
     this.actionsColumnTitle = 'audit-log.details';
     this.entityTranslations = {
       noEntities: 'audit-log.no-audit-logs-prompt',
@@ -71,6 +82,10 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
     };
     this.entityResources = {
     } as EntityTypeResource<AuditLog>;
+
+    this.componentsData = {
+      auditLogFilter: []
+    };
 
     this.entitiesFetchFunction = pageLink => this.fetchAuditLogs(pageLink);
 
@@ -82,7 +97,7 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
     if (this.auditLogMode !== AuditLogMode.ENTITY) {
       this.columns.push(
         new EntityTableColumn<AuditLog>('entityType', 'audit-log.entity-type', '20%',
-          (entity) => translate.instant(entityTypeTranslations.get(entity.entityId.entityType).type)),
+          (entity) => this.getEntityTypeTranslation(entity.entityId.entityType)),
         new EntityTableColumn<AuditLog>('entityName', 'audit-log.entity-name', '20%'),
       );
     }
@@ -95,9 +110,9 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
 
     this.columns.push(
       new EntityTableColumn<AuditLog>('actionType', 'audit-log.type', '33%',
-        (entity) => translate.instant(actionTypeTranslations.get(entity.actionType))),
+        (entity) => this.getActionTypeTranslation(entity.actionType)),
       new EntityTableColumn<AuditLog>('actionStatus', 'audit-log.status', '33%',
-        (entity) => translate.instant(actionStatusTranslations.get(entity.actionStatus)))
+        (entity) => this.getActionStatusTranslation(entity.actionStatus))
     );
 
     this.cellActionDescriptors.push(
@@ -105,21 +120,43 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
         name: this.translate.instant('audit-log.details'),
         icon: 'more_horiz',
         isEnabled: () => true,
-        onAction: ($event, entity) => this.showAuditLogDetails(entity)
+        onAction: (_, entity) => this.showAuditLogDetails(entity)
       }
     );
   }
 
+  private getEntityTypeTranslation(entityType: EntityType | AliasEntityType): string {
+    if (entityTypeTranslations.has(entityType) && entityTypeTranslations.get(entityType).type) {
+      return this.translate.instant(entityTypeTranslations.get(entityType).type);
+    }
+    return entityType;
+  }
+
+  private getActionTypeTranslation(actionType: ActionType): string {
+    if (actionTypeTranslations.has(actionType)) {
+      return this.translate.instant(actionTypeTranslations.get(actionType));
+    }
+    return actionType;
+  }
+
+  private getActionStatusTranslation(actionStatus: ActionStatus): string {
+    if (actionStatusTranslations.has(actionStatus)) {
+      return this.translate.instant(actionStatusTranslations.get(actionStatus));
+    }
+    return actionStatus;
+  }
+
   fetchAuditLogs(pageLink: TimePageLink): Observable<PageData<AuditLog>> {
+    const auditLogFilter: AuditLogFilter = deepClone(this.componentsData?.auditLogFilter) || {};
     switch (this.auditLogMode) {
       case AuditLogMode.TENANT:
-        return this.auditLogService.getAuditLogs(pageLink);
+        return this.auditLogService.getAuditLogs(pageLink, auditLogFilter);
       case AuditLogMode.ENTITY:
-        return this.auditLogService.getAuditLogsByEntityId(this.entityId, pageLink);
+        return this.auditLogService.getAuditLogsByEntityId(this.entityId, pageLink, auditLogFilter);
       case AuditLogMode.USER:
-        return this.auditLogService.getAuditLogsByUserId(this.userId.id, pageLink);
+        return this.auditLogService.getAuditLogsByUserId(this.userId.id, pageLink, auditLogFilter);
       case AuditLogMode.CUSTOMER:
-        return this.auditLogService.getAuditLogsByCustomerId(this.customerId.id, pageLink);
+        return this.auditLogService.getAuditLogsByCustomerId(this.customerId.id, pageLink, auditLogFilter);
     }
   }
 

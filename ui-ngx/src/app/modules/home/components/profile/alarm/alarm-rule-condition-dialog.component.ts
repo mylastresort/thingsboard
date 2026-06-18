@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import { keyFilterInfosToKeyFilters, keyFiltersToKeyFilterInfos } from '@shared/
 import { AlarmCondition, AlarmConditionType, AlarmConditionTypeTranslationMap } from '@shared/models/device.models';
 import { TimeUnit, timeUnitTranslationMap } from '@shared/models/time/time.models';
 import { EntityId } from '@shared/models/id/entity-id';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface AlarmRuleConditionDialogData {
   readonly: boolean;
@@ -35,10 +36,11 @@ export interface AlarmRuleConditionDialogData {
 }
 
 @Component({
-  selector: 'tb-alarm-rule-condition-dialog',
-  templateUrl: './alarm-rule-condition-dialog.component.html',
-  providers: [{provide: ErrorStateMatcher, useExisting: AlarmRuleConditionDialogComponent}],
-  styleUrls: ['./alarm-rule-condition-dialog.component.scss']
+    selector: 'tb-alarm-rule-condition-dialog',
+    templateUrl: './alarm-rule-condition-dialog.component.html',
+    providers: [{ provide: ErrorStateMatcher, useExisting: AlarmRuleConditionDialogComponent }],
+    styleUrls: ['./alarm-rule-condition-dialog.component.scss'],
+    standalone: false
 })
 export class AlarmRuleConditionDialogComponent extends DialogComponent<AlarmRuleConditionDialogComponent, AlarmCondition>
   implements OnInit, ErrorStateMatcher {
@@ -74,7 +76,9 @@ export class AlarmRuleConditionDialogComponent extends DialogComponent<AlarmRule
       })
     });
     this.conditionFormGroup.patchValue({spec: this.condition?.spec});
-    this.conditionFormGroup.get('spec.type').valueChanges.subscribe((type) => {
+    this.conditionFormGroup.get('spec.type').valueChanges.pipe(
+      takeUntilDestroyed()
+    ).subscribe((type) => {
       this.updateValidators(type, true, true);
     });
     if (this.readonly) {

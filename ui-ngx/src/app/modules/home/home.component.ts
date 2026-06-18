@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,15 +14,7 @@
 /// limitations under the License.
 ///
 
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  Inject,
-  OnDestroy,
-  OnInit,
-  ViewChild,
-} from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { skip, startWith, Subject } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -36,41 +28,32 @@ import screenfull from 'screenfull';
 import { MatSidenav } from '@angular/material/sidenav';
 import { AuthState } from '@core/auth/auth.models';
 import { WINDOW } from '@core/services/window.service';
-import {
-  instanceOfSearchableComponent,
-  ISearchableComponent,
-} from '@home/models/searchable-component.models';
+import { instanceOfSearchableComponent, ISearchableComponent } from '@home/models/searchable-component.models';
 import { ActiveComponentService } from '@core/services/active-component.service';
 import { RouterTabsComponent } from '@home/components/router-tabs.component';
 import { FormBuilder } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { isDefined, isDefinedAndNotNull } from '@core/utils';
-import { getCurrentAuthUser } from '@core/auth/auth.selectors';
 
 @Component({
-  selector: 'tb-home',
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss'],
+    selector: 'tb-home',
+    templateUrl: './home.component.html',
+    styleUrls: ['./home.component.scss'],
+    standalone: false
 })
-export class HomeComponent
-  extends PageComponent
-  implements AfterViewInit, OnInit, OnDestroy
-{
+export class HomeComponent extends PageComponent implements AfterViewInit, OnInit, OnDestroy {
+
   authState: AuthState = getCurrentAuthState(this.store);
 
   forceFullscreen = this.authState.forceFullscreen;
 
   activeComponent: any;
-
   searchableComponent: ISearchableComponent;
 
   sidenavMode: 'over' | 'push' | 'side' = 'side';
-
   sidenavOpened = true;
 
-  sidenavMinimized = true;
-
-  logo = 'assets/analytic-board-logo.svg';
+  logo = 'assets/logo_title_white.svg';
 
   @ViewChild('sidenav')
   sidenav: MatSidenav;
@@ -80,29 +63,23 @@ export class HomeComponent
   fullscreenEnabled = screenfull.isEnabled;
 
   searchEnabled = false;
-
   showSearch = false;
-
-  textSearch = this.fb.control('', { nonNullable: true });
+  textSearch = this.fb.control('', {nonNullable: true});
 
   hideLoadingBar = false;
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    protected store: Store<AppState>,
-    @Inject(WINDOW) private window: Window,
-    private activeComponentService: ActiveComponentService,
-    private fb: FormBuilder,
-    public breakpointObserver: BreakpointObserver
-  ) {
+  constructor(protected store: Store<AppState>,
+              @Inject(WINDOW) private window: Window,
+              private activeComponentService: ActiveComponentService,
+              private fb: FormBuilder,
+              public breakpointObserver: BreakpointObserver) {
     super(store);
   }
 
   ngOnInit() {
-    const authUser = getCurrentAuthUser(this.store);
 
-    // console.log("authUser === ", authUser)
     const isGtSm = this.breakpointObserver.isMatched(MediaBreakpoints['gt-sm']);
     this.sidenavMode = isGtSm ? 'side' : 'over';
     this.sidenavOpened = isGtSm;
@@ -111,14 +88,15 @@ export class HomeComponent
       .observe(MediaBreakpoints['gt-sm'])
       .pipe(takeUntil(this.destroy$))
       .subscribe((state: BreakpointState) => {
-        if (state.matches) {
-          this.sidenavMode = 'side';
-          this.sidenavOpened = true;
-        } else {
-          this.sidenavMode = 'over';
-          this.sidenavOpened = false;
+          if (state.matches) {
+            this.sidenavMode = 'side';
+            this.sidenavOpened = true;
+          } else {
+            this.sidenavMode = 'over';
+            this.sidenavOpened = false;
+          }
         }
-      });
+      );
   }
 
   ngOnDestroy() {
@@ -127,25 +105,19 @@ export class HomeComponent
   }
 
   ngAfterViewInit() {
-    this.textSearch.valueChanges
-      .pipe(
-        debounceTime(150),
-        startWith(''),
-        distinctUntilChanged((a: string, b: string) => a.trim() === b.trim()),
-        skip(1),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((value) => this.searchTextUpdated(value.trim()));
+    this.textSearch.valueChanges.pipe(
+      debounceTime(150),
+      startWith(''),
+      distinctUntilChanged((a: string, b: string) => a.trim() === b.trim()),
+      skip(1),
+      takeUntil(this.destroy$)
+    ).subscribe(value => this.searchTextUpdated(value.trim()));
   }
 
   sidenavClicked() {
     if (this.sidenavMode === 'over') {
       this.sidenav.toggle();
     }
-  }
-
-  toggleSidenavMinimized() {
-    this.sidenavMinimized = !this.sidenavMinimized;
   }
 
   toggleFullscreen() {
@@ -176,30 +148,18 @@ export class HomeComponent
   private updateActiveComponent(activeComponent: any) {
     this.showSearch = false;
     this.hideLoadingBar = false;
-    this.textSearch.reset('', { emitEvent: false });
+    this.textSearch.reset('', {emitEvent: false});
     this.activeComponent = activeComponent;
 
-    if (
-      activeComponent &&
-      activeComponent instanceof RouterTabsComponent &&
-      isDefinedAndNotNull(
-        this.activeComponent.activatedRoute?.snapshot?.data?.showMainLoadingBar
-      )
-    ) {
-      this.hideLoadingBar =
-        !this.activeComponent.activatedRoute.snapshot.data.showMainLoadingBar;
-    } else if (
-      activeComponent &&
-      activeComponent instanceof PageComponent &&
-      isDefinedAndNotNull(this.activeComponent?.showMainLoadingBar)
-    ) {
+    if (activeComponent && activeComponent instanceof RouterTabsComponent
+      && isDefinedAndNotNull(this.activeComponent.activatedRoute?.snapshot?.data?.showMainLoadingBar)) {
+      this.hideLoadingBar = !this.activeComponent.activatedRoute.snapshot.data.showMainLoadingBar;
+    } else if (activeComponent && activeComponent instanceof PageComponent
+      && isDefinedAndNotNull(this.activeComponent?.showMainLoadingBar)) {
       this.hideLoadingBar = !this.activeComponent.showMainLoadingBar;
     }
 
-    if (
-      this.activeComponent &&
-      instanceOfSearchableComponent(this.activeComponent)
-    ) {
+    if (this.activeComponent && instanceOfSearchableComponent(this.activeComponent)) {
       this.searchEnabled = true;
       this.searchableComponent = this.activeComponent;
     } else {

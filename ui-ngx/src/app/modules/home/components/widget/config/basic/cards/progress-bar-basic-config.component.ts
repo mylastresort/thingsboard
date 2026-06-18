@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import {
   datasourcesHasAggregation,
   datasourcesHasOnlyComparisonAggregation,
   WidgetConfig,
+  widgetTitleAutocompleteValues,
 } from '@shared/models/widget.models';
 import { WidgetConfigComponent } from '@home/components/widget/widget-config.component';
 import { DataKeyType } from '@shared/models/telemetry/telemetry.models';
@@ -42,11 +43,13 @@ import {
   progressBarLayoutTranslations,
   ProgressBarWidgetSettings
 } from '@home/components/widget/lib/cards/progress-bar-widget.models';
+import { getSourceTbUnitSymbol } from '@shared/models/unit.models';
 
 @Component({
-  selector: 'tb-progress-bar-basic-config',
-  templateUrl: './progress-bar-basic-config.component.html',
-  styleUrls: ['../basic-config.scss']
+    selector: 'tb-progress-bar-basic-config',
+    templateUrl: './progress-bar-basic-config.component.html',
+    styleUrls: ['../basic-config.scss'],
+    standalone: false
 })
 export class ProgressBarBasicConfigComponent extends BasicWidgetConfigComponent {
 
@@ -71,6 +74,8 @@ export class ProgressBarBasicConfigComponent extends BasicWidgetConfigComponent 
 
   valuePreviewFn = this._valuePreviewFn.bind(this);
 
+  predefinedValues = widgetTitleAutocompleteValues;
+  
   constructor(protected store: Store<AppState>,
               protected widgetConfigComponent: WidgetConfigComponent,
               private fb: UntypedFormBuilder) {
@@ -258,7 +263,7 @@ export class ProgressBarBasicConfigComponent extends BasicWidgetConfigComponent 
   }
 
   private _valuePreviewFn(): string {
-    const units: string = this.widgetConfig.config.units;
+    const units: string = getSourceTbUnitSymbol(this.widgetConfig.config.units);
     const decimals: number = this.widgetConfig.config.decimals;
     return formatValue(78, decimals, units, true);
   }

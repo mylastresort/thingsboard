@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,14 @@ package org.thingsboard.server.service.security.permission;
 import org.springframework.stereotype.Component;
 import org.thingsboard.server.common.data.HasTenantId;
 import org.thingsboard.server.common.data.User;
+import org.thingsboard.server.common.data.id.ApiKeyId;
 import org.thingsboard.server.common.data.id.EntityId;
 import org.thingsboard.server.common.data.id.UserId;
+import org.thingsboard.server.common.data.pat.ApiKeyInfo;
 import org.thingsboard.server.common.data.security.Authority;
 import org.thingsboard.server.service.security.model.SecurityUser;
 
-@Component(value="sysAdminPermissions")
+@Component
 public class SysAdminPermissions extends AbstractPermissions {
 
     public SysAdminPermissions() {
@@ -35,13 +37,17 @@ public class SysAdminPermissions extends AbstractPermissions {
         put(Resource.USER, userPermissionChecker);
         put(Resource.WIDGETS_BUNDLE, systemEntityPermissionChecker);
         put(Resource.WIDGET_TYPE, systemEntityPermissionChecker);
-        put(Resource.OAUTH2_CONFIGURATION_INFO, PermissionChecker.allowAllPermissionChecker);
+        put(Resource.OAUTH2_CLIENT, systemEntityPermissionChecker);
+        put(Resource.MOBILE_APP, systemEntityPermissionChecker);
+        put(Resource.MOBILE_APP_BUNDLE, systemEntityPermissionChecker);
+        put(Resource.DOMAIN, PermissionChecker.allowAllPermissionChecker);
         put(Resource.OAUTH2_CONFIGURATION_TEMPLATE, PermissionChecker.allowAllPermissionChecker);
         put(Resource.TENANT_PROFILE, PermissionChecker.allowAllPermissionChecker);
         put(Resource.TB_RESOURCE, systemEntityPermissionChecker);
         put(Resource.QUEUE, systemEntityPermissionChecker);
         put(Resource.NOTIFICATION, systemEntityPermissionChecker);
         put(Resource.MOBILE_APP_SETTINGS, PermissionChecker.allowAllPermissionChecker);
+        put(Resource.API_KEY, PermissionChecker.allowAllPermissionChecker);
     }
 
     private static final PermissionChecker systemEntityPermissionChecker = new PermissionChecker() {
@@ -63,6 +69,15 @@ public class SysAdminPermissions extends AbstractPermissions {
             if (Authority.CUSTOMER_USER.equals(userEntity.getAuthority())) {
                 return false;
             }
+            return true;
+        }
+
+    };
+
+    private static final PermissionChecker<ApiKeyId, ApiKeyInfo> apiKeysPermissionChecker = new PermissionChecker<>() {
+
+        @Override
+        public boolean hasPermission(SecurityUser user, Operation operation) {
             return true;
         }
 

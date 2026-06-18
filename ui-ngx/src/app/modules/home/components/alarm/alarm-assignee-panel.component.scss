@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,20 @@
 :host {
   width: 100%;
   overflow: auto;
-  // background: white;
-  background: var(--tb-dark-background) !important;
-  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3),
-    0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+  background: white;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
 }
 
-::ng-deep {
+::ng-deep  {
   mat-form-field.search-users {
     padding: 8px;
     height: 340px;
     font-size: 14px;
-    // background-color: white;
+    background-color: white;
   }
 
-  .mat-form-field-appearance-outline .mdc-notched-outline__trailing {
+  .mat-form-field-appearance-outline .mdc-notched-outline__trailing{
     color: rgba(0, 0, 0, 0.12) !important;
   }
 
@@ -43,7 +41,6 @@
     }
     .mat-mdc-option {
       font-size: 14px;
-      background-color: transparent !important;
       border: none;
       height: 52px !important;
       .unassigned-icon {
@@ -65,7 +62,7 @@
         min-height: 28px;
         color: white;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 700
       }
       .user-display-name {
         max-width: 80%;
@@ -75,7 +72,7 @@
           text-overflow: ellipsis;
         }
         span + span {
-          // color: rgba(0, 0, 0, 0.38);
+          color: rgba(0, 0, 0, 0.38);
         }
       }
       .mdc-list-item__primary-text {

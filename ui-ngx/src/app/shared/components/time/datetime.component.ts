@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -17,18 +17,21 @@
 import { Component, forwardRef, Input, OnInit } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
+import { FloatLabelType, MatFormFieldAppearance, SubscriptSizing } from '@angular/material/form-field';
+import { coerceBoolean } from '@shared/decorators/coercion';
 
 @Component({
-  selector: 'tb-datetime',
-  templateUrl: './datetime.component.html',
-  styleUrls: [],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => DatetimeComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-datetime',
+    templateUrl: './datetime.component.html',
+    styleUrls: ['./datetime.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => DatetimeComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class DatetimeComponent implements OnInit, ControlValueAccessor {
 
@@ -42,16 +45,33 @@ export class DatetimeComponent implements OnInit, ControlValueAccessor {
   }
 
   @Input()
+  floatLabel: FloatLabelType = 'auto';
+
+  @Input()
+  subscriptSizing: SubscriptSizing = 'fixed';
+
+  @Input()
+  appearance: MatFormFieldAppearance = 'fill';
+
+  @Input()
+  type: 'date' | 'time' | 'month' | 'year' | 'datetime' = 'datetime';
+
+  @Input()
   disabled: boolean;
 
   @Input()
   dateText: string;
 
   @Input()
-  timeText: string;
+  @coerceBoolean()
+  showLabel = true;
 
   @Input()
-  showLabel = true;
+  @coerceBoolean()
+  allowClear = false;
+
+  @Input()
+  fieldClass: string;
 
   minDateValue: Date | null;
 
@@ -109,6 +129,12 @@ export class DatetimeComponent implements OnInit, ControlValueAccessor {
   onDateChange() {
     const value = this.date ? this.date.getTime() : null;
     this.updateView(value);
+  }
+
+  clear($event: Event) {
+    $event.stopPropagation();
+    this.date = null;
+    this.updateView(null);
   }
 
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,9 +41,9 @@ import java.util.concurrent.ExecutionException;
         configClazz = TbNotificationNodeConfiguration.class,
         nodeDescription = "Sends notification to targets using the template",
         nodeDetails = "Will send notification to the specified targets using the template",
-        uiResources = {"static/rulenode/rulenode-core-config.js"},
         configDirective = "tbExternalNodeNotificationConfig",
-        icon = "notifications"
+        icon = "notifications",
+        docUrl = "https://thingsboard.io/docs/user-guide/rule-engine-2-0/nodes/external/send-notification/"
 )
 public class TbNotificationNode extends TbAbstractExternalNode {
 
@@ -52,7 +52,7 @@ public class TbNotificationNode extends TbAbstractExternalNode {
     @Override
     public void init(TbContext ctx, TbNodeConfiguration configuration) throws TbNodeException {
         super.init(ctx);
-        this.config = TbNodeUtils.convert(configuration, TbNotificationNodeConfiguration.class);
+        config = TbNodeUtils.convert(configuration, TbNotificationNodeConfiguration.class);
     }
 
     @Override
@@ -82,7 +82,9 @@ public class TbNotificationNode extends TbAbstractExternalNode {
             public void onSuccess(NotificationRequestStats stats) {
                 TbMsgMetaData metaData = tbMsg.getMetaData().copy();
                 metaData.putValue("notificationRequestResult", JacksonUtil.toString(stats));
-                tellSuccess(ctx, TbMsg.transformMsgMetadata(tbMsg, metaData));
+                tellSuccess(ctx, tbMsg.transform()
+                        .metaData(metaData)
+                        .build());
             }
 
             @Override

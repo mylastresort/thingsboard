@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public interface NotificationRequestRepository extends JpaRepository<Notificatio
     List<UUID> findAllIdsByStatusAndRuleId(@Param("status") NotificationRequestStatus status,
                                            @Param("ruleId") UUID ruleId);
 
-    List<NotificationRequestEntity> findAllByRuleIdAndOriginatorEntityIdAndOriginatorEntityType(UUID ruleId, UUID originatorEntityId, EntityType originatorEntityType);
+    List<NotificationRequestEntity> findAllByRuleIdAndOriginatorEntityIdAndOriginatorEntityTypeAndStatus(UUID ruleId, UUID originatorEntityId, EntityType originatorEntityType, NotificationRequestStatus status);
 
     Page<NotificationRequestEntity> findAllByStatus(NotificationRequestStatus status, Pageable pageable);
 
@@ -71,8 +71,12 @@ public interface NotificationRequestRepository extends JpaRepository<Notificatio
 
     @Transactional
     @Modifying
-    @Query("DELETE FROM NotificationRequestEntity r WHERE r.createdTime < :ts")
-    int deleteAllByCreatedTimeBefore(@Param("ts") long ts);
+    @Query(value = "DELETE FROM notification_request WHERE id IN " +
+            "(SELECT id FROM notification_request WHERE tenant_id = :tenantId AND created_time < :ts LIMIT :batchSize)",
+            nativeQuery = true)
+    int deleteByTenantIdAndCreatedTimeBeforeBatch(@Param("tenantId") UUID tenantId,
+                                                  @Param("ts") long ts,
+                                                  @Param("batchSize") int batchSize);
 
     @Transactional
     @Modifying

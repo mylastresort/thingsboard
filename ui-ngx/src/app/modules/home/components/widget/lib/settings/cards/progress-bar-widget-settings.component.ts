@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -27,11 +27,13 @@ import {
   progressBarLayouts,
   progressBarLayoutTranslations
 } from '@home/components/widget/lib/cards/progress-bar-widget.models';
+import { getSourceTbUnitSymbol } from '@shared/models/unit.models';
 
 @Component({
-  selector: 'tb-progress-bar-widget-settings',
-  templateUrl: './progress-bar-widget-settings.component.html',
-  styleUrls: []
+    selector: 'tb-progress-bar-widget-settings',
+    templateUrl: './progress-bar-widget-settings.component.html',
+    styleUrls: [],
+    standalone: false
 })
 export class ProgressBarWidgetSettingsComponent extends WidgetSettingsComponent {
 
@@ -57,7 +59,7 @@ export class ProgressBarWidgetSettingsComponent extends WidgetSettingsComponent 
   }
 
   protected defaultSettings(): WidgetSettings {
-    return {...progressBarDefaultSettings};
+    return progressBarDefaultSettings;
   }
 
   protected onSettingsSet(settings: WidgetSettings) {
@@ -126,7 +128,7 @@ export class ProgressBarWidgetSettingsComponent extends WidgetSettingsComponent 
   }
 
   private _valuePreviewFn(): string {
-    const units: string = this.widgetConfig.config.units;
+    const units = getSourceTbUnitSymbol(this.widgetConfig.config.units);
     const decimals: number = this.widgetConfig.config.decimals;
     return formatValue(78, decimals, units, true);
   }

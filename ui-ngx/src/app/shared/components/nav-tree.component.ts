@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -59,10 +59,11 @@ export type NodeSelectedCallback = (node: NavTreeNode, event: Event) => void;
 export type NodesInsertedCallback = (nodes: string[], parent: string) => void;
 
 @Component({
-  selector: 'tb-nav-tree',
-  templateUrl: './nav-tree.component.html',
-  styleUrls: ['./nav-tree.component.scss'],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-nav-tree',
+    templateUrl: './nav-tree.component.html',
+    styleUrls: ['./nav-tree.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class NavTreeComponent implements OnInit {
 
@@ -150,8 +151,8 @@ export class NavTreeComponent implements OnInit {
       this.treeElement = $('.tb-nav-tree-container', this.elementRef.nativeElement).jstree(config);
 
       this.treeElement.on('changed.jstree', (e: any, data) => {
-        const node: NavTreeNode = data.instance.get_selected(true)[0];
-        if (this.onNodeSelected) {
+        if (this.onNodeSelected && data.action !== 'ready') {
+          const node: NavTreeNode = data.instance.get_selected(true)[0];
           this.ngZone.run(() => this.onNodeSelected(node, e as Event));
         }
       });

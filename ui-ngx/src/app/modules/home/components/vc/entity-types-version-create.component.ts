@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -33,30 +33,33 @@ import {
   EntityTypeVersionCreateConfig,
   exportableEntityTypes,
   SyncStrategy,
-  syncStrategyTranslationMap
+  syncStrategyTranslationMap,
+  typesWithCalculatedFields
 } from '@shared/models/vc.models';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { TranslateService } from '@ngx-translate/core';
 import { EntityType, entityTypeTranslations } from '@shared/models/entity-type.models';
 import { isDefinedAndNotNull } from '@core/utils';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'tb-entity-types-version-create',
-  templateUrl: './entity-types-version-create.component.html',
-  styleUrls: ['./entity-types-version.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => EntityTypesVersionCreateComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => EntityTypesVersionCreateComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-entity-types-version-create',
+    templateUrl: './entity-types-version-create.component.html',
+    styleUrls: ['./entity-types-version.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => EntityTypesVersionCreateComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => EntityTypesVersionCreateComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class EntityTypesVersionCreateComponent extends PageComponent implements OnInit, ControlValueAccessor, Validator {
 
@@ -78,9 +81,12 @@ export class EntityTypesVersionCreateComponent extends PageComponent implements 
 
   loading = true;
 
+  readonly typesWithCalculatedFields = typesWithCalculatedFields;
+
   constructor(protected store: Store<AppState>,
               private translate: TranslateService,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
@@ -88,7 +94,9 @@ export class EntityTypesVersionCreateComponent extends PageComponent implements 
     this.entityTypesVersionCreateFormGroup = this.fb.group({
       entityTypes: this.fb.array([], [])
     });
-    this.entityTypesVersionCreateFormGroup.valueChanges.subscribe(() => {
+    this.entityTypesVersionCreateFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }
@@ -146,13 +154,16 @@ export class EntityTypesVersionCreateComponent extends PageComponent implements 
           saveRelations: [config.saveRelations, []],
           saveAttributes: [config.saveAttributes, []],
           saveCredentials: [config.saveCredentials, []],
+          saveCalculatedFields: [config.saveCalculatedFields, []],
           allEntities: [config.allEntities, []],
           entityIds: [config.entityIds, [Validators.required]]
         })
       }
     );
     this.updateEntityTypeValidators(entityTypeControl);
-    entityTypeControl.get('config.allEntities').valueChanges.subscribe(() => {
+    entityTypeControl.get('config.allEntities').valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateEntityTypeValidators(entityTypeControl);
     });
     return entityTypeControl;
@@ -176,10 +187,6 @@ export class EntityTypesVersionCreateComponent extends PageComponent implements 
     return !!(entityTypeControl as any).expanded;
   }
 
-  public trackByEntityType(index: number, entityTypeControl: AbstractControl): any {
-    return entityTypeControl;
-  }
-
   public removeEntityType(index: number) {
     (this.entityTypesVersionCreateFormGroup.get('entityTypes') as UntypedFormArray).removeAt(index);
   }
@@ -196,6 +203,7 @@ export class EntityTypesVersionCreateComponent extends PageComponent implements 
       saveAttributes: true,
       saveRelations: true,
       saveCredentials: true,
+      saveCalculatedFields: true,
       allEntities: true,
       entityIds: []
     };

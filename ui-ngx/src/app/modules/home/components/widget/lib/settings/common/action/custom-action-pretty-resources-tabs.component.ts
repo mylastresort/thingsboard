@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -27,26 +27,25 @@ import {
   ViewChild,
   ViewEncapsulation
 } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
 import { PageComponent } from '@shared/components/page.component';
-import { Store } from '@ngrx/store';
-import { AppState } from '@core/core.state';
 import { CustomActionDescriptor } from '@shared/models/widget.models';
 import { Ace } from 'ace-builds';
 import { CancelAnimationFrame, RafService } from '@core/services/raf.service';
-import { ResizeObserver } from '@juggle/resize-observer';
-import { CustomPrettyActionEditorCompleter } from '@home/components/widget/lib/settings/common/action/custom-action.models';
+import {
+  CustomPrettyActionEditorCompleter
+} from '@home/components/widget/lib/settings/common/action/custom-action.models';
 import { Observable } from 'rxjs/internal/Observable';
-import { forkJoin, from } from 'rxjs';
+import { forkJoin } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { getAce } from '@shared/models/ace/ace.models';
 import { beautifyCss, beautifyHtml } from '@shared/models/beautify.models';
 
 @Component({
-  selector: 'tb-custom-action-pretty-resources-tabs',
-  templateUrl: './custom-action-pretty-resources-tabs.component.html',
-  styleUrls: ['./custom-action-pretty-resources-tabs.component.scss'],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-custom-action-pretty-resources-tabs',
+    templateUrl: './custom-action-pretty-resources-tabs.component.html',
+    styleUrls: ['./custom-action-pretty-resources-tabs.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class CustomActionPrettyResourcesTabsComponent extends PageComponent implements OnInit, OnChanges, OnDestroy {
 
@@ -55,6 +54,9 @@ export class CustomActionPrettyResourcesTabsComponent extends PageComponent impl
 
   @Input()
   hasCustomFunction: boolean;
+
+  @Input()
+  helpId: string;
 
   @Output()
   actionUpdated: EventEmitter<CustomActionDescriptor> = new EventEmitter<CustomActionDescriptor>();
@@ -77,10 +79,8 @@ export class CustomActionPrettyResourcesTabsComponent extends PageComponent impl
 
   customPrettyActionEditorCompleter = CustomPrettyActionEditorCompleter;
 
-  constructor(protected store: Store<AppState>,
-              private translate: TranslateService,
-              private raf: RafService) {
-    super(store);
+  constructor(private raf: RafService) {
+    super();
   }
 
   ngOnInit(): void {

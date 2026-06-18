@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -51,14 +51,15 @@ import { getCurrentAuthUser } from '@core/auth/auth.selectors';
 import { Authority } from '@shared/models/authority.enum';
 
 @Component({
-  selector: 'tb-asset-profile-autocomplete',
-  templateUrl: './asset-profile-autocomplete.component.html',
-  styleUrls: ['./asset-profile-autocomplete.component.scss'],
-  providers: [{
-    provide: NG_VALUE_ACCESSOR,
-    useExisting: forwardRef(() => AssetProfileAutocompleteComponent),
-    multi: true
-  }]
+    selector: 'tb-asset-profile-autocomplete',
+    templateUrl: './asset-profile-autocomplete.component.html',
+    styleUrls: ['./asset-profile-autocomplete.component.scss'],
+    providers: [{
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => AssetProfileAutocompleteComponent),
+            multi: true
+        }],
+    standalone: false
 })
 export class AssetProfileAutocompleteComponent implements ControlValueAccessor, OnInit {
 
@@ -327,7 +328,7 @@ export class AssetProfileAutocompleteComponent implements ControlValueAccessor, 
   }
 
   createAssetProfile($event: Event, profileName: string) {
-    $event.preventDefault();
+    $event.stopPropagation();
     const assetProfile: AssetProfile = {
       name: profileName
     } as AssetProfile;
@@ -337,7 +338,7 @@ export class AssetProfileAutocompleteComponent implements ControlValueAccessor, 
   }
 
   editAssetProfile($event: Event) {
-    $event.preventDefault();
+    $event.stopPropagation();
     this.assetProfileService.getAssetProfile(this.modelValue.id).subscribe(
       (assetProfile) => {
         this.openAssetProfileDialog(assetProfile, false);

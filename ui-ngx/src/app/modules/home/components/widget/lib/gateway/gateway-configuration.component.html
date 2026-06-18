@@ -151,12 +151,12 @@
                       matTooltip="{{ 'gateway.hints.password' | translate }}">info_outlined
             </mat-icon>
           </mat-form-field>
-          <tb-error style="margin-top: -12px; display: block;" fxFlex="100"
+          <tb-error class="flex-none w-full" style="margin-top: -12px; display: block;"
                     *ngIf="gatewayConfigGroup.get('thingsboard.security.type').value === 'usernamePassword'"
                     [error]="gatewayConfigGroup.get('thingsboard.security').hasError('atLeastOne') ?
           ('device.client-id-or-user-name-necessary' | translate) : ''"></tb-error>
           <tb-file-input
-            fxFlex="100"
+            class="flex-none w-full"
             hint="{{ 'gateway.hints.ca-cert' | translate }}"
             *ngIf="gatewayConfigGroup.get('thingsboard.security.type').value.toLowerCase().includes('tls')"
             formControlName="caCert"
@@ -172,7 +172,7 @@
   <mat-tab label="{{ 'gateway.logs.logs' | translate }}">
     <div formGroupName="logs" class="mat-content mat-padding configuration-block">
       <div class="tb-form-panel no-padding-bottom">
-        <div fxLayout="column">
+        <div class="flex flex-col">
           <mat-form-field appearance="outline">
             <mat-label translate>gateway.logs.date-format</mat-label>
             <input matInput formControlName="dateFormat"/>
@@ -585,7 +585,7 @@
         <div class="tb-form-panel-title" translate>gateway.statistics.commands</div>
         <div class="tb-form-panel-hint" translate>gateway.hints.commands</div>
         <ng-container formGroupName="statistics">
-          <div fxLayout="row" formArrayName="commands" class="statistics-container"
+          <div class="flex flex-row" formArrayName="commands"
                *ngFor="let commandControl of commandFormArray().controls; let $index = index">
             <section [formGroupName]="$index" class="tb-form-panel stroked no-padding-bottom no-gap command-container">
               <section class="tb-form-row no-border no-padding tb-standard-fields column-xs">

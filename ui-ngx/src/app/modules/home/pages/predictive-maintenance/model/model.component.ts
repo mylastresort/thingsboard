@@ -116,7 +116,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   // Timewindow config for telemetry chart
   timewindow: Timewindow = {
     displayValue: '',
-    hideInterval: false,
+    // hideInterval: false,
     hideAggregation: false,
     hideAggInterval: false,
     hideTimezone: false,
@@ -195,7 +195,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   private cloneDefaultTimewindow(): Timewindow {
     return {
       displayValue: '',
-      hideInterval: false,
+      // hideInterval: false,
       hideAggregation: false,
       hideAggInterval: false,
       hideTimezone: false,
@@ -673,7 +673,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
   }
 
   changeModel(value: any) {
-    this.router.navigateByUrl('/predictiveMaintenance/model/' + value);
+    this.router.navigateByUrl('/predictive-maintenance/model/' + value);
 
     this.deviceId = '';
     this.Attributes = [];
@@ -1400,7 +1400,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
           () => {
             // console.log('Model deleted successfully');
             // Navigate back to predictive maintenance page
-            this.router.navigate(['/predictiveMaintenance']);
+            this.router.navigate(['/predictive-maintenance']);
           },
           (error) => {
             console.error('Error deleting model:', error);
@@ -1451,7 +1451,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
             this.updateFilteredModels();
             this.fetchModelNames();
           }
-          this.router.navigate(['/predictiveMaintenance/model', newModelId], {
+          this.router.navigate(['/predictive-maintenance/model', newModelId], {
             state: { forecastData: this.models || [newModel] }
           });
         } else {

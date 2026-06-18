@@ -36,7 +36,6 @@ import { PredictiveModelsService } from '@app/core/http/forecast.service';
 import { DeviceService } from '@app/core/public-api';
 import { Direction, PageLink, TemplateAutocompleteComponent } from '@app/shared/public-api';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import { AddModelDialogComponent } from '../model/add-model-dialog/add-model-dialog.component';
 import { ModelSelectionDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/model-selection-dialog/model-selection-dialog.component';
 import { HttpClient } from '@angular/common/http';
@@ -73,7 +72,6 @@ export interface Configuration {
     MatCheckboxModule,
     TranslateModule,
     ReactiveFormsModule,
-    FlexLayoutModule,
     MatMenuModule,
   ],
 })
@@ -260,7 +258,7 @@ export class ConfigurationsListComponent implements OnInit {
         );
 
         Promise.all(forecastPromises).then((forecastData) => {
-          this.router.navigate(['/predictiveMaintenance/model', config.id], {
+          this.router.navigate(['/predictive-maintenance/model', config.id], {
             state: { forecastData },
           });
         });
@@ -268,7 +266,7 @@ export class ConfigurationsListComponent implements OnInit {
       (error) => {
         console.error('Error fetching forecasts for navigation:', error);
         // Navigate anyway without the full list
-        this.router.navigate(['/predictiveMaintenance/model', config.id]);
+        this.router.navigate(['/predictive-maintenance/model', config.id]);
       }
     );
   }
@@ -371,7 +369,7 @@ export class ConfigurationsListComponent implements OnInit {
           if (selectedModel) {
             if (selectedModel.source === 'db' && selectedModel.dbId) {
               // Redirect to model page for DB config
-              this.router.navigate(['/predictiveMaintenance/model', selectedModel.dbId]);
+              this.router.navigate(['/predictive-maintenance/model', selectedModel.dbId]);
             }
           }
         });

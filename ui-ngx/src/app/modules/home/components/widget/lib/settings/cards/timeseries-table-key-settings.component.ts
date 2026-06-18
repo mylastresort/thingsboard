@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -21,9 +21,10 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 
 @Component({
-  selector: 'tb-timeseries-table-key-settings',
-  templateUrl: './timeseries-table-key-settings.component.html',
-  styleUrls: ['./../widget-settings.scss']
+    selector: 'tb-timeseries-table-key-settings',
+    templateUrl: './timeseries-table-key-settings.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    standalone: false
 })
 export class TimeseriesTableKeySettingsComponent extends WidgetSettingsComponent {
 
@@ -45,7 +46,8 @@ export class TimeseriesTableKeySettingsComponent extends WidgetSettingsComponent
       useCellContentFunction: false,
       cellContentFunction: '',
       defaultColumnVisibility: 'visible',
-      columnSelectionToDisplay: 'enabled'
+      columnSelectionToDisplay: 'enabled',
+      disableSorting: false
     };
   }
 
@@ -57,6 +59,7 @@ export class TimeseriesTableKeySettingsComponent extends WidgetSettingsComponent
       cellContentFunction: [settings.cellContentFunction, [Validators.required]],
       defaultColumnVisibility: [settings.defaultColumnVisibility, []],
       columnSelectionToDisplay: [settings.columnSelectionToDisplay, []],
+      disableSorting: [settings.disableSorting, []]
     });
   }
 

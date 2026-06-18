@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,10 @@
  */
 package org.thingsboard.server.dao.resource;
 
+import org.thingsboard.server.common.data.ResourceSubType;
 import org.thingsboard.server.common.data.ResourceType;
 import org.thingsboard.server.common.data.TbResource;
+import org.thingsboard.server.common.data.TbResourceDataInfo;
 import org.thingsboard.server.common.data.id.TbResourceId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.page.PageData;
@@ -35,10 +37,12 @@ public interface TbResourceDao extends Dao<TbResource>, TenantEntityWithDataDao,
 
     PageData<TbResource> findResourcesByTenantIdAndResourceType(TenantId tenantId,
                                                                 ResourceType resourceType,
+                                                                ResourceSubType resourceSubType,
                                                                 PageLink pageLink);
 
     List<TbResource> findResourcesByTenantIdAndResourceType(TenantId tenantId,
                                                             ResourceType resourceType,
+                                                            ResourceSubType resourceSubType,
                                                             String[] objectIds,
                                                             String searchText);
 
@@ -48,4 +52,5 @@ public interface TbResourceDao extends Dao<TbResource>, TenantEntityWithDataDao,
 
     long getResourceSize(TenantId tenantId, TbResourceId resourceId);
 
+    TbResourceDataInfo getResourceDataInfo(TenantId tenantId, TbResourceId resourceId);
 }

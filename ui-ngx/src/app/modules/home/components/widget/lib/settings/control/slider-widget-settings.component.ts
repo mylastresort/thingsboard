@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -28,11 +28,13 @@ import {
   sliderWidgetDefaultSettings
 } from '@home/components/widget/lib/rpc/slider-widget.models';
 import { formatValue } from '@core/utils';
+import { getSourceTbUnitSymbol } from '@shared/models/unit.models';
 
 @Component({
-  selector: 'tb-slider-widget-settings',
-  templateUrl: './slider-widget-settings.component.html',
-  styleUrls: ['./../widget-settings.scss']
+    selector: 'tb-slider-widget-settings',
+    templateUrl: './slider-widget-settings.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    standalone: false
 })
 export class SliderWidgetSettingsComponent extends WidgetSettingsComponent {
 
@@ -67,7 +69,7 @@ export class SliderWidgetSettingsComponent extends WidgetSettingsComponent {
   }
 
   protected defaultSettings(): WidgetSettings {
-    return {...sliderWidgetDefaultSettings};
+    return sliderWidgetDefaultSettings;
   }
 
   protected onSettingsSet(settings: WidgetSettings) {
@@ -180,7 +182,7 @@ export class SliderWidgetSettingsComponent extends WidgetSettingsComponent {
   }
 
   private _valuePreviewFn(): string {
-    const units: string = this.sliderWidgetSettingsForm.get('valueUnits').value;
+    const units: string = getSourceTbUnitSymbol(this.sliderWidgetSettingsForm.get('valueUnits').value);
     const decimals: number = this.sliderWidgetSettingsForm.get('valueDecimals').value;
     return formatValue(48, decimals, units, false);
   }

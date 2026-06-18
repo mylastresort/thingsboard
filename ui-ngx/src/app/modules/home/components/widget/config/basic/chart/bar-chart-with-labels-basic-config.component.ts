@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import {
   legendPositions,
   legendPositionTranslationMap,
   WidgetConfig,
+  widgetTitleAutocompleteValues,
 } from '@shared/models/widget.models';
 import { WidgetConfigComponent } from '@home/components/widget/widget-config.component';
 import { DataKeyType } from '@shared/models/telemetry/telemetry.models';
@@ -44,12 +45,17 @@ import {
   barChartWithLabelsDefaultSettings,
   BarChartWithLabelsWidgetSettings
 } from '@home/components/widget/lib/chart/bar-chart-with-labels-widget.models';
-import { TimeSeriesChartType } from '@home/components/widget/lib/chart/time-series-chart.models';
+import {
+  TimeSeriesChartType,
+  updateLatestDataKeys
+} from '@home/components/widget/lib/chart/time-series-chart.models';
+import { getSourceTbUnitSymbol } from '@shared/models/unit.models';
 
 @Component({
-  selector: 'tb-bar-chart-with-labels-basic-config',
-  templateUrl: './bar-chart-with-labels-basic-config.component.html',
-  styleUrls: ['../basic-config.scss']
+    selector: 'tb-bar-chart-with-labels-basic-config',
+    templateUrl: './bar-chart-with-labels-basic-config.component.html',
+    styleUrls: ['../basic-config.scss'],
+    standalone: false
 })
 export class BarChartWithLabelsBasicConfigComponent extends BasicWidgetConfigComponent {
 
@@ -71,6 +77,8 @@ export class BarChartWithLabelsBasicConfigComponent extends BasicWidgetConfigCom
   tooltipValuePreviewFn = this._tooltipValuePreviewFn.bind(this);
 
   tooltipDatePreviewFn = this._tooltipDatePreviewFn.bind(this);
+
+  predefinedValues = widgetTitleAutocompleteValues;
 
   constructor(protected store: Store<AppState>,
               protected widgetConfigComponent: WidgetConfigComponent,
@@ -160,6 +168,11 @@ export class BarChartWithLabelsBasicConfigComponent extends BasicWidgetConfigCom
 
       actions: [configData.config.actions || {}, []]
     });
+  }
+
+  protected onConfigChanged(widgetConfig: WidgetConfigComponentData) {
+    updateLatestDataKeys([widgetConfig.config.settings.yAxis], this.datasource, this.callbacks);
+    super.onConfigChanged(widgetConfig);
   }
 
   protected prepareOutputConfig(config: any): WidgetConfigComponentData {
@@ -365,7 +378,7 @@ export class BarChartWithLabelsBasicConfigComponent extends BasicWidgetConfigCom
   }
 
   private _tooltipValuePreviewFn(): string {
-    const units: string = this.barChartWidgetConfigForm.get('units').value;
+    const units: string = getSourceTbUnitSymbol(this.barChartWidgetConfigForm.get('units').value);
     const decimals: number = this.barChartWidgetConfigForm.get('decimals').value;
     return formatValue(22, decimals, units, false);
   }

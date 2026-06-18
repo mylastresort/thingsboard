@@ -39,7 +39,6 @@ import { PredictiveModelsService } from '@app/core/http/forecast.service';
 import { DeviceService } from '@app/core/public-api';
 import { Direction, PageLink } from '@app/shared/public-api';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import {
   animate,
   state,
@@ -90,7 +89,6 @@ export interface DeviceWithModels {
     MatCheckboxModule,
     TranslateModule,
     ReactiveFormsModule,
-    FlexLayoutModule,
   ],
 })
 export class DevicesListComponent implements OnInit {
@@ -262,7 +260,7 @@ export class DevicesListComponent implements OnInit {
       event.stopPropagation();
     }
     this.router.navigate([
-      '/predictiveMaintenance/device',
+      '/predictive-maintenance/device',
       device.id,
       'models',
     ]);
@@ -272,7 +270,7 @@ export class DevicesListComponent implements OnInit {
     if (event) {
       event.stopPropagation();
     }
-    this.router.navigate(['/predictiveMaintenance/forecast', modelId]);
+    this.router.navigate(['/predictive-maintenance/forecast', modelId]);
   }
 
   applyFilter(event: Event): void {

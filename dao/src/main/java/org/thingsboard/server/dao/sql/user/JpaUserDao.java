@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,20 @@
 package org.thingsboard.server.dao.sql.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 import org.thingsboard.server.common.data.EntityType;
 import org.thingsboard.server.common.data.User;
+import org.thingsboard.server.common.data.UserAuthDetails;
+import org.thingsboard.server.common.data.edqs.fields.UserFields;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.id.TenantProfileId;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.security.Authority;
+import org.thingsboard.server.common.data.util.TbPair;
 import org.thingsboard.server.dao.DaoUtil;
 import org.thingsboard.server.dao.model.sql.UserEntity;
 import org.thingsboard.server.dao.sql.JpaAbstractDao;
@@ -135,8 +139,34 @@ public class JpaUserDao extends JpaAbstractDao<UserEntity, User> implements User
     }
 
     @Override
+    public UserAuthDetails findUserAuthDetailsByUserId(UUID tenantId, UUID userId) {
+        TbPair<UserEntity, Boolean> result = userRepository.findUserAuthDetailsByUserId(userId);
+        return result != null ? new UserAuthDetails(result.getFirst().toData(), result.getSecond()) : null;
+    }
+
+    @Override
+    public int countTenantAdmins(UUID tenantId) {
+        return userRepository.countByTenantIdAndAuthority(tenantId, Authority.TENANT_ADMIN);
+    }
+
+    @Override
+    public List<User> findUsersByTenantIdAndIds(UUID tenantId, List<UUID> userIds) {
+        return DaoUtil.convertDataList(userRepository.findUsersByTenantIdAndIdIn(tenantId, userIds));
+    }
+
+    @Override
     public Long countByTenantId(TenantId tenantId) {
         return userRepository.countByTenantId(tenantId.getId());
+    }
+
+    @Override
+    public PageData<User> findAllByTenantId(TenantId tenantId, PageLink pageLink) {
+        return findByTenantId(tenantId.getId(), pageLink);
+    }
+
+    @Override
+    public List<UserFields> findNextBatch(UUID id, int batchSize) {
+        return userRepository.findNextBatch(id, Limit.of(batchSize));
     }
 
     @Override

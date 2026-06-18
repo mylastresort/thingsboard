@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@
       .password-requirements > p {
         margin: 0 0 8px;
         letter-spacing: 0.25px;
-        // color: rgba(0, 0, 0, 0.87);
+        color: rgba(0, 0, 0, 0.87);
       }
 
       .mat-icon[data-mat-icon-name="check"] {
@@ -83,7 +83,7 @@
   }
 
   .description {
-    // color: rgba(0, 0, 0, 0.54);
+    color: rgba(0, 0, 0, 0.54);
     letter-spacing: 0.25px;
     margin-right: 8px;
   }

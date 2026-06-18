@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,32 @@
 package org.thingsboard.server.transport.coap.efento.utils;
 
 import com.google.gson.JsonObject;
+import org.thingsboard.server.gen.transport.coap.MeasurementTypeProtos.MeasurementType;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import static org.thingsboard.server.gen.transport.coap.MeasurementTypeProtos.MeasurementType.MEASUREMENT_TYPE_FLOODING;
+import static org.thingsboard.server.gen.transport.coap.MeasurementTypeProtos.MeasurementType.MEASUREMENT_TYPE_OK_ALARM;
+import static org.thingsboard.server.gen.transport.coap.MeasurementTypeProtos.MeasurementType.MEASUREMENT_TYPE_OUTPUT_CONTROL;
+
 public class CoapEfentoUtils {
+
+    public static final int PULSE_CNT_ACC_MINOR_METADATA_FACTOR = 6;
+    public static final int PULSE_CNT_ACC_MAJOR_METADATA_FACTOR = 4;
+    public static final int ELEC_METER_ACC_MINOR_METADATA_FACTOR = 6;
+    public static final int ELEC_METER_ACC_MAJOR_METADATA_FACTOR = 4;
+    public static final int PULSE_CNT_ACC_WIDE_MINOR_METADATA_FACTOR = 6;
+    public static final int PULSE_CNT_ACC_WIDE_MAJOR_METADATA_FACTOR = 4;
+    public static final int WATER_METER_ACC_MINOR_METADATA_FACTOR = 6;
+    public static final int WATER_METER_ACC_MAJOR_METADATA_FACTOR = 4;
+    public static final int IAQ_METADATA_FACTOR = 3;
+    public static final int STATIC_IAQ_METADATA_FACTOR = 3;
+    public static final int CO2_GAS_METADATA_FACTOR = 3;
+    public static final int CO2_EQUIVALENT_METADATA_FACTOR = 3;
+    public static final int BREATH_VOC_METADATA_FACTOR = 3;
+
 
     public static String convertByteArrayToString(byte[] a) {
         StringBuilder out = new StringBuilder();
@@ -39,15 +59,21 @@ public class CoapEfentoUtils {
         return String.format("%s UTC", simpleDateFormat.format(new Date(timestampInMillis)));
     }
 
-    public static JsonObject setDefaultMeasurements(String serialNumber, boolean batteryStatus, long measurementPeriod, long nextTransmissionAtMillis, long signal, long startTimestampMillis) {
+    public static JsonObject setDefaultMeasurements(String serialNumber, boolean batteryStatus, long nextTransmissionAtMillis, long signal) {
         JsonObject values = new JsonObject();
         values.addProperty("serial", serialNumber);
         values.addProperty("battery", batteryStatus ? "ok" : "low");
-        values.addProperty("measured_at", convertTimestampToUtcString(startTimestampMillis));
         values.addProperty("next_transmission_at", convertTimestampToUtcString(nextTransmissionAtMillis));
         values.addProperty("signal", signal);
-        values.addProperty("measurement_interval", measurementPeriod);
         return values;
+    }
+
+    public static boolean isBinarySensor(MeasurementType type) {
+        return type == MEASUREMENT_TYPE_OK_ALARM || type == MEASUREMENT_TYPE_FLOODING || type == MEASUREMENT_TYPE_OUTPUT_CONTROL;
+    }
+
+    public static boolean isSensorError(int sampleOffset) {
+        return sampleOffset >= 8355840 && sampleOffset <= 8388607;
     }
 
 }

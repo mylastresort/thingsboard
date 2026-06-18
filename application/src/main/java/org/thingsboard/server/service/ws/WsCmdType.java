@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ public enum WsCmdType {
     ENTITY_COUNT,
     ALARM_DATA,
     ALARM_COUNT,
+    ALARM_STATUS,
 
     NOTIFICATIONS,
     NOTIFICATIONS_COUNT,
@@ -36,7 +37,5 @@ public enum WsCmdType {
     ENTITY_DATA_UNSUBSCRIBE,
     ENTITY_COUNT_UNSUBSCRIBE,
     NOTIFICATIONS_UNSUBSCRIBE,
-
-    // Predictive Maintenance
-    PREDICTIVE_MAINTENANCE
+    ALARM_STATUS_UNSUBSCRIBE
 }

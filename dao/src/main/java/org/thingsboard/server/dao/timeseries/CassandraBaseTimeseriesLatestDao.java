@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,7 +100,22 @@ public class CassandraBaseTimeseriesLatestDao extends AbstractCassandraBaseTimes
     }
 
     @Override
-    public ListenableFuture<Void> saveLatest(TenantId tenantId, EntityId entityId, TsKvEntry tsKvEntry) {
+    public ListenableFuture<List<String>> findAllKeysByEntityIdsAsync(TenantId tenantId, List<EntityId> entityIds) {
+        return Futures.immediateFuture(Collections.emptyList());
+    }
+
+    @Override
+    public List<TsKvEntry> findLatestByEntityIds(TenantId tenantId, List<EntityId> entityIds) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public ListenableFuture<List<TsKvEntry>> findLatestByEntityIdsAsync(TenantId tenantId, List<EntityId> entityIds) {
+        return Futures.immediateFuture(Collections.emptyList());
+    }
+
+    @Override
+    public ListenableFuture<Long> saveLatest(TenantId tenantId, EntityId entityId, TsKvEntry tsKvEntry) {
         BoundStatementBuilder stmtBuilder = new BoundStatementBuilder(getLatestStmt().bind());
         stmtBuilder.setString(0, entityId.getEntityType().name())
                 .setUuid(1, entityId.getId())
@@ -161,7 +176,7 @@ public class CassandraBaseTimeseriesLatestDao extends AbstractCassandraBaseTimes
             var entryList = result.getData();
             if (entryList.size() == 1) {
                 TsKvEntry entry = entryList.get(0);
-                return Futures.transform(saveLatest(tenantId, entityId, entryList.get(0)), v -> new TsKvLatestRemovingResult(entry), MoreExecutors.directExecutor());
+                return Futures.transform(saveLatest(tenantId, entityId, entryList.get(0)), v -> new TsKvLatestRemovingResult(entry, v), MoreExecutors.directExecutor());
             } else {
                 log.trace("Could not find new latest value for [{}], key - {}", entityId, query.getKey());
             }
@@ -179,7 +194,7 @@ public class CassandraBaseTimeseriesLatestDao extends AbstractCassandraBaseTimes
     }
 
     private ListenableFuture<List<TsKvEntry>> convertAsyncResultSetToTsKvEntryList(TbResultSet rs) {
-        return Futures.transform(rs.allRows(readResultsProcessingExecutor),
+        return Futures.transform(rs.allRows(readResultsProcessingExecutor, maxResultSetSizeBytes),
                 rows -> this.convertResultToTsKvEntryList(rows), readResultsProcessingExecutor);
     }
 

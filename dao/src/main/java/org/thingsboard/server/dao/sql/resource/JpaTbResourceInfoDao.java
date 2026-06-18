@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
+import org.thingsboard.server.common.data.ResourceSubType;
 import org.thingsboard.server.common.data.ResourceType;
 import org.thingsboard.server.common.data.TbResourceInfo;
 import org.thingsboard.server.common.data.TbResourceInfoFilter;
+import org.thingsboard.server.common.data.id.TbResourceId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
@@ -38,6 +40,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static org.thingsboard.server.dao.DaoUtil.toUUIDs;
 
 @Slf4j
 @Component
@@ -63,10 +67,13 @@ public class JpaTbResourceInfoDao extends JpaAbstractDao<TbResourceInfoEntity, T
         if (CollectionsUtil.isEmpty(resourceTypes)) {
             resourceTypes = EnumSet.allOf(ResourceType.class);
         }
+        Set<ResourceSubType> resourceSubTypes = filter.getResourceSubTypes();
         return DaoUtil.toPageData(resourceInfoRepository
                 .findAllTenantResourcesByTenantId(
                         filter.getTenantId().getId(), TenantId.NULL_UUID,
                         resourceTypes.stream().map(Enum::name).collect(Collectors.toList()),
+                        CollectionsUtil.isEmpty(resourceSubTypes) ? null :
+                                resourceSubTypes.stream().map(Enum::name).collect(Collectors.toList()),
                         Objects.toString(pageLink.getTextSearch(), ""),
                         DaoUtil.toPageable(pageLink)));
     }
@@ -77,10 +84,13 @@ public class JpaTbResourceInfoDao extends JpaAbstractDao<TbResourceInfoEntity, T
         if (CollectionsUtil.isEmpty(resourceTypes)) {
             resourceTypes = EnumSet.allOf(ResourceType.class);
         }
+        Set<ResourceSubType> resourceSubTypes = filter.getResourceSubTypes();
         return DaoUtil.toPageData(resourceInfoRepository
                 .findTenantResourcesByTenantId(
                         filter.getTenantId().getId(),
                         resourceTypes.stream().map(Enum::name).collect(Collectors.toList()),
+                        CollectionsUtil.isEmpty(resourceSubTypes) ? null :
+                                resourceSubTypes.stream().map(Enum::name).collect(Collectors.toList()),
                         pageLink.getTextSearch(),
                         DaoUtil.toPageable(pageLink)));
     }
@@ -106,8 +116,8 @@ public class JpaTbResourceInfoDao extends JpaAbstractDao<TbResourceInfoEntity, T
     }
 
     @Override
-    public TbResourceInfo findSystemOrTenantImageByEtag(TenantId tenantId, ResourceType resourceType, String etag) {
-        return DaoUtil.getData(resourceInfoRepository.findSystemOrTenantImageByEtag(tenantId.getId(), resourceType.name(), etag));
+    public TbResourceInfo findSystemOrTenantResourceByEtag(TenantId tenantId, ResourceType resourceType, String etag) {
+        return DaoUtil.getData(resourceInfoRepository.findSystemOrTenantResourceByEtag(tenantId.getId(), resourceType.name(), etag));
     }
 
     @Override
@@ -118,5 +128,10 @@ public class JpaTbResourceInfoDao extends JpaAbstractDao<TbResourceInfoEntity, T
     @Override
     public TbResourceInfo findPublicResourceByKey(ResourceType resourceType, String publicResourceKey) {
         return DaoUtil.getData(resourceInfoRepository.findByResourceTypeAndPublicResourceKeyAndIsPublicTrue(resourceType.name(), publicResourceKey));
+    }
+
+    @Override
+    public List<TbResourceInfo> findSystemOrTenantResourcesByIds(TenantId tenantId, List<TbResourceId> resourceIds) {
+        return DaoUtil.convertDataList(resourceInfoRepository.findSystemOrTenantResourcesByIdIn(tenantId.getId(), TenantId.NULL_UUID, toUUIDs(resourceIds)));
     }
 }

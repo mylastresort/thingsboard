@@ -40,7 +40,7 @@
                     dndDraggingSourceClass="tb-chip-dragging"
                     [removable]="!disabled && !isCountDatasource"
                     (removed)="remove(key)">
-        <div dndDragImageRef fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="4px" class="tb-attribute-chip"
+        <div dndDragImageRef class="tb-attribute-chip flex flex-row justify-start items-center gap-1"
              [ngClass]="{'tb-dragging-chip-image': $index === dragIndex}">
           <div class="tb-absolute-fill tb-dragging-chip-image-fill"></div>
           <div dndHandle *ngIf="!disabled && !dragDisabled" class="tb-chip-drag-handle">
@@ -71,7 +71,7 @@
               </strong>
             </div>
           </div>
-          <div *ngIf="!hideDataKeyColor" fxHide.xs style="padding: 3px;">
+          <div *ngIf="!hideDataKeyColor" class="max-sm:hidden" style="padding: 3px;">
             <div #keyColorButton class="tb-color-preview small box" (click)="openColorPickerPopup(key, $event, keyColorButton)">
               <div class="tb-color-result" [style]="{background: key.color}"></div>
             </div>

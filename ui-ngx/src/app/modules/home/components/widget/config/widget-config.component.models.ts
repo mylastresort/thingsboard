@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -18,15 +18,24 @@ import { WidgetActionCallbacks } from '@home/components/widget/action/manage-wid
 import { DatasourceCallbacks } from '@home/components/widget/config/datasource.component.models';
 import { WidgetConfigComponentData } from '@home/models/widget-component.models';
 import { Observable } from 'rxjs';
-import { AfterViewInit, Directive, EventEmitter, Inject, OnInit } from '@angular/core';
+import { AfterViewInit, DestroyRef, Directive, EventEmitter, inject, Inject, OnInit } from '@angular/core';
 import { PageComponent } from '@shared/components/page.component';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { AbstractControl, UntypedFormGroup } from '@angular/forms';
-import { DataKey, DatasourceType, WidgetConfigMode, widgetType } from '@shared/models/widget.models';
+import {
+  DataKey,
+  DatasourceType,
+  Widget,
+  widgetTypeCanHaveTimewindow,
+  WidgetConfigMode,
+  widgetType
+} from '@shared/models/widget.models';
 import { WidgetConfigComponent } from '@home/components/widget/widget-config.component';
-import { isDefinedAndNotNull } from '@core/utils';
+import { isDefinedAndNotNull, isUndefinedOrNull } from '@core/utils';
 import { IAliasController } from '@core/api/widget-api.models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { initModelFromDefaultTimewindow } from '@shared/models/time/time.models';
 
 export type WidgetConfigCallbacks = DatasourceCallbacks & WidgetActionCallbacks;
 
@@ -66,6 +75,10 @@ export abstract class BasicWidgetConfigComponent extends PageComponent implement
     return this.widgetConfigComponent.widgetConfigCallbacks;
   }
 
+  get functionsOnly(): boolean {
+    return this.widgetConfigComponent.functionsOnly;
+  }
+
   get widgetType(): widgetType {
     return this.widgetConfigComponent.widgetType;
   }
@@ -74,8 +87,14 @@ export abstract class BasicWidgetConfigComponent extends PageComponent implement
     return this.widgetConfigComponent.widgetEditMode;
   }
 
+  get widget(): Widget {
+    return this.widgetConfigComponent.widget;
+  }
+
   widgetConfigChangedEmitter = new EventEmitter<WidgetConfigComponentData>();
   widgetConfigChanged = this.widgetConfigChangedEmitter.asObservable();
+
+  protected destroyRef = inject(DestroyRef);
 
   protected constructor(@Inject(Store) protected store: Store<AppState>,
                         protected widgetConfigComponent: WidgetConfigComponent) {
@@ -96,6 +115,11 @@ export abstract class BasicWidgetConfigComponent extends PageComponent implement
     if (this.isAdd) {
       this.setupDefaults(widgetConfig);
     }
+    if (widgetTypeCanHaveTimewindow(widgetConfig.widgetType) && isUndefinedOrNull(widgetConfig.config.timewindow)) {
+      widgetConfig.config.timewindow = initModelFromDefaultTimewindow(null,
+        widgetConfig.widgetType === widgetType.latest, false, this.widgetConfigComponent.timeService,
+        widgetConfig.widgetType === widgetType.timeseries);
+    }
     this.onConfigSet(widgetConfig);
     this.updateValidators(false);
     for (const trigger of this.validatorTriggers()) {
@@ -104,11 +128,15 @@ export abstract class BasicWidgetConfigComponent extends PageComponent implement
       for (const part of path) {
         control = control.get(part);
       }
-      control.valueChanges.subscribe(() => {
+      control.valueChanges.pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe(() => {
         this.updateValidators(true, trigger);
       });
     }
-    this.configForm().valueChanges.subscribe(() => {
+    this.configForm().valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.onConfigChanged(this.prepareOutputConfig(this.configForm().getRawValue()));
     });
   }
@@ -202,7 +230,7 @@ export abstract class BasicWidgetConfigComponent extends PageComponent implement
   protected constructDataKey(configData: WidgetConfigComponentData, key: DataKey, isLatestKey: boolean): DataKey {
     const dataKey =
       this.widgetConfigComponent.widgetConfigCallbacks.generateDataKey(key.name, key.type,
-        configData.dataKeySettingsSchema, isLatestKey, configData.dataKeySettingsFunction);
+        configData.dataKeySettingsForm, isLatestKey, configData.dataKeySettingsFunction);
     if (key.label) {
       dataKey.label = key.label;
     }

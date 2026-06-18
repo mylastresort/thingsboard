@@ -11,6 +11,11 @@ for i in $(find . -name "device*.sh"); do
   bash $i >/dev/null 2>&1 &
 done
 
+
+# # starting device3_level2.sh
+# echo "bash ./device3_level2.sh"
+# bash ./device3_level2.sh
+
 echo
 echo -n "Waiting for all processes to finish"
 wait

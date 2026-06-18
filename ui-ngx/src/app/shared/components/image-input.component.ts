@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import { AppState } from '@core/core.state';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
-import { FlowDirective } from '@flowjs/ngx-flow';
+import { FlowConfig } from '@flowjs/ngx-flow';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { UtilsService } from '@core/services/utils.service';
 import { DialogService } from '@core/services/dialog.service';
@@ -40,18 +40,22 @@ import { coerceBoolean } from '@shared/decorators/coercion';
 import { ImagePipe } from '@shared/pipe/image.pipe';
 
 @Component({
-  selector: 'tb-image-input',
-  templateUrl: './image-input.component.html',
-  styleUrls: ['./image-input.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => ImageInputComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-image-input',
+    templateUrl: './image-input.component.html',
+    styleUrls: ['./image-input.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => ImageInputComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class ImageInputComponent extends PageComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
+
+  @Input()
+  accept = 'image/*';
 
   @Input()
   label: string;
@@ -86,6 +90,9 @@ export class ImageInputComponent extends PageComponent implements AfterViewInit,
   inputId = this.utils.guid();
 
   @Input()
+  allowedExtensions: string;
+
+  @Input()
   @coerceBoolean()
   processImageApiLink = false;
 
@@ -109,7 +116,7 @@ export class ImageInputComponent extends PageComponent implements AfterViewInit,
   safeImageUrl: SafeUrl;
 
   @ViewChild('flow', {static: true})
-  flow: FlowDirective;
+  flow: FlowConfig;
 
   autoUploadSubscription: Subscription;
 
@@ -141,17 +148,19 @@ export class ImageInputComponent extends PageComponent implements AfterViewInit,
           );
           return false;
         }
-        const reader = new FileReader();
-        reader.onload = (_loadEvent) => {
-          if (typeof reader.result === 'string' && reader.result.startsWith('data:image/')) {
-            this.imageUrl = reader.result;
-            this.safeImageUrl = this.sanitizer.bypassSecurityTrustUrl(this.imageUrl);
-            this.file = file;
-            this.fileName = fileName;
-            this.updateModel();
-          }
-        };
-        reader.readAsDataURL(file);
+        if (this.filterFile(flowFile)) {
+          const reader = new FileReader();
+          reader.onload = (_loadEvent) => {
+            if (typeof reader.result === 'string' && reader.result.startsWith('data:image/')) {
+              this.imageUrl = reader.result;
+              this.safeImageUrl = this.sanitizer.bypassSecurityTrustUrl(this.imageUrl);
+              this.file = file;
+              this.fileName = fileName;
+              this.updateModel();
+            }
+          };
+          reader.readAsDataURL(file);
+        }
       }
     });
   }
@@ -196,6 +205,14 @@ export class ImageInputComponent extends PageComponent implements AfterViewInit,
       this.propagateChange(this.imageUrl);
     }
     this.fileNameChanged.emit(this.fileName);
+  }
+
+  private filterFile(file: flowjs.FlowFile): boolean {
+    if (this.allowedExtensions) {
+      return this.allowedExtensions.split(',').indexOf(file.getExtension()) > -1;
+    } else {
+      return true;
+    }
   }
 
   clearImage() {

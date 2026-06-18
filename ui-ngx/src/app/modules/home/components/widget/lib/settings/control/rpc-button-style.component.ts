@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit } from '@angular/core';
 import { ControlValueAccessor, UntypedFormBuilder, UntypedFormGroup, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { PageComponent } from '@shared/components/page.component';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface RpcButtonStyle {
   isRaised: boolean;
@@ -28,16 +29,17 @@ export interface RpcButtonStyle {
 }
 
 @Component({
-  selector: 'tb-rpc-button-style',
-  templateUrl: './rpc-button-style.component.html',
-  styleUrls: ['./../widget-settings.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => RpcButtonStyleComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-rpc-button-style',
+    templateUrl: './rpc-button-style.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => RpcButtonStyleComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class RpcButtonStyleComponent extends PageComponent implements OnInit, ControlValueAccessor {
 
@@ -51,7 +53,8 @@ export class RpcButtonStyleComponent extends PageComponent implements OnInit, Co
   public rpcButtonStyleFormGroup: UntypedFormGroup;
 
   constructor(protected store: Store<AppState>,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
@@ -62,7 +65,9 @@ export class RpcButtonStyleComponent extends PageComponent implements OnInit, Co
       bgColor: [null, []],
       textColor: [null, []]
     });
-    this.rpcButtonStyleFormGroup.valueChanges.subscribe(() => {
+    this.rpcButtonStyleFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }

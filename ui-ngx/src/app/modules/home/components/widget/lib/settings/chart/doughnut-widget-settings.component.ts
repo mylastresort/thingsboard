@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -29,9 +29,10 @@ import {
 } from '@home/components/widget/lib/settings/chart/latest-chart-widget-settings.component';
 
 @Component({
-  selector: 'tb-doughnut-widget-settings',
-  templateUrl: './latest-chart-widget-settings.component.html',
-  styleUrls: ['./../widget-settings.scss']
+    selector: 'tb-doughnut-widget-settings',
+    templateUrl: './latest-chart-widget-settings.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    standalone: false
 })
 export class DoughnutWidgetSettingsComponent extends LatestChartWidgetSettingsComponent<DoughnutWidgetSettings> {
 
@@ -69,9 +70,11 @@ export class DoughnutWidgetSettingsComponent extends LatestChartWidgetSettingsCo
     if (totalEnabled) {
       latestChartWidgetSettingsForm.get('totalValueFont').enable();
       latestChartWidgetSettingsForm.get('totalValueColor').enable();
+      latestChartWidgetSettingsForm.get('legendShowTotal').disable();
     } else {
       latestChartWidgetSettingsForm.get('totalValueFont').disable();
       latestChartWidgetSettingsForm.get('totalValueColor').disable();
+      latestChartWidgetSettingsForm.get('legendShowTotal').enable();
     }
   }
 }

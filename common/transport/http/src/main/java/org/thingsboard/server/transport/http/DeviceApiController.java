@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,9 @@ import com.google.gson.JsonParser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
+import org.thingsboard.server.common.adaptor.JsonConverter;
 import org.thingsboard.server.common.data.DataConstants;
 import org.thingsboard.server.common.data.DeviceTransportType;
 import org.thingsboard.server.common.data.StringUtils;
@@ -49,7 +53,6 @@ import org.thingsboard.server.common.transport.SessionMsgListener;
 import org.thingsboard.server.common.transport.TransportContext;
 import org.thingsboard.server.common.transport.TransportService;
 import org.thingsboard.server.common.transport.TransportServiceCallback;
-import org.thingsboard.server.common.adaptor.JsonConverter;
 import org.thingsboard.server.common.transport.auth.SessionInfoCreator;
 import org.thingsboard.server.common.transport.auth.ValidateDeviceCredentialsResponse;
 import org.thingsboard.server.gen.transport.TransportProtos;
@@ -68,16 +71,11 @@ import org.thingsboard.server.gen.transport.TransportProtos.ToServerRpcRequestMs
 import org.thingsboard.server.gen.transport.TransportProtos.ToServerRpcResponseMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceTokenRequestMsg;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-
-/**
- * @author Andrew Shvayka
- */
 @RestController
 @ConditionalOnExpression("'${service.type:null}'=='tb-transport' || ('${service.type:null}'=='monolith' && '${transport.api_enabled:true}'=='true' && '${transport.http.enabled}'=='true')")
 @RequestMapping("/api/v1")
@@ -191,8 +189,8 @@ public class DeviceApiController implements TbTransportService {
         return responseWriter;
     }
 
-    @Operation(summary = "Post time-series data (postTelemetry)",
-            description = "Post time-series data on behalf of device. "
+    @Operation(summary = "Post time series data (postTelemetry)",
+            description = "Post time series data on behalf of device. "
                     + "\n Example of the request: "
                     + TS_PAYLOAD
                     + REQUIRE_ACCESS_TOKEN)
@@ -211,7 +209,7 @@ public class DeviceApiController implements TbTransportService {
         return responseWriter;
     }
 
-    @Operation(summary = "Save claiming information (claimDevice)",
+    @Operation(summary = "Save claiming information (saveClaimingInfo)",
             description = "Saves the information required for user to claim the device. " +
                     "See more info about claiming in the corresponding 'Claiming devices' platform documentation."
                     + "\n Example of the request payload: "
@@ -222,7 +220,7 @@ public class DeviceApiController implements TbTransportService {
                     "In case the secretKey is not specified, the empty string as a default value is used. In case the durationMs is not specified, the system parameter device.claim.duration is used.\n\n"
                     + REQUIRE_ACCESS_TOKEN)
     @RequestMapping(value = "/{deviceToken}/claim", method = RequestMethod.POST)
-    public DeferredResult<ResponseEntity> claimDevice(
+    public DeferredResult<ResponseEntity> saveClaimingInfo(
             @Parameter(description = ACCESS_TOKEN_PARAM_DESCRIPTION, required = true , schema = @Schema(defaultValue = "YOUR_DEVICE_ACCESS_TOKEN"))
             @PathVariable("deviceToken") String deviceToken,
             @RequestBody(required = false) String json) {
@@ -265,6 +263,11 @@ public class DeviceApiController implements TbTransportService {
     @Operation(summary = "Reply to RPC commands (replyToCommand)",
             description = "Replies to server originated RPC command identified by 'requestId' parameter. The response is arbitrary JSON.\n\n" +
                     REQUIRE_ACCESS_TOKEN)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "RPC reply to command request was sent to Core."),
+            @ApiResponse(responseCode = "400", description = "Invalid structure of the request."),
+            @ApiResponse(responseCode = "413", description = "Request payload is too large."),
+    })
     @RequestMapping(value = "/{deviceToken}/rpc/{requestId}", method = RequestMethod.POST)
     public DeferredResult<ResponseEntity> replyToCommand(
             @Parameter(description = ACCESS_TOKEN_PARAM_DESCRIPTION, required = true , schema = @Schema(defaultValue = "YOUR_DEVICE_ACCESS_TOKEN"))
@@ -272,7 +275,7 @@ public class DeviceApiController implements TbTransportService {
             @Parameter(description = "RPC request id from the incoming RPC request", required = true , schema = @Schema(defaultValue = "123"))
             @PathVariable("requestId") Integer requestId,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Reply to the RPC request, JSON. For example: {\"status\":\"success\"}", required = true)
-            @RequestBody String json) {
+            @RequestBody String json, HttpServletRequest httpServletRequest) {
         DeferredResult<ResponseEntity> responseWriter = new DeferredResult<ResponseEntity>();
         transportContext.getTransportService().process(DeviceTransportType.DEFAULT, ValidateDeviceTokenRequestMsg.newBuilder().setToken(deviceToken).build(),
                 new DeviceAuthCallback(transportContext, responseWriter, sessionInfo -> {
@@ -292,12 +295,17 @@ public class DeviceApiController implements TbTransportService {
                     "{\"result\": 4}" +
                     MARKDOWN_CODE_BLOCK_END +
                     REQUIRE_ACCESS_TOKEN)
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "RPC request to server was sent to Rule Engine."),
+            @ApiResponse(responseCode = "400", description = "Invalid structure of the request."),
+            @ApiResponse(responseCode = "413", description = "Request payload too large."),
+    })
     @RequestMapping(value = "/{deviceToken}/rpc", method = RequestMethod.POST)
     public DeferredResult<ResponseEntity> postRpcRequest(
             @Parameter(description = ACCESS_TOKEN_PARAM_DESCRIPTION, required = true , schema = @Schema(defaultValue = "YOUR_DEVICE_ACCESS_TOKEN"))
             @PathVariable("deviceToken") String deviceToken,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The RPC request JSON", required = true)
-            @RequestBody String json) {
+            @RequestBody String json, HttpServletRequest httpServletRequest) {
         DeferredResult<ResponseEntity> responseWriter = new DeferredResult<ResponseEntity>();
         transportContext.getTransportService().process(DeviceTransportType.DEFAULT, ValidateDeviceTokenRequestMsg.newBuilder().setToken(deviceToken).build(),
                 new DeviceAuthCallback(transportContext, responseWriter, sessionInfo -> {

@@ -1,6 +1,6 @@
 <!--
 
-    Copyright © 2016-2024 The Thingsboard Authors
+    Copyright © 2016-2026 The Thingsboard Authors
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
     limitations under the License.
 
 -->
-<tb-dashboard-page class="dark" *ngIf="homeDashboard; else homeLinks" [embedded]="true" [dashboard]="homeDashboard" [hideToolbar]="homeDashboard.hideDashboardToolbar"></tb-dashboard-page>
+<tb-dashboard-page *ngIf="homeDashboard; else homeLinks" [embedded]="true" [dashboard]="homeDashboard" [hideToolbar]="homeDashboard.hideDashboardToolbar"></tb-dashboard-page>
 <ng-template #homeLinks>
   <mat-grid-list class="tb-home-links" [cols]="cols" rowHeight="280px">
     <mat-grid-tile [colspan]="sectionColspan(section)" *ngFor="let section of homeSections$| async">
@@ -28,7 +28,7 @@
             <mat-grid-tile *ngFor="let place of section.places">
               <a mat-raised-button color="primary" class="tb-card-button" routerLink="{{place.path}}">
                 <tb-icon matButtonIcon class="tb-mat-96">{{place.icon}}</tb-icon>
-                <span translate>{{place.name}}</span>
+                <span>{{place.customTranslate ? (place.name | customTranslate) : (place.name | translate)}}</span>
               </a>
             </mat-grid-tile>
           </mat-grid-list>

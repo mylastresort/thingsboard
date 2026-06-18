@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package org.thingsboard.server.dao.asset;
 
-
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -26,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.thingsboard.server.common.data.EntitySubtype;
 import org.thingsboard.server.common.data.EntityType;
+import org.thingsboard.server.common.data.NameConflictPolicy;
+import org.thingsboard.server.common.data.NameConflictStrategy;
+import org.thingsboard.server.common.data.ProfileEntityIdInfo;
 import org.thingsboard.server.common.data.StringUtils;
 import org.thingsboard.server.common.data.asset.Asset;
 import org.thingsboard.server.common.data.asset.AssetInfo;
@@ -50,7 +53,7 @@ import org.thingsboard.server.dao.entity.EntityCountService;
 import org.thingsboard.server.dao.eventsourcing.ActionEntityEvent;
 import org.thingsboard.server.dao.eventsourcing.DeleteEntityEvent;
 import org.thingsboard.server.dao.eventsourcing.SaveEntityEvent;
-import org.thingsboard.server.dao.exception.DataValidationException;
+import org.thingsboard.server.exception.DataValidationException;
 import org.thingsboard.server.dao.service.DataValidator;
 import org.thingsboard.server.dao.service.PaginatedRemover;
 import org.thingsboard.server.dao.sql.JpaExecutorService;
@@ -61,6 +64,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static org.thingsboard.server.dao.DaoUtil.toUUIDs;
 import static org.thingsboard.server.dao.service.Validator.validateId;
 import static org.thingsboard.server.dao.service.Validator.validateIds;
@@ -92,8 +96,8 @@ public class BaseAssetService extends AbstractCachedEntityService<AssetCacheKey,
     @Autowired
     private JpaExecutorService executor;
 
-    @TransactionalEventListener(classes = AssetCacheEvictEvent.class)
     @Override
+    @TransactionalEventListener
     public void handleEvictEvent(AssetCacheEvictEvent event) {
         List<AssetCacheKey> keys = new ArrayList<>(2);
         keys.add(new AssetCacheKey(event.getTenantId(), event.getNewName()));
@@ -146,13 +150,23 @@ public class BaseAssetService extends AbstractCachedEntityService<AssetCacheKey,
     }
 
     @Override
+    public Asset saveAsset(Asset asset, NameConflictStrategy nameConflictStrategy) {
+        return saveEntity(asset, () -> saveAsset(asset, true, nameConflictStrategy));
+    }
+
+    @Override
     public Asset saveAsset(Asset asset, boolean doValidate) {
+        return saveEntity(asset, () -> saveAsset(asset, doValidate, NameConflictStrategy.DEFAULT));
+    }
+
+    private Asset saveAsset(Asset asset, boolean doValidate, NameConflictStrategy nameConflictStrategy) {
         log.trace("Executing saveAsset [{}]", asset);
-        Asset oldAsset = null;
+        Asset oldAsset = (asset.getId() != null) ? assetDao.findById(asset.getTenantId(), asset.getId().getId()) : null;
+        if (nameConflictStrategy.policy() == NameConflictPolicy.UNIQUIFY && (oldAsset == null || !oldAsset.getName().equals(asset.getName()))) {
+            uniquifyEntityName(asset, oldAsset, asset::setName, EntityType.ASSET, nameConflictStrategy);
+        }
         if (doValidate) {
-            oldAsset = assetValidator.validate(asset, Asset::getTenantId);
-        } else if (asset.getId() != null) {
-            oldAsset = findAssetById(asset.getTenantId(), asset.getId());
+            assetValidator.validate(asset, Asset::getTenantId);
         }
         AssetCacheEvictEvent evictEvent = new AssetCacheEvictEvent(asset.getTenantId(), asset.getName(), oldAsset != null ? oldAsset.getName() : null);
         Asset savedAsset;
@@ -177,8 +191,8 @@ public class BaseAssetService extends AbstractCachedEntityService<AssetCacheKey,
             asset.setType(assetProfile.getName());
             savedAsset = assetDao.saveAndFlush(asset.getTenantId(), asset);
             publishEvictEvent(evictEvent);
-            eventPublisher.publishEvent(SaveEntityEvent.builder().tenantId(savedAsset.getTenantId())
-                    .entityId(savedAsset.getId()).created(asset.getId() == null).build());
+            eventPublisher.publishEvent(SaveEntityEvent.builder().tenantId(savedAsset.getTenantId()).entityId(savedAsset.getId())
+                    .entity(savedAsset).oldEntity(oldAsset).created(asset.getId() == null).build());
             if (asset.getId() == null) {
                 countService.publishCountEntityEvictEvent(savedAsset.getTenantId(), EntityType.ASSET);
             }
@@ -222,8 +236,8 @@ public class BaseAssetService extends AbstractCachedEntityService<AssetCacheKey,
     @Override
     @Transactional
     public void deleteEntity(TenantId tenantId, EntityId id, boolean force) {
-        if (!force && entityViewService.existsByTenantIdAndEntityId(tenantId, id)) {
-            throw new DataValidationException("Can't delete asset that has entity views!");
+        if (!force && (entityViewService.existsByTenantIdAndEntityId(tenantId, id) || calculatedFieldService.referencedInAnyCalculatedField(tenantId, id))) {
+            throw new DataValidationException("Can't delete asset that has entity views or is referenced in calculated fields!");
         }
 
         Asset asset = assetDao.findById(tenantId, id.getId());
@@ -239,7 +253,7 @@ public class BaseAssetService extends AbstractCachedEntityService<AssetCacheKey,
 
         publishEvictEvent(new AssetCacheEvictEvent(asset.getTenantId(), asset.getName(), null));
         countService.publishCountEntityEvictEvent(tenantId, EntityType.ASSET);
-        eventPublisher.publishEvent(DeleteEntityEvent.builder().tenantId(tenantId).entityId(asset.getId()).build());
+        eventPublisher.publishEvent(DeleteEntityEvent.builder().tenantId(tenantId).entityId(asset.getId()).entity(asset).build());
     }
 
     @Override
@@ -283,6 +297,30 @@ public class BaseAssetService extends AbstractCachedEntityService<AssetCacheKey,
         validateId(assetProfileId, id -> INCORRECT_ASSET_PROFILE_ID + id);
         validatePageLink(pageLink);
         return assetDao.findAssetInfosByTenantIdAndAssetProfileId(tenantId.getId(), assetProfileId.getId(), pageLink);
+    }
+
+    @Override
+    public PageData<ProfileEntityIdInfo> findProfileEntityIdInfos(PageLink pageLink) {
+        log.trace("Executing findProfileEntityIdInfos, pageLink [{}]", pageLink);
+        validatePageLink(pageLink);
+        return assetDao.findProfileEntityIdInfos(pageLink);
+    }
+
+    @Override
+    public PageData<ProfileEntityIdInfo> findProfileEntityIdInfosByTenantId(TenantId tenantId, PageLink pageLink) {
+        log.trace("Executing findProfileEntityIdInfosByTenantId, tenantId[{}], pageLink [{}]", tenantId, pageLink);
+        validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
+        validatePageLink(pageLink);
+        return assetDao.findProfileEntityIdInfosByTenantId(tenantId.getId(), pageLink);
+    }
+
+    @Override
+    public PageData<AssetId> findAssetIdsByTenantIdAndAssetProfileId(TenantId tenantId, AssetProfileId assetProfileId, PageLink pageLink) {
+        log.trace("Executing findAssetIdsByTenantIdAndAssetProfileId, tenantId [{}], assetProfileId [{}]", tenantId, assetProfileId);
+        validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
+        validateId(assetProfileId, id -> INCORRECT_ASSET_PROFILE_ID + id);
+        validatePageLink(pageLink);
+        return assetDao.findAssetIdsByTenantIdAndAssetProfileId(tenantId.getId(), assetProfileId.getId(), pageLink);
     }
 
     @Override
@@ -492,6 +530,12 @@ public class BaseAssetService extends AbstractCachedEntityService<AssetCacheKey,
     @Override
     public Optional<HasId<?>> findEntity(TenantId tenantId, EntityId entityId) {
         return Optional.ofNullable(findAssetById(tenantId, new AssetId(entityId.getId())));
+    }
+
+    @Override
+    public FluentFuture<Optional<HasId<?>>> findEntityAsync(TenantId tenantId, EntityId entityId) {
+        return FluentFuture.from(findAssetByIdAsync(tenantId, new AssetId(entityId.getId())))
+                .transform(Optional::ofNullable, directExecutor());
     }
 
     @Override

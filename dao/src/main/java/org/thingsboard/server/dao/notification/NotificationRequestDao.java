@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public interface NotificationRequestDao extends Dao<NotificationRequest> {
 
     List<NotificationRequestId> findIdsByRuleId(TenantId tenantId, NotificationRequestStatus requestStatus, NotificationRuleId ruleId);
 
-    List<NotificationRequest> findByRuleIdAndOriginatorEntityId(TenantId tenantId, NotificationRuleId ruleId, EntityId originatorEntityId);
+    List<NotificationRequest> findByRuleIdAndOriginatorEntityIdAndStatus(TenantId tenantId, NotificationRuleId ruleId, EntityId originatorEntityId, NotificationRequestStatus status);
 
     PageData<NotificationRequest> findAllByStatus(NotificationRequestStatus status, PageLink pageLink);
 
@@ -50,7 +50,7 @@ public interface NotificationRequestDao extends Dao<NotificationRequest> {
 
     boolean existsByTenantIdAndStatusAndTemplateId(TenantId tenantId, NotificationRequestStatus status, NotificationTemplateId templateId);
 
-    int removeAllByCreatedTimeBefore(long ts);
+    int removeByTenantIdAndCreatedTimeBeforeBatch(TenantId tenantId, long ts, int batchSize);
 
     NotificationRequestInfo findInfoById(TenantId tenantId, NotificationRequestId id);
 

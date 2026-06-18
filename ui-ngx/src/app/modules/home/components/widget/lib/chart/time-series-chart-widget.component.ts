@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -43,12 +43,14 @@ import {
   TimeSeriesChartWidgetSettings
 } from '@home/components/widget/lib/chart/time-series-chart-widget.models';
 import { mergeDeep } from '@core/utils';
+import { WidgetComponent } from '@home/components/widget/widget.component';
 
 @Component({
-  selector: 'tb-time-series-chart-widget',
-  templateUrl: './time-series-chart-widget.component.html',
-  styleUrls: ['./time-series-chart-widget.component.scss'],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-time-series-chart-widget',
+    templateUrl: './time-series-chart-widget.component.html',
+    styleUrls: ['./time-series-chart-widget.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterViewInit {
 
@@ -84,7 +86,8 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
 
   private timeSeriesChart: TbTimeSeriesChart;
 
-  constructor(private imagePipe: ImagePipe,
+  constructor(public widgetComponent: WidgetComponent,
+              private imagePipe: ImagePipe,
               private sanitizer: DomSanitizer,
               private renderer: Renderer2,
               private cd: ChangeDetectorRef) {
@@ -169,6 +172,6 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
   }
 
   public toggleLegendKey(legendKey: LegendKey) {
-    this.timeSeriesChart.toggleKey(legendKey.dataKey);
+    this.timeSeriesChart.toggleKey(legendKey.dataKey, legendKey.dataIndex);
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,9 @@
  */
 package org.thingsboard.server.controller;
 
-/**
- * Created by ashvayka on 17.05.18.
- */
 public class TbUrlConstants {
     public static final String TELEMETRY_URL_PREFIX = "/api/plugins/telemetry";
     public static final String RPC_V1_URL_PREFIX = "/api/plugins/rpc";
     public static final String RPC_V2_URL_PREFIX = "/api/rpc";
+    public static final String RULE_ENGINE_URL_PREFIX = "/api/rule-engine/";
 }

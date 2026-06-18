@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, EventEmitter, forwardRef, Input, OnInit, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, forwardRef, Input, OnInit, Output } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -28,6 +28,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { TranslateService } from '@ngx-translate/core';
 import { isNumber } from '@core/utils';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface GpioItem {
   pin: number;
@@ -54,16 +55,17 @@ export const gpioItemValidator = (hasColor: boolean): ValidatorFn => (control: A
 };
 
 @Component({
-  selector: 'tb-gpio-item',
-  templateUrl: './gpio-item.component.html',
-  styleUrls: ['./gpio-item.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => GpioItemComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-gpio-item',
+    templateUrl: './gpio-item.component.html',
+    styleUrls: ['./gpio-item.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => GpioItemComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class GpioItemComponent extends PageComponent implements OnInit, ControlValueAccessor {
 
@@ -87,7 +89,8 @@ export class GpioItemComponent extends PageComponent implements OnInit, ControlV
 
   constructor(protected store: Store<AppState>,
               private translate: TranslateService,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
@@ -101,7 +104,9 @@ export class GpioItemComponent extends PageComponent implements OnInit, ControlV
     if (this.hasColor) {
       this.gpioItemFormGroup.addControl('color', this.fb.control(null, [Validators.required]));
     }
-    this.gpioItemFormGroup.valueChanges.subscribe(() => {
+    this.gpioItemFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }

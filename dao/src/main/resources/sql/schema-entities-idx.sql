@@ -1,5 +1,5 @@
 --
--- Copyright © 2016-2024 The Thingsboard Authors
+-- Copyright © 2016-2026 The Thingsboard Authors
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_alarm_originator_created_time ON alarm(originator
 
 CREATE INDEX IF NOT EXISTS idx_alarm_tenant_created_time ON alarm(tenant_id, created_time DESC);
 
--- Drop index by 'status' column and replace with new indexes that has only active alarms;
+-- Drop index by 'status' column and replace with new indexes that have only active alarms;
 CREATE INDEX IF NOT EXISTS idx_alarm_originator_alarm_type_active
     ON alarm USING btree (originator_id, type) WHERE cleared = false;
 
@@ -73,22 +73,6 @@ CREATE INDEX IF NOT EXISTS idx_edge_event_id ON edge_event(id);
 
 CREATE INDEX IF NOT EXISTS idx_rpc_tenant_id_device_id ON rpc(tenant_id, device_id);
 
-CREATE INDEX IF NOT EXISTS idx_device_external_id ON device(tenant_id, external_id);
-
-CREATE INDEX IF NOT EXISTS idx_device_profile_external_id ON device_profile(tenant_id, external_id);
-
-CREATE INDEX IF NOT EXISTS idx_asset_external_id ON asset(tenant_id, external_id);
-
-CREATE INDEX IF NOT EXISTS idx_entity_view_external_id ON entity_view(tenant_id, external_id);
-
-CREATE INDEX IF NOT EXISTS idx_rule_chain_external_id ON rule_chain(tenant_id, external_id);
-
-CREATE INDEX IF NOT EXISTS idx_dashboard_external_id ON dashboard(tenant_id, external_id);
-
-CREATE INDEX IF NOT EXISTS idx_customer_external_id ON customer(tenant_id, external_id);
-
-CREATE INDEX IF NOT EXISTS idx_widgets_bundle_external_id ON widgets_bundle(tenant_id, external_id);
-
 CREATE INDEX IF NOT EXISTS idx_rule_node_external_id ON rule_node(rule_chain_id, external_id);
 
 CREATE INDEX IF NOT EXISTS idx_rule_node_type_id_configuration_version ON rule_node(type, id, configuration_version);
@@ -124,6 +108,12 @@ CREATE INDEX IF NOT EXISTS idx_notification_delivery_method_recipient_id_unread 
 
 CREATE INDEX IF NOT EXISTS idx_resource_etag ON resource(tenant_id, etag);
 
-CREATE INDEX IF NOT EXISTS idx_resource_etag ON resource(tenant_id, etag);
-
 CREATE INDEX IF NOT EXISTS idx_resource_type_public_resource_key ON resource(resource_type, public_resource_key);
+
+CREATE INDEX IF NOT EXISTS mobile_app_bundle_tenant_id ON mobile_app_bundle(tenant_id);
+
+CREATE INDEX IF NOT EXISTS idx_job_tenant_id ON job(tenant_id);
+
+CREATE INDEX IF NOT EXISTS idx_ai_model_tenant_id ON ai_model(tenant_id);
+
+CREATE INDEX IF NOT EXISTS idx_api_key_user_id ON api_key(user_id);

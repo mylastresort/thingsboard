@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 package org.thingsboard.server.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -48,11 +48,16 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
         this.modelWebSocketHandler = modelWebSocketHandler;
     }
 
+    @Value("${server.ws.max_text_message_buffer_size:32768}")
+    private int maxTextMessageBufferSize;
+    @Value("${server.ws.max_binary_message_buffer_size:32768}")
+    private int maxBinaryMessageBufferSize;
+
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
-        container.setMaxTextMessageBufferSize(32768);
-        container.setMaxBinaryMessageBufferSize(32768);
+        container.setMaxTextMessageBufferSize(maxTextMessageBufferSize);
+        container.setMaxBinaryMessageBufferSize(maxBinaryMessageBufferSize);
         return container;
     }
 

@@ -15,8 +15,8 @@
     limitations under the License.
 
 -->
-<div fxLayout="column" fxFlex [ngClass]="{'border': isConnector}">
-  <div fxLayout="row" fxLayout.lt-sm="column" class="command-form" fxLayoutGap="10px" [formGroup]="commandForm">
+<div class="flex flex-col" class="flex-1" [ngClass]="{'border': isConnector}">
+  <div class="flex flex-row flex-wrap gap-2.5 command-form" [formGroup]="commandForm">
     <ng-container *ngIf="!isConnector; else connectorForm">
       <mat-form-field>
         <mat-label>{{ 'gateway.statistics.command' | translate }}</mat-label>
@@ -26,7 +26,7 @@
           </mat-option>
         </mat-select>
       </mat-form-field>
-      <mat-form-field fxFlex>
+      <mat-form-field class="flex-1">
         <mat-label>{{ 'gateway.statistics.timeout-ms' | translate }}</mat-label>
         <input matInput formControlName="time" type="number" min="1"/>
         <mat-error *ngIf="commandForm.get('time').hasError('min')">
@@ -47,7 +47,7 @@
   </div>
   <section class="result-block" [formGroup]="commandForm">
     <span>{{ 'gateway.rpc-command-result' | translate }}
-      <div *ngIf="resultTime" class="result-time" fxFlex fxLayout="row" fxLayoutAlign="center center">
+      <div *ngIf="resultTime" class="result-time flex flex-row items-center justify-center">
         <mat-icon class="material-icons">schedule</mat-icon>
         <span>{{ resultTime | date: 'yyyy/MM/dd HH:mm:ss' }}</span>
       </div>
@@ -55,6 +55,6 @@
     <tb-json-content [contentType]="contentTypes.JSON" readonly="true" formControlName="result"></tb-json-content>
   </section>
 </div>
-<tb-gateway-service-rpc-connector-templates fxFlex="30" *ngIf="isConnector" class="border" [rpcTemplates]="templates"
+<tb-gateway-service-rpc-connector-templates class="w-[30%] border" *ngIf="isConnector" [rpcTemplates]="templates"
                                             [ctx]="ctx" [connectorType]="connectorType" (useTemplate)="useTemplate($event)">
 </tb-gateway-service-rpc-connector-templates>

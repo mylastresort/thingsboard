@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ public abstract class AbstractChunkedAggregationTimeseriesDao extends AbstractSq
     @Autowired
     protected InsertTsRepository<TsKvEntity> insertRepository;
 
-    protected TbSqlBlockingQueueWrapper<TsKvEntity> tsQueue;
+    protected TbSqlBlockingQueueWrapper<TsKvEntity, Void> tsQueue;
     @Autowired
     private StatsFactory statsFactory;
 
@@ -119,8 +119,8 @@ public abstract class AbstractChunkedAggregationTimeseriesDao extends AbstractSq
     @Override
     public ListenableFuture<ReadTsKvQueryResult> findAllAsync(TenantId tenantId, EntityId entityId, ReadTsKvQuery query) {
         var aggParams = query.getAggParameters();
-        if (Aggregation.NONE.equals(aggParams.getAggregation())) {
-            return Futures.immediateFuture(findAllAsyncWithLimit(entityId, query));
+        if (Aggregation.NONE.equals(aggParams.getAggregation()) || aggParams.getInterval() < 1) {
+            return service.submit(() -> findAllWithLimit(entityId, query));
         } else {
             List<ListenableFuture<Optional<TsKvEntity>>> futures = new ArrayList<>();
             var intervalType = aggParams.getIntervalType();
@@ -144,7 +144,7 @@ public abstract class AbstractChunkedAggregationTimeseriesDao extends AbstractSq
         }
     }
 
-    private ReadTsKvQueryResult findAllAsyncWithLimit(EntityId entityId, ReadTsKvQuery query) {
+    ReadTsKvQueryResult findAllWithLimit(EntityId entityId, ReadTsKvQuery query) {
         Integer keyId = keyDictionaryDao.getOrSaveKeyId(query.getKey());
         List<TsKvEntity> tsKvEntities = tsKvRepository.findAllWithLimit(
                 entityId.getId(),

@@ -1,6 +1,6 @@
 <!--
 
-    Copyright © 2016-2024 The Thingsboard Authors
+    Copyright © 2016-2026 The Thingsboard Authors
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,11 +15,16 @@
     limitations under the License.
 
 -->
-<section class="tb-widget-settings" [formGroup]="gatewayConfigSingleDeviceWidgetSettingsForm" fxLayout="column">
-  <mat-form-field fxFlex class="mat-block">
-    <mat-label translate>widgets.gateway.gateway-title</mat-label>
-    <input matInput formControlName="gatewayTitle">
-  </mat-form-field>
+<section class="tb-widget-settings flex flex-col" [formGroup]="gatewayConfigSingleDeviceWidgetSettingsForm">
+  <tb-string-pattern-autocomplete class="mat-block flex-1" 
+                                  brackets="curly" 
+                                  subscriptSizing="fixed"
+                                  predefinedValuesButton="true"
+                                  label="{{ 'widgets.gateway.gateway-title' | translate }}"
+                                  [predefinedValues]="predefinedValues"
+                                  placeholderText="{{ 'widget-config.set' | translate }}"
+                                  formControlName="gatewayTitle"
+  ></tb-string-pattern-autocomplete>
   <mat-slide-toggle formControlName="readOnly" class="slide-block">
     {{ 'widgets.gateway.read-only' | translate }}
   </mat-slide-toggle>

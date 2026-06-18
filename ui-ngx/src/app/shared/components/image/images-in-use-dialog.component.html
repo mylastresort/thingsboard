@@ -71,7 +71,7 @@
     </div>
   </ng-container>
 </div>
-<div mat-dialog-actions fxLayoutAlign="end center">
+<div mat-dialog-actions class="flex justify-end items-center">
   <button mat-button color="primary" (click)="cancel()">{{'action.cancel' | translate}}</button>
   <button mat-raised-button color="accent" (click)="delete()" [disabled]="data.multiple && dataSource.selection.isEmpty()"
           cdkFocusInitial>{{ (data.multiple ? 'action.delete-selected' : 'action.delete-anyway') | translate}}</button>

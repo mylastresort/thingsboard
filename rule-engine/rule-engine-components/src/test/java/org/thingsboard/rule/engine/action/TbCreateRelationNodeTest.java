@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.common.util.ListeningExecutor;
 import org.thingsboard.rule.engine.AbstractRuleNodeUpgradeTest;
-import org.thingsboard.rule.engine.TestDbCallbackExecutor;
+import org.thingsboard.common.util.DirectListeningExecutor;
 import org.thingsboard.rule.engine.api.TbContext;
 import org.thingsboard.rule.engine.api.TbNode;
 import org.thingsboard.rule.engine.api.TbNodeConfiguration;
@@ -142,7 +142,7 @@ public class TbCreateRelationNodeTest extends AbstractRuleNodeUpgradeTest {
     private final DeviceId originatorId = new DeviceId(UUID.fromString("860634b1-8a1e-4693-9ae8-e779c7f5f4da"));
     private final RuleNodeId ruleNodeId = new RuleNodeId(UUID.fromString("d05a0491-ee7a-484a-8c1b-91111ef39287"));
 
-    private final ListeningExecutor dbExecutor = new TestDbCallbackExecutor();
+    private final ListeningExecutor dbExecutor = DirectListeningExecutor.INSTANCE;
 
     @Mock
     private TbContext ctxMock;
@@ -439,7 +439,9 @@ public class TbCreateRelationNodeTest extends AbstractRuleNodeUpgradeTest {
         var md = getMetadataWithNameTemplate();
         var msg = getTbMsg(originatorId, md);
 
-        var msgAfterOriginatorChanged = TbMsg.transformMsgOriginator(msg, originatorId);
+        var msgAfterOriginatorChanged = msg.transform()
+                .originator(originatorId)
+                .build();
         when(ctxMock.transformMsgOriginator(any(), any())).thenReturn(msgAfterOriginatorChanged);
 
         // WHEN
@@ -486,7 +488,12 @@ public class TbCreateRelationNodeTest extends AbstractRuleNodeUpgradeTest {
         when(ctxMock.getRelationService()).thenReturn(relationServiceMock);
 
         var mockMethodCallsMap = mockEntityServiceCallsCreateEntityIfNotExistsEnabled();
-        var entityCreatedMsg = TbMsg.newMsg(TbMsgType.ENTITY_CREATED, entityId, TbMsgMetaData.EMPTY, TbMsg.EMPTY_JSON_OBJECT);
+        var entityCreatedMsg = TbMsg.newMsg()
+                .type(TbMsgType.ENTITY_CREATED)
+                .originator(entityId)
+                .copyMetaData(TbMsgMetaData.EMPTY)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .build();
         mockMethodCallsMap.get(entityType).accept(entity, entityCreatedMsg);
 
         when(relationServiceMock.checkRelationAsync(any(), any(), any(), any(), any())).thenReturn(Futures.immediateFuture(false));
@@ -676,7 +683,12 @@ public class TbCreateRelationNodeTest extends AbstractRuleNodeUpgradeTest {
     }
 
     private TbMsg getTbMsg(EntityId originator, TbMsgMetaData metaData) {
-        return TbMsg.newMsg(TbMsgType.NA, originator, metaData, TbMsg.EMPTY_JSON_OBJECT);
+        return TbMsg.newMsg()
+                .type(TbMsgType.NA)
+                .originator(originator)
+                .copyMetaData(metaData)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .build();
     }
 
     private TbMsgMetaData getMetadataWithNameTemplate() {

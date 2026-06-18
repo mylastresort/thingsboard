@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 import { Component, forwardRef, Input, OnInit, Renderer2, ViewContainerRef } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { MatButton } from '@angular/material/button';
+import { MatIconButton } from '@angular/material/button';
 import { TbPopoverService } from '@shared/components/popover.service';
 import { deepClone } from '@core/utils';
 import { coerceBoolean } from '@shared/decorators/coercion';
@@ -30,16 +30,17 @@ import {
 } from '@home/components/widget/lib/settings/common/chart/time-series-chart-threshold-settings-panel.component';
 
 @Component({
-  selector: 'tb-time-series-chart-threshold-settings',
-  templateUrl: './time-series-chart-threshold-settings.component.html',
-  styleUrls: [],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => TimeSeriesChartThresholdSettingsComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-time-series-chart-threshold-settings',
+    templateUrl: './time-series-chart-threshold-settings.component.html',
+    styleUrls: [],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => TimeSeriesChartThresholdSettingsComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class TimeSeriesChartThresholdSettingsComponent implements OnInit, ControlValueAccessor {
 
@@ -92,7 +93,7 @@ export class TimeSeriesChartThresholdSettingsComponent implements OnInit, Contro
     this.modelValue = value;
   }
 
-  openThresholdSettingsPopup($event: Event, matButton: MatButton) {
+  openThresholdSettingsPopup($event: Event, matButton: MatIconButton) {
     if ($event) {
       $event.stopPropagation();
     }
@@ -107,11 +108,21 @@ export class TimeSeriesChartThresholdSettingsComponent implements OnInit, Contro
         hideYAxis: this.hideYAxis,
         yAxisIds: this.yAxisIds
       };
-      const thresholdSettingsPanelPopover = this.popoverService.displayPopover(trigger, this.renderer,
-        this.viewContainerRef, TimeSeriesChartThresholdSettingsPanelComponent, ['leftOnly', 'leftTopOnly', 'leftBottomOnly'], true, null,
-        ctx,
-        {},
-        {}, {}, true);
+      const thresholdSettingsPanelPopover = this.popoverService.displayPopover({
+        trigger,
+        renderer: this.renderer,
+        componentType: TimeSeriesChartThresholdSettingsPanelComponent,
+        hostView: this.viewContainerRef,
+        preferredPlacement: ['leftOnly', 'leftTopOnly', 'leftBottomOnly'],
+        context: {
+          thresholdSettings: deepClone(this.modelValue),
+          panelTitle: this.title,
+          widgetConfig: this.widgetConfig,
+          hideYAxis: this.hideYAxis,
+          yAxisIds: this.yAxisIds
+        },
+        isModal: true
+      });
       thresholdSettingsPanelPopover.tbComponentRef.instance.popover = thresholdSettingsPanelPopover;
       thresholdSettingsPanelPopover.tbComponentRef.instance.thresholdSettingsApplied.subscribe((thresholdSettings) => {
         thresholdSettingsPanelPopover.hide();

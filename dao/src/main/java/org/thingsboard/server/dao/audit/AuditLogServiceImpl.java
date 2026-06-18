@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,6 +31,7 @@ import org.thingsboard.server.common.data.EntityType;
 import org.thingsboard.server.common.data.HasName;
 import org.thingsboard.server.common.data.StringUtils;
 import org.thingsboard.server.common.data.alarm.AlarmComment;
+import org.thingsboard.server.common.data.alarm.AlarmInfo;
 import org.thingsboard.server.common.data.audit.ActionStatus;
 import org.thingsboard.server.common.data.audit.ActionType;
 import org.thingsboard.server.common.data.audit.AuditLog;
@@ -116,21 +118,13 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     public <E extends HasName, I extends EntityId> ListenableFuture<Void>
-    logEntityAction(TenantId tenantId, CustomerId customerId, UserId userId, String userName, I entityId, E entity,
+    logEntityAction(TenantId tenantId, CustomerId customerId, UserId userId, String userName, @NotNull I entityId, E entity,
                     ActionType actionType, Exception e, Object... additionalInfo) {
-        if (canLog(entityId.getEntityType(), actionType)) {
+        if (canLog(entityId.getEntityType(), actionType) || (tenantId != null && tenantId.isSysTenantId())) {
             JsonNode actionData = constructActionData(entityId, entity, actionType, additionalInfo);
             ActionStatus actionStatus = ActionStatus.SUCCESS;
             String failureDetails = "";
-            String entityName = "N/A";
-            if (entity != null) {
-                entityName = entity.getName();
-            } else {
-                try {
-                    entityName = entityService.fetchEntityName(tenantId, entityId).orElse(entityName);
-                } catch (Exception ignored) {
-                }
-            }
+            String entityName = getEntityName(tenantId, entityId, entity, actionType);
             if (e != null) {
                 actionStatus = ActionStatus.FAILURE;
                 failureDetails = getFailureStack(e);
@@ -154,6 +148,27 @@ public class AuditLogServiceImpl implements AuditLogService {
                     failureDetails);
         } else {
             return null;
+        }
+    }
+
+    private <E extends HasName, I extends EntityId> String getEntityName(TenantId tenantId, I entityId, E entity, ActionType actionType) {
+        if (entity == null) {
+            return fetchEntityName(tenantId, entityId);
+        }
+        if (!actionType.isAlarmAction()) {
+            return entity.getName();
+        }
+        if (entity instanceof AlarmInfo alarmInfo) {
+            return alarmInfo.getOriginatorName();
+        }
+        return fetchEntityName(tenantId, entityId);
+    }
+
+    private <I extends EntityId> String fetchEntityName(TenantId tenantId, I entityId) {
+        try {
+            return entityService.fetchEntityName(tenantId, entityId).orElse("N/A");
+        } catch (Exception ignored) {
+            return "N/A";
         }
     }
 
@@ -192,6 +207,10 @@ public class AuditLogServiceImpl implements AuditLogService {
                 actionData.set("comment", comment.getComment());
                 break;
             case ALARM_DELETE:
+                EntityId alarmId = extractParameter(EntityId.class, additionalInfo);
+                actionData.put("alarmId", alarmId != null ? alarmId.toString() : null);
+                actionData.put("originatorId", entityId.toString());
+                break;
             case DELETED:
             case ACTIVATED:
             case SUSPENDED:
@@ -408,8 +427,12 @@ public class AuditLogServiceImpl implements AuditLogService {
         }
 
         return executor.submit(() -> {
-            AuditLog auditLog = auditLogDao.save(tenantId, auditLogEntry);
-            auditLogSink.logAction(auditLog);
+            try {
+                AuditLog auditLog = auditLogDao.save(tenantId, auditLogEntry);
+                auditLogSink.logAction(auditLog);
+            } catch (Throwable e) {
+                log.error("[{}] Failed to save audit log: {}", tenantId, auditLogEntry, e);
+            }
             return null;
         });
     }

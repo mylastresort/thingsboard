@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 package org.thingsboard.server.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -35,15 +35,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.rule.engine.api.MailService;
 import org.thingsboard.server.common.data.EntityType;
 import org.thingsboard.server.common.data.User;
+import org.thingsboard.server.common.data.UserActivationLink;
 import org.thingsboard.server.common.data.UserEmailInfo;
 import org.thingsboard.server.common.data.alarm.Alarm;
 import org.thingsboard.server.common.data.exception.ThingsboardErrorCode;
@@ -79,21 +78,21 @@ import org.thingsboard.server.service.security.model.UserPrincipal;
 import org.thingsboard.server.service.security.model.token.JwtTokenFactory;
 import org.thingsboard.server.service.security.permission.Operation;
 import org.thingsboard.server.service.security.permission.Resource;
-import org.thingsboard.server.service.security.system.SystemSecurityService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.thingsboard.server.common.data.query.EntityKeyType.ENTITY_FIELD;
 import static org.thingsboard.server.controller.ControllerConstants.ALARM_ID_PARAM_DESCRIPTION;
 import static org.thingsboard.server.controller.ControllerConstants.CUSTOMER_ID;
 import static org.thingsboard.server.controller.ControllerConstants.CUSTOMER_ID_PARAM_DESCRIPTION;
 import static org.thingsboard.server.controller.ControllerConstants.DASHBOARD_ID_PARAM_DESCRIPTION;
-import static org.thingsboard.server.controller.ControllerConstants.DEFAULT_DASHBOARD;
-import static org.thingsboard.server.controller.ControllerConstants.HOME_DASHBOARD;
 import static org.thingsboard.server.controller.ControllerConstants.PAGE_DATA_PARAMETERS;
 import static org.thingsboard.server.controller.ControllerConstants.PAGE_NUMBER_DESCRIPTION;
 import static org.thingsboard.server.controller.ControllerConstants.PAGE_SIZE_DESCRIPTION;
@@ -119,7 +118,6 @@ public class UserController extends BaseController {
     public static final String USER_ID = "userId";
     public static final String PATHS = "paths";
     public static final String YOU_DON_T_HAVE_PERMISSION_TO_PERFORM_THIS_OPERATION = "You don't have permission to perform this operation!";
-    public static final String ACTIVATE_URL_PATTERN = "%s/api/noauth/activate?activateToken=%s";
     public static final String MOBILE_TOKEN_HEADER = "X-Mobile-Token";
 
     @Value("${security.user_token_access_enabled}")
@@ -127,15 +125,10 @@ public class UserController extends BaseController {
 
     private final MailService mailService;
     private final JwtTokenFactory tokenFactory;
-    private final SystemSecurityService systemSecurityService;
     private final ApplicationEventPublisher eventPublisher;
     private final TbUserService tbUserService;
-
-    @Autowired
-    private EntityQueryService entityQueryService;
-
-    @Autowired
-    private EntityService entityService;
+    private final EntityQueryService entityQueryService;
+    private final EntityService entityService;
 
     @ApiOperation(value = "Get User (getUserById)",
             notes = "Fetch the User object based on the provided User Id. " +
@@ -143,23 +136,14 @@ public class UserController extends BaseController {
                     "If the user has the authority of 'TENANT_ADMIN', the server checks that the requested user is owned by the same tenant. " +
                     "If the user has the authority of 'CUSTOMER_USER', the server checks that the requested user is owned by the same customer.")
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/user/{userId}", method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/user/{userId}")
     public User getUserById(
             @Parameter(description = USER_ID_PARAM_DESCRIPTION)
             @PathVariable(USER_ID) String strUserId) throws ThingsboardException {
         checkParameter(USER_ID, strUserId);
         UserId userId = new UserId(toUUID(strUserId));
         User user = checkUserId(userId, Operation.READ);
-        if (user.getAdditionalInfo().isObject()) {
-            ObjectNode additionalInfo = (ObjectNode) user.getAdditionalInfo();
-            processDashboardIdFromAdditionalInfo(additionalInfo, DEFAULT_DASHBOARD);
-            processDashboardIdFromAdditionalInfo(additionalInfo, HOME_DASHBOARD);
-            UserCredentials userCredentials = userService.findUserCredentialsByUserId(user.getTenantId(), user.getId());
-            if (userCredentials.isEnabled() && !additionalInfo.has("userCredentialsEnabled")) {
-                additionalInfo.put("userCredentialsEnabled", true);
-            }
-        }
+        checkUserInfo(user);
         return user;
     }
 
@@ -168,8 +152,7 @@ public class UserController extends BaseController {
                     "If the user who performs the request has the authority of 'SYS_ADMIN', it is possible to login as any tenant administrator. " +
                     "If the user who performs the request has the authority of 'TENANT_ADMIN', it is possible to login as any customer user. ")
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
-    @RequestMapping(value = "/user/tokenAccessEnabled", method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/user/tokenAccessEnabled")
     public boolean isUserTokenAccessEnabled() {
         return userTokenAccessEnabled;
     }
@@ -179,8 +162,7 @@ public class UserController extends BaseController {
                     "If the user who performs the request has the authority of 'SYS_ADMIN', it is possible to get the token of any tenant administrator. " +
                     "If the user who performs the request has the authority of 'TENANT_ADMIN', it is possible to get the token of any customer user that belongs to the same tenant. ")
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
-    @RequestMapping(value = "/user/{userId}/token", method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/user/{userId}/token")
     public JwtPair getUserToken(
             @Parameter(description = USER_ID_PARAM_DESCRIPTION)
             @PathVariable(USER_ID) String strUserId) throws ThingsboardException {
@@ -207,12 +189,11 @@ public class UserController extends BaseController {
                     "Remove 'id', 'tenantId' and optionally 'customerId' from the request body example (below) to create new User entity." +
                     "\n\nAvailable for users with 'SYS_ADMIN', 'TENANT_ADMIN' or 'CUSTOMER_USER' authority.")
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/user", method = RequestMethod.POST)
-    @ResponseBody
+    @PostMapping(value = "/user")
     public User saveUser(
             @Parameter(description = "A JSON value representing the User.", required = true)
             @RequestBody User user,
-            @Parameter(description = "Send activation email (or use activation link)" , schema = @Schema(defaultValue = "true"))
+            @Parameter(description = "Send activation email (or use activation link)", schema = @Schema(defaultValue = "true"))
             @RequestParam(required = false, defaultValue = "true") boolean sendActivationMail, HttpServletRequest request) throws ThingsboardException {
         if (!Authority.SYS_ADMIN.equals(getCurrentUser().getAuthority())) {
             user.setTenantId(getCurrentUser().getTenantId());
@@ -224,58 +205,55 @@ public class UserController extends BaseController {
     @ApiOperation(value = "Send or re-send the activation email",
             notes = "Force send the activation email to the user. Useful to resend the email if user has accidentally deleted it. " + SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
-    @RequestMapping(value = "/user/sendActivationMail", method = RequestMethod.POST)
+    @PostMapping(value = "/user/sendActivationMail")
     @ResponseStatus(value = HttpStatus.OK)
     public void sendActivationEmail(
             @Parameter(description = "Email of the user", required = true)
             @RequestParam(value = "email") String email,
             HttpServletRequest request) throws ThingsboardException {
-        User user = checkNotNull(userService.findUserByEmail(getCurrentUser().getTenantId(), email));
+        SecurityUser securityUser = getCurrentUser();
+        User user = checkNotNull(userService.findUserByEmail(securityUser.getTenantId(), email));
+        accessControlService.checkPermission(securityUser, Resource.USER, Operation.READ, user.getId(), user);
 
-        accessControlService.checkPermission(getCurrentUser(), Resource.USER, Operation.READ,
-                user.getId(), user);
-
-        UserCredentials userCredentials = userService.findUserCredentialsByUserId(getCurrentUser().getTenantId(), user.getId());
-        if (!userCredentials.isEnabled() && userCredentials.getActivateToken() != null) {
-            String baseUrl = systemSecurityService.getBaseUrl(getTenantId(), getCurrentUser().getCustomerId(), request);
-            String activateUrl = String.format(ACTIVATE_URL_PATTERN, baseUrl,
-                    userCredentials.getActivateToken());
-            mailService.sendActivationEmail(activateUrl, email);
-        } else {
-            throw new ThingsboardException("User is already activated!", ThingsboardErrorCode.BAD_REQUEST_PARAMS);
+        UserActivationLink activationLink = tbUserService.getActivationLink(securityUser.getTenantId(), securityUser.getCustomerId(), user.getId(), request);
+        try {
+            mailService.sendActivationEmail(activationLink.value(), activationLink.ttlMs(), email);
+        } catch (Exception e) {
+            throw new ThingsboardException("Couldn't send user activation email", ThingsboardErrorCode.GENERAL);
         }
     }
 
-    @ApiOperation(value = "Get the activation link (getActivationLink)",
+    @ApiOperation(value = "Get activation link (getActivationLink)",
             notes = "Get the activation link for the user. " +
                     "The base url for activation link is configurable in the general settings of system administrator. " + SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
-    @RequestMapping(value = "/user/{userId}/activationLink", method = RequestMethod.GET, produces = "text/plain")
-    @ResponseBody
-    public String getActivationLink(
-            @Parameter(description = USER_ID_PARAM_DESCRIPTION)
-            @PathVariable(USER_ID) String strUserId,
-            HttpServletRequest request) throws ThingsboardException {
+    @GetMapping(value = "/user/{userId}/activationLink", produces = "text/plain")
+    public String getActivationLink(@Parameter(description = USER_ID_PARAM_DESCRIPTION)
+                                    @PathVariable(USER_ID) String strUserId,
+                                    HttpServletRequest request) throws ThingsboardException {
+        return getActivationLinkInfo(strUserId, request).value();
+    }
+
+    @ApiOperation(value = "Get activation link info (getActivationLinkInfo)",
+            notes = "Get the activation link info for the user. " +
+                    "The base url for activation link is configurable in the general settings of system administrator. " + SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH)
+    @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
+    @GetMapping(value = "/user/{userId}/activationLinkInfo")
+    public UserActivationLink getActivationLinkInfo(@Parameter(description = USER_ID_PARAM_DESCRIPTION)
+                                                    @PathVariable(USER_ID) String strUserId,
+                                                    HttpServletRequest request) throws ThingsboardException {
         checkParameter(USER_ID, strUserId);
         UserId userId = new UserId(toUUID(strUserId));
-        User user = checkUserId(userId, Operation.READ);
-        SecurityUser authUser = getCurrentUser();
-        UserCredentials userCredentials = userService.findUserCredentialsByUserId(authUser.getTenantId(), user.getId());
-        if (!userCredentials.isEnabled() && userCredentials.getActivateToken() != null) {
-            String baseUrl = systemSecurityService.getBaseUrl(getTenantId(), getCurrentUser().getCustomerId(), request);
-            String activateUrl = String.format(ACTIVATE_URL_PATTERN, baseUrl,
-                    userCredentials.getActivateToken());
-            return activateUrl;
-        } else {
-            throw new ThingsboardException("User is already activated!", ThingsboardErrorCode.BAD_REQUEST_PARAMS);
-        }
+        checkUserId(userId, Operation.READ);
+        SecurityUser securityUser = getCurrentUser();
+        return tbUserService.getActivationLink(securityUser.getTenantId(), securityUser.getCustomerId(), userId, request);
     }
 
     @ApiOperation(value = "Delete User (deleteUser)",
             notes = "Deletes the User, it's credentials and all the relations (from and to the User). " +
                     "Referencing non-existing User Id will cause an error. " + SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
-    @RequestMapping(value = "/user/{userId}", method = RequestMethod.DELETE)
+    @DeleteMapping(value = "/user/{userId}")
     @ResponseStatus(value = HttpStatus.OK)
     public void deleteUser(
             @Parameter(description = USER_ID_PARAM_DESCRIPTION)
@@ -286,6 +264,9 @@ public class UserController extends BaseController {
         if (user.getAuthority() == Authority.SYS_ADMIN && getCurrentUser().getId().equals(userId)) {
             throw new ThingsboardException("Sysadmin is not allowed to delete himself", ThingsboardErrorCode.PERMISSION_DENIED);
         }
+        if (user.getAuthority() == Authority.TENANT_ADMIN && userService.countTenantAdmins(user.getTenantId()) == 1) {
+            throw new ThingsboardException("At least one tenant administrator must remain!", ThingsboardErrorCode.BAD_REQUEST_PARAMS);
+        }
         tbUserService.delete(getTenantId(), getCurrentUser().getCustomerId(), user, getCurrentUser());
     }
 
@@ -293,8 +274,7 @@ public class UserController extends BaseController {
             notes = "Returns a page of users owned by tenant or customer. The scope depends on authority of the user that performs the request." +
                     PAGE_DATA_PARAMETERS + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/users", params = {"pageSize", "page"}, method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/users")
     public PageData<User> getUsers(
             @Parameter(description = PAGE_SIZE_DESCRIPTION, required = true)
             @RequestParam int pageSize,
@@ -319,8 +299,7 @@ public class UserController extends BaseController {
             notes = "Returns page of user data objects. Search is been executed by email, firstName and " +
                     "lastName fields. " + PAGE_DATA_PARAMETERS + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/users/info", method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/users/info")
     public PageData<UserEmailInfo> findUsersByQuery(
             @Parameter(description = PAGE_SIZE_DESCRIPTION, required = true)
             @RequestParam int pageSize,
@@ -356,8 +335,7 @@ public class UserController extends BaseController {
     @ApiOperation(value = "Get Tenant Users (getTenantAdmins)",
             notes = "Returns a page of users owned by tenant. " + PAGE_DATA_PARAMETERS + SYSTEM_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAuthority('SYS_ADMIN')")
-    @RequestMapping(value = "/tenant/{tenantId}/users", params = {"pageSize", "page"}, method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/tenant/{tenantId}/users")
     public PageData<User> getTenantAdmins(
             @Parameter(description = TENANT_ID_PARAM_DESCRIPTION, required = true)
             @PathVariable(TENANT_ID) String strTenantId,
@@ -380,8 +358,7 @@ public class UserController extends BaseController {
     @ApiOperation(value = "Get Customer Users (getCustomerUsers)",
             notes = "Returns a page of users owned by customer. " + PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAuthority('TENANT_ADMIN')")
-    @RequestMapping(value = "/customer/{customerId}/users", params = {"pageSize", "page"}, method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/customer/{customerId}/users")
     public PageData<User> getCustomerUsers(
             @Parameter(description = CUSTOMER_ID_PARAM_DESCRIPTION, required = true)
             @PathVariable(CUSTOMER_ID) String strCustomerId,
@@ -406,16 +383,15 @@ public class UserController extends BaseController {
     @ApiOperation(value = "Enable/Disable User credentials (setUserCredentialsEnabled)",
             notes = "Enables or Disables user credentials. Useful when you would like to block user account without deleting it. " + PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
-    @RequestMapping(value = "/user/{userId}/userCredentialsEnabled", method = RequestMethod.POST)
-    @ResponseBody
+    @PostMapping(value = "/user/{userId}/userCredentialsEnabled")
     public void setUserCredentialsEnabled(
             @Parameter(description = USER_ID_PARAM_DESCRIPTION)
             @PathVariable(USER_ID) String strUserId,
-            @Parameter(description = "Enable (\"true\") or disable (\"false\") the credentials." , schema = @Schema(defaultValue = "true"))
+            @Parameter(description = "Enable (\"true\") or disable (\"false\") the credentials.", schema = @Schema(defaultValue = "true"))
             @RequestParam(required = false, defaultValue = "true") boolean userCredentialsEnabled) throws ThingsboardException {
         checkParameter(USER_ID, strUserId);
         UserId userId = new UserId(toUUID(strUserId));
-        User user = checkUserId(userId, Operation.WRITE);
+        checkUserId(userId, Operation.WRITE);
         TenantId tenantId = getCurrentUser().getTenantId();
         userService.setUserCredentialsEnabled(tenantId, userId, userCredentialsEnabled);
 
@@ -429,8 +405,7 @@ public class UserController extends BaseController {
                     "Search is been executed by email, firstName and lastName fields. " +
                     PAGE_DATA_PARAMETERS + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/users/assign/{alarmId}", params = {"pageSize", "page"}, method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/users/assign/{alarmId}")
     public PageData<UserEmailInfo> getUsersForAssign(
             @Parameter(description = ALARM_ID_PARAM_DESCRIPTION, required = true)
             @PathVariable("alarmId") String strAlarmId,
@@ -482,10 +457,7 @@ public class UserController extends BaseController {
         return userSettingsService.saveUserSettings(currentUser.getTenantId(), userSettings).getSettings();
     }
 
-    @ApiOperation(value = "Update user settings (saveUserSettings)",
-            notes = "Update user settings for authorized user. Only specified json elements will be updated." +
-                    "Example: you have such settings: {A:5, B:{C:10, D:20}}. Updating it with {B:{C:10, D:30}} will result in" +
-                    "{A:5, B:{C:10, D:30}}. The same could be achieved by putting {B.D:30}")
+    @Hidden
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
     @PutMapping(value = "/user/settings")
     public void putUserSettings(@RequestBody JsonNode settings) throws ThingsboardException {
@@ -493,8 +465,17 @@ public class UserController extends BaseController {
         userSettingsService.updateUserSettings(currentUser.getTenantId(), currentUser.getId(), UserSettingsType.GENERAL, settings);
     }
 
-    @ApiOperation(value = "Get user settings (getUserSettings)",
-            notes = "Fetch the User settings based on authorized user. ")
+    @ApiOperation(value = "Update user settings (putGeneralUserSettings)",
+            notes = "Update user settings for authorized user. Only specified json elements will be updated." +
+                    "Example: you have such settings: {A:5, B:{C:10, D:20}}. Updating it with {B:{C:10, D:30}} will result in" +
+                    "{A:5, B:{C:10, D:30}}. The same could be achieved by putting {B.D:30}")
+    @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
+    @PutMapping(value = "/user/settings/general")
+    public void putGeneralUserSettings(@RequestBody JsonNode settings) throws ThingsboardException {
+        putUserSettings(settings);
+    }
+
+    @Hidden
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
     @GetMapping(value = "/user/settings")
     public JsonNode getUserSettings() throws ThingsboardException {
@@ -504,20 +485,28 @@ public class UserController extends BaseController {
         return userSettings == null ? JacksonUtil.newObjectNode() : userSettings.getSettings();
     }
 
-    @ApiOperation(value = "Delete user settings (deleteUserSettings)",
+    @ApiOperation(value = "Get user settings (getGeneralUserSettings)",
+            notes = "Fetch the User settings based on authorized user. ")
+    @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
+    @GetMapping(value = "/user/settings/general")
+    public JsonNode getGeneralUserSettings() throws ThingsboardException {
+        return getUserSettings();
+    }
+
+    @ApiOperation(value = "Delete user settings (deleteGeneralUserSettings)",
             notes = "Delete user settings by specifying list of json element xpaths. \n " +
                     "Example: to delete B and C element in { \"A\": {\"B\": 5}, \"C\": 15} send A.B,C in jsonPaths request parameter")
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/user/settings/{paths}", method = RequestMethod.DELETE)
-    public void deleteUserSettings(@Parameter(description = PATHS)
-                                   @PathVariable(PATHS) String paths) throws ThingsboardException {
+    @DeleteMapping(value = "/user/settings/{paths}")
+    public void deleteGeneralUserSettings(@Parameter(description = PATHS)
+                                          @PathVariable(PATHS) String paths) throws ThingsboardException {
         checkParameter(USER_ID, paths);
 
         SecurityUser currentUser = getCurrentUser();
         userSettingsService.deleteUserSettings(currentUser.getTenantId(), currentUser.getId(), UserSettingsType.GENERAL, Arrays.asList(paths.split(",")));
     }
 
-    @ApiOperation(value = "Update user settings (saveUserSettings)",
+    @ApiOperation(value = "Update user settings (putUserSettings)",
             notes = "Update user settings for authorized user. Only specified json elements will be updated." +
                     "Example: you have such settings: {A:5, B:{C:10, D:20}}. Updating it with {B:{C:10, D:30}} will result in" +
                     "{A:5, B:{C:10, D:30}}. The same could be achieved by putting {B.D:30}")
@@ -544,15 +533,15 @@ public class UserController extends BaseController {
         return userSettings == null ? JacksonUtil.newObjectNode() : userSettings.getSettings();
     }
 
-    @ApiOperation(value = "Delete user settings (deleteUserSettings)",
+    @ApiOperation(value = "Delete user settings by type (deleteUserSettingsByType)",
             notes = "Delete user settings by specifying list of json element xpaths. \n " +
                     "Example: to delete B and C element in { \"A\": {\"B\": 5}, \"C\": 15} send A.B,C in jsonPaths request parameter")
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/user/settings/{type}/{paths}", method = RequestMethod.DELETE)
-    public void deleteUserSettings(@Parameter(description = PATHS)
-                                   @PathVariable(PATHS) String paths,
-                                   @Parameter(description = "Settings type, case insensitive, one of: \"general\", \"quick_links\", \"doc_links\" or \"dashboards\".")
-                                   @PathVariable("type") String strType) throws ThingsboardException {
+    @DeleteMapping(value = "/user/settings/{type}/{paths}")
+    public void deleteUserSettingsByType(@Parameter(description = PATHS)
+                                         @PathVariable(PATHS) String paths,
+                                         @Parameter(description = "Settings type, case insensitive, one of: \"general\", \"quick_links\", \"doc_links\" or \"dashboards\".")
+                                         @PathVariable("type") String strType) throws ThingsboardException {
         checkParameter(USER_ID, paths);
         UserSettingsType type = checkEnumParameter("Settings type", strType, UserSettingsType::valueOf);
         checkNotReserved(strType, type);
@@ -560,8 +549,7 @@ public class UserController extends BaseController {
         userSettingsService.deleteUserSettings(currentUser.getTenantId(), currentUser.getId(), type, Arrays.asList(paths.split(",")));
     }
 
-    @ApiOperation(value = "Get information about last visited and starred dashboards (getLastVisitedDashboards)",
-            notes = "Fetch the list of last visited and starred dashboards. Both lists are limited to 10 items." + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
+    @Hidden
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
     @GetMapping(value = "/user/dashboards")
     public UserDashboardsInfo getUserDashboardsInfo() throws ThingsboardException {
@@ -569,11 +557,18 @@ public class UserController extends BaseController {
         return userSettingsService.findUserDashboardsInfo(currentUser.getTenantId(), currentUser.getId());
     }
 
+    @ApiOperation(value = "Get information about last visited and starred dashboards (getLastVisitedDashboards)",
+            notes = "Fetch the list of last visited and starred dashboards. Both lists are limited to 10 items." + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
+    @GetMapping(value = "/user/lastVisitedDashboards")
+    public UserDashboardsInfo getLastVisitedDashboards() throws ThingsboardException {
+        return getUserDashboardsInfo();
+    }
+
     @ApiOperation(value = "Report action of User over the dashboard (reportUserDashboardAction)",
             notes = "Report action of User over the dashboard. " + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/user/dashboards/{dashboardId}/{action}", method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/user/dashboards/{dashboardId}/{action}")
     public UserDashboardsInfo reportUserDashboardAction(
             @Parameter(description = DASHBOARD_ID_PARAM_DESCRIPTION)
             @PathVariable(DashboardController.DASHBOARD_ID) String strDashboardId,
@@ -608,6 +603,40 @@ public class UserController extends BaseController {
     public void removeMobileSession(@RequestHeader(MOBILE_TOKEN_HEADER) String mobileToken,
                                     @AuthenticationPrincipal SecurityUser user) {
         userService.removeMobileSession(user.getTenantId(), mobileToken);
+    }
+
+    @Hidden
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
+    @GetMapping(value = "/users", params = {"userIds"})
+    public List<User> getUsersByIdsV1(
+            @RequestParam("userIds") Set<UUID> userUUIDs) throws ThingsboardException {
+        TenantId tenantId = getCurrentUser().getTenantId();
+        List<UserId> userIds = new ArrayList<>();
+        for (UUID userUUID : userUUIDs) {
+            userIds.add(new UserId(userUUID));
+        }
+        List<User> users = userService.findUsersByTenantIdAndIds(tenantId, userIds);
+        return filterUsersByReadPermission(users);
+    }
+
+    @ApiOperation(value = "Get Users By Ids (getUsersByIds)",
+            notes = "Requested users must be owned by tenant or assigned to customer which user is performing the request. ")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
+    @GetMapping(value = "/users/list")
+    public List<User> getUsersByIds(
+            @Parameter(description = "A list of user ids, separated by comma ','", array = @ArraySchema(schema = @Schema(type = "string")), required = true)
+            @RequestParam("userIds") Set<UUID> userUUIDs) throws ThingsboardException {
+        return getUsersByIdsV1(userUUIDs);
+    }
+
+    private List<User> filterUsersByReadPermission(List<User> users) {
+        return users.stream().filter(user -> {
+            try {
+                return accessControlService.hasPermission(getCurrentUser(), Resource.USER, Operation.READ, user.getId(), user);
+            } catch (ThingsboardException e) {
+                return false;
+            }
+        }).collect(Collectors.toList());
     }
 
     private void checkNotReserved(String strType, UserSettingsType type) throws ThingsboardException {

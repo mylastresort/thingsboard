@@ -37,11 +37,11 @@ export class OAuth2LoginProcessingUrlResolver {
 
 const routes: Routes = [
   {
-    path: "predictiveMaintenance",
+    path: "predictive-maintenance",
     data: {
       breadcrumb: {
         label: "Predictive Maintenance",
-        icon: "mdi:wrench-clock",
+        icon: "mdi:cog-refresh",
       },
     },
     children: [

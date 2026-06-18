@@ -1,6 +1,5 @@
-import { Observable } from "rxjs/internal/Observable";
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -15,7 +14,7 @@ import { Observable } from "rxjs/internal/Observable";
 /// limitations under the License.
 ///
 
-import { Inject, Injectable, NgZone } from "@angular/core";
+import { Inject, Injectable, NgZone } from '@angular/core';
 import {
   AlarmCountCmd,
   AlarmCountUnsubscribeCmd,
@@ -23,6 +22,9 @@ import {
   AlarmDataCmd,
   AlarmDataUnsubscribeCmd,
   AlarmDataUpdate,
+  AlarmStatusCmd,
+  AlarmStatusUnsubscribeCmd,
+  AlarmStatusUpdate,
   EntityCountCmd,
   EntityCountUnsubscribeCmd,
   EntityCountUpdate,
@@ -31,6 +33,7 @@ import {
   EntityDataUpdate,
   isAlarmCountUpdateMsg,
   isAlarmDataUpdateMsg,
+  isAlarmStatusUpdateMsg,
   isEntityCountUpdateMsg,
   isEntityDataUpdateMsg,
   isNotificationCountUpdateMsg,
@@ -47,104 +50,96 @@ import {
   UnreadCountSubCmd,
   UnreadSubCmd,
   UnsubscribeCmd,
-  WebsocketDataMsg,
-} from "@app/shared/models/telemetry/telemetry.models";
-import { Store } from "@ngrx/store";
-import { AppState } from "@core/core.state";
-import { AuthService } from "@core/auth/auth.service";
-import { WINDOW } from "@core/services/window.service";
-import { WebsocketService } from "@core/ws/websocket.service";
+  WebsocketDataMsg
+} from '@app/shared/models/telemetry/telemetry.models';
+import { Store } from '@ngrx/store';
+import { AppState } from '@core/core.state';
+import { AuthService } from '@core/auth/auth.service';
+import { WINDOW } from '@core/services/window.service';
+import { WebsocketService } from '@core/ws/websocket.service';
 
 // @dynamic
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root'
 })
 export class TelemetryWebsocketService extends WebsocketService<TelemetrySubscriber> {
+
   cmdWrapper: TelemetryPluginCmdsWrapper;
 
-  constructor(
-    protected store: Store<AppState>,
-    protected authService: AuthService,
-    protected ngZone: NgZone,
-    @Inject(WINDOW) protected window: Window
-  ) {
-    super(
-      store,
-      authService,
-      ngZone,
-      "api/ws",
-      new TelemetryPluginCmdsWrapper(),
-      window
-    );
+  constructor(protected store: Store<AppState>,
+              protected authService: AuthService,
+              protected ngZone: NgZone,
+              @Inject(WINDOW) protected window: Window) {
+    super(store, authService, ngZone, 'api/ws', new TelemetryPluginCmdsWrapper(), window);
   }
 
   public subscribe(subscriber: TelemetrySubscriber) {
     this.isActive = true;
-    subscriber.subscriptionCommands.forEach((subscriptionCommand) => {
-      const cmdId = this.nextCmdId();
-      if (
-        !(subscriptionCommand instanceof MarkAsReadCmd) &&
-        !(subscriptionCommand instanceof MarkAllAsReadCmd)
-      ) {
-        this.subscribersMap.set(cmdId, subscriber);
+    subscriber.subscriptionCommands.forEach(
+      (subscriptionCommand) => {
+        const cmdId = this.nextCmdId();
+        if (!(subscriptionCommand instanceof MarkAsReadCmd) && !(subscriptionCommand instanceof MarkAllAsReadCmd)) {
+          this.subscribersMap.set(cmdId, subscriber);
+        }
+        subscriptionCommand.cmdId = cmdId;
+        this.cmdWrapper.cmds.push(subscriptionCommand);
       }
-      subscriptionCommand.cmdId = cmdId;
-      this.cmdWrapper.cmds.push(subscriptionCommand);
-    });
+    );
     this.subscribersCount++;
     this.publishCommands();
   }
 
   public update(subscriber: TelemetrySubscriber) {
     if (!this.isReconnect) {
-      subscriber.subscriptionCommands.forEach((subscriptionCommand) => {
-        if (
-          subscriptionCommand.cmdId &&
-          (subscriptionCommand instanceof EntityDataCmd ||
-            subscriptionCommand instanceof UnreadSubCmd)
-        ) {
-          this.cmdWrapper.cmds.push(subscriptionCommand);
+      subscriber.subscriptionCommands.forEach(
+        (subscriptionCommand) => {
+          if (subscriptionCommand.cmdId && (subscriptionCommand instanceof EntityDataCmd || subscriptionCommand instanceof UnreadSubCmd)) {
+            this.cmdWrapper.cmds.push(subscriptionCommand);
+          }
         }
-      });
+      );
       this.publishCommands();
     }
   }
 
   public unsubscribe(subscriber: TelemetrySubscriber) {
     if (this.isActive) {
-      subscriber.subscriptionCommands.forEach((subscriptionCommand) => {
-        if (subscriptionCommand instanceof SubscriptionCmd) {
-          subscriptionCommand.unsubscribe = true;
-          this.cmdWrapper.cmds.push(subscriptionCommand);
-        } else if (subscriptionCommand instanceof EntityDataCmd) {
-          const entityDataUnsubscribeCmd = new EntityDataUnsubscribeCmd();
-          entityDataUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
-          this.cmdWrapper.cmds.push(entityDataUnsubscribeCmd);
-        } else if (subscriptionCommand instanceof AlarmDataCmd) {
-          const alarmDataUnsubscribeCmd = new AlarmDataUnsubscribeCmd();
-          alarmDataUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
-          this.cmdWrapper.cmds.push(alarmDataUnsubscribeCmd);
-        } else if (subscriptionCommand instanceof EntityCountCmd) {
-          const entityCountUnsubscribeCmd = new EntityCountUnsubscribeCmd();
-          entityCountUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
-          this.cmdWrapper.cmds.push(entityCountUnsubscribeCmd);
-        } else if (subscriptionCommand instanceof AlarmCountCmd) {
-          const alarmCountUnsubscribeCmd = new AlarmCountUnsubscribeCmd();
-          alarmCountUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
-          this.cmdWrapper.cmds.push(alarmCountUnsubscribeCmd);
-        } else if (
-          subscriptionCommand instanceof UnreadCountSubCmd ||
-          subscriptionCommand instanceof UnreadSubCmd
-        ) {
-          const notificationsUnsubCmds = new UnsubscribeCmd();
-          notificationsUnsubCmds.cmdId = subscriptionCommand.cmdId;
-          this.cmdWrapper.cmds.push(notificationsUnsubCmds);
+      subscriber.subscriptionCommands.forEach(
+        (subscriptionCommand) => {
+          if (subscriptionCommand instanceof SubscriptionCmd) {
+            subscriptionCommand.unsubscribe = true;
+            this.cmdWrapper.cmds.push(subscriptionCommand);
+          } else if (subscriptionCommand instanceof EntityDataCmd) {
+            const entityDataUnsubscribeCmd = new EntityDataUnsubscribeCmd();
+            entityDataUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
+            this.cmdWrapper.cmds.push(entityDataUnsubscribeCmd);
+          } else if (subscriptionCommand instanceof AlarmDataCmd) {
+            const alarmDataUnsubscribeCmd = new AlarmDataUnsubscribeCmd();
+            alarmDataUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
+            this.cmdWrapper.cmds.push(alarmDataUnsubscribeCmd);
+          } else if (subscriptionCommand instanceof EntityCountCmd) {
+            const entityCountUnsubscribeCmd = new EntityCountUnsubscribeCmd();
+            entityCountUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
+            this.cmdWrapper.cmds.push(entityCountUnsubscribeCmd);
+          } else if (subscriptionCommand instanceof AlarmCountCmd) {
+            const alarmCountUnsubscribeCmd = new AlarmCountUnsubscribeCmd();
+            alarmCountUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
+            this.cmdWrapper.cmds.push(alarmCountUnsubscribeCmd);
+          } else if (subscriptionCommand instanceof AlarmStatusCmd) {
+            const alarmCountUnsubscribeCmd = new AlarmStatusUnsubscribeCmd();
+            alarmCountUnsubscribeCmd.cmdId = subscriptionCommand.cmdId;
+            this.cmdWrapper.cmds.push(alarmCountUnsubscribeCmd);
+          } else if (subscriptionCommand instanceof UnreadCountSubCmd || subscriptionCommand instanceof UnreadSubCmd) {
+            const notificationsUnsubCmds = new UnsubscribeCmd();
+            notificationsUnsubCmds.cmdId = subscriptionCommand.cmdId;
+            this.cmdWrapper.cmds.push(notificationsUnsubCmds);
+          }
+          const cmdId = subscriptionCommand.cmdId;
+          if (cmdId) {
+            this.subscribersMap.delete(cmdId);
+          }
         }
-        const cmdId = subscriptionCommand.cmdId;
-        if (cmdId) {
-          this.subscribersMap.delete(cmdId);
-        }
-      });
+      );
       this.reconnectSubscribers.delete(subscriber);
       this.subscribersCount--;
       this.publishCommands();
@@ -153,13 +148,11 @@ export class TelemetryWebsocketService extends WebsocketService<TelemetrySubscri
 
   processOnMessage(message: WebsocketDataMsg) {
     let subscriber: TelemetrySubscriber | NotificationSubscriber;
-    if ("cmdId" in message && message.cmdId) {
+    if ('cmdId' in message && message.cmdId) {
       subscriber = this.subscribersMap.get(message.cmdId);
       if (subscriber instanceof NotificationSubscriber) {
         if (isNotificationCountUpdateMsg(message)) {
-          subscriber.onNotificationCountUpdate(
-            new NotificationCountUpdate(message)
-          );
+          subscriber.onNotificationCountUpdate(new NotificationCountUpdate(message));
         } else if (isNotificationsUpdateMsg(message)) {
           subscriber.onNotificationsUpdate(new NotificationsUpdate(message));
         }
@@ -172,15 +165,16 @@ export class TelemetryWebsocketService extends WebsocketService<TelemetrySubscri
           subscriber.onEntityCount(new EntityCountUpdate(message));
         } else if (isAlarmCountUpdateMsg(message)) {
           subscriber.onAlarmCount(new AlarmCountUpdate(message));
+        } else if (isAlarmStatusUpdateMsg(message)) {
+          subscriber.onAlarmStatus(new AlarmStatusUpdate(message))
         }
       }
-    } else if ("subscriptionId" in message && message.subscriptionId) {
-      subscriber = this.subscribersMap.get(
-        message.subscriptionId
-      ) as TelemetrySubscriber;
+    } else if ('subscriptionId' in message && message.subscriptionId) {
+      subscriber = this.subscribersMap.get(message.subscriptionId) as TelemetrySubscriber;
       if (subscriber) {
         subscriber.onData(new SubscriptionUpdate(message));
       }
     }
   }
+
 }

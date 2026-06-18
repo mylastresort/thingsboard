@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ComponentFactoryResolver,
   ComponentRef,
   EventEmitter,
   Injector,
@@ -28,38 +27,34 @@ import {
   Output,
   QueryList,
   ViewChild,
-  ViewChildren,
-} from "@angular/core";
-import { PageComponent } from "@shared/components/page.component";
-import { Store } from "@ngrx/store";
-import { AppState } from "@core/core.state";
-import { EntityTableConfig } from "@home/models/entity/entities-table-config.models";
-import { BaseData, HasId, hasIdEquals } from "@shared/models/base-data";
-import {
-  EntityType,
-  EntityTypeResource,
-  EntityTypeTranslation,
-} from "@shared/models/entity-type.models";
-import { UntypedFormGroup } from "@angular/forms";
-import { EntityComponent } from "./entity.component";
-import { TbAnchorComponent } from "@shared/components/tb-anchor.component";
-import { EntityAction } from "@home/models/entity/entity-component.models";
-import { Observable, ReplaySubject, Subscription } from "rxjs";
-import { MatTab, MatTabGroup } from "@angular/material/tabs";
-import { EntityTabsComponent } from "@home/components/entity/entity-tabs.component";
-import { deepClone, mergeDeep } from "@core/utils";
-import { entityIdEquals } from "@shared/models/id/entity-id";
+  ViewChildren
+} from '@angular/core';
+import { PageComponent } from '@shared/components/page.component';
+import { Store } from '@ngrx/store';
+import { AppState } from '@core/core.state';
+import { EntityTableConfig } from '@home/models/entity/entities-table-config.models';
+import { BaseData, HasId, hasIdEquals } from '@shared/models/base-data';
+import { EntityType, EntityTypeResource, EntityTypeTranslation } from '@shared/models/entity-type.models';
+import { UntypedFormGroup } from '@angular/forms';
+import { EntityComponent } from './entity.component';
+import { TbAnchorComponent } from '@shared/components/tb-anchor.component';
+import { EntityAction } from '@home/models/entity/entity-component.models';
+import { Observable, ReplaySubject, Subscription, throwError } from 'rxjs';
+import { MatTab, MatTabGroup } from '@angular/material/tabs';
+import { EntityTabsComponent } from '@home/components/entity/entity-tabs.component';
+import { deepClone, mergeDeep } from '@core/utils';
+import { catchError } from 'rxjs/operators';
+import { HttpStatusCode } from '@angular/common/http';
 
 @Component({
-  selector: "tb-entity-details-panel",
-  templateUrl: "./entity-details-panel.component.html",
-  styleUrls: ["./entity-details-panel.component.scss"],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'tb-entity-details-panel',
+    templateUrl: './entity-details-panel.component.html',
+    styleUrls: ['./entity-details-panel.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
-export class EntityDetailsPanelComponent
-  extends PageComponent
-  implements AfterViewInit, OnDestroy
-{
+export class EntityDetailsPanelComponent extends PageComponent implements AfterViewInit, OnDestroy {
+
   @Output()
   closeEntityDetails = new EventEmitter<void>();
 
@@ -82,13 +77,11 @@ export class EntityDetailsPanelComponent
 
   entityTypes = EntityType;
 
-  @ViewChild("entityDetailsForm", { static: true })
-  entityDetailsFormAnchor: TbAnchorComponent;
+  @ViewChild('entityDetailsForm', {static: true}) entityDetailsFormAnchor: TbAnchorComponent;
 
-  @ViewChild("entityTabs", { static: true })
-  entityTabsAnchor: TbAnchorComponent;
+  @ViewChild('entityTabs', {static: true}) entityTabsAnchor: TbAnchorComponent;
 
-  @ViewChild(MatTabGroup, { static: true }) matTabGroup: MatTabGroup;
+  @ViewChild(MatTabGroup, {static: true}) matTabGroup: MatTabGroup;
 
   @ViewChildren(MatTab) inclusiveTabs: QueryList<MatTab>;
 
@@ -102,12 +95,9 @@ export class EntityDetailsPanelComponent
   protected viewInited = false;
   protected pendingTabs: MatTab[];
 
-  constructor(
-    protected store: Store<AppState>,
-    protected injector: Injector,
-    protected cd: ChangeDetectorRef,
-    protected componentFactoryResolver: ComponentFactoryResolver
-  ) {
+  constructor(protected store: Store<AppState>,
+              protected injector: Injector,
+              protected cd: ChangeDetectorRef) {
     super(store);
   }
 
@@ -122,9 +112,7 @@ export class EntityDetailsPanelComponent
   }
 
   @Input()
-  set entitiesTableConfig(
-    entitiesTableConfig: EntityTableConfig<BaseData<HasId>>
-  ) {
+  set entitiesTableConfig(entitiesTableConfig: EntityTableConfig<BaseData<HasId>>) {
     if (this.entitiesTableConfigValue !== entitiesTableConfig) {
       this.entitiesTableConfigValue = entitiesTableConfig;
       if (this.entitiesTableConfigValue) {
@@ -178,46 +166,34 @@ export class EntityDetailsPanelComponent
       this.entityComponentRef.destroy();
       this.entityComponentRef = null;
     }
-    const componentFactory =
-      this.componentFactoryResolver.resolveComponentFactory(
-        this.entitiesTableConfig.entityComponent
-      );
     const viewContainerRef = this.entityDetailsFormAnchor.viewContainerRef;
     viewContainerRef.clear();
-    const injector: Injector = Injector.create({
-      providers: [
-        {
-          provide: "entity",
-          useValue: this.entity,
-        },
-        {
-          provide: "entitiesTableConfig",
-          useValue: this.entitiesTableConfig,
-        },
-      ],
-      parent: this.injector,
-    });
-    this.entityComponentRef = viewContainerRef.createComponent(
-      componentFactory,
-      0,
-      injector
+    const injector: Injector = Injector.create(
+      {
+        providers: [
+          {
+            provide: 'entity',
+            useValue: this.entity
+          },
+          {
+            provide: 'entitiesTableConfig',
+            useValue: this.entitiesTableConfig
+          }
+        ],
+        parent: this.injector
+      }
     );
+    this.entityComponentRef = viewContainerRef.createComponent(this.entitiesTableConfig.entityComponent, {index: 0, injector});
     this.entityComponent = this.entityComponentRef.instance;
     this.entityComponent.isEdit = this.isEdit;
     this.detailsForm = this.entityComponent.entityForm;
-    this.subscriptions.push(
-      this.entityComponent.entityAction.subscribe((action) => {
-        console.log("hello from action === ", action);
-        this.entityAction.emit(action);
-      })
-    );
+    this.subscriptions.push(this.entityComponent.entityAction.subscribe((action) => {
+      this.entityAction.emit(action);
+    }));
     this.buildEntityTabsComponent();
-    this.subscriptions.push(
-      this.entityComponent.entityForm.valueChanges.subscribe(() => {
-        console.log("hello from push");
-        this.cd.detectChanges();
-      })
-    );
+    this.subscriptions.push(this.entityComponent.entityForm.valueChanges.subscribe(() => {
+      this.cd.detectChanges();
+    }));
   }
 
   buildEntityTabsComponent() {
@@ -229,45 +205,35 @@ export class EntityDetailsPanelComponent
     viewContainerRef.clear();
     this.entityTabsComponent = null;
     if (this.entitiesTableConfig.entityTabsComponent) {
-      const componentTabsFactory =
-        this.componentFactoryResolver.resolveComponentFactory(
-          this.entitiesTableConfig.entityTabsComponent
-        );
-      console.log("tabs === ", componentTabsFactory);
-      this.entityTabsComponentRef =
-        viewContainerRef.createComponent(componentTabsFactory);
+      this.entityTabsComponentRef = viewContainerRef.createComponent(this.entitiesTableConfig.entityTabsComponent);
       this.entityTabsComponent = this.entityTabsComponentRef.instance;
       this.entityTabsComponent.isEdit = this.isEdit;
       this.entityTabsComponent.entitiesTableConfig = this.entitiesTableConfig;
       this.entityTabsComponent.detailsForm = this.detailsForm;
-      this.subscriptions.push(
-        this.entityTabsComponent.entityTabsChanged.subscribe((entityTabs) => {
+      this.subscriptions.push(this.entityTabsComponent.entityTabsChanged.subscribe(
+        (entityTabs) => {
           if (entityTabs) {
             if (this.viewInited) {
-              this.matTabGroup._tabs.reset([
-                ...this.inclusiveTabs.toArray(),
-                ...entityTabs,
-              ]);
+              this.matTabGroup._tabs.reset([...this.inclusiveTabs.toArray(), ...entityTabs]);
               this.matTabGroup._tabs.notifyOnChanges();
             } else {
               this.pendingTabs = entityTabs;
             }
           }
-        })
-      );
+        }
+      ));
     }
   }
 
   hideDetailsTabs(): boolean {
-    return this.isEditValue && this.entitiesTableConfig.hideDetailsTabsOnEdit;
+    return !this.entityTabsComponent || this.isEditValue && this.entitiesTableConfig.hideDetailsTabsOnEdit;
   }
 
   reloadEntity(): Observable<BaseData<HasId>> {
     const loadEntitySubject = new ReplaySubject<BaseData<HasId>>();
     this.isEdit = false;
-    this.entitiesTableConfig
-      .loadEntity(this.currentEntityId)
-      .subscribe((entity) => {
+    this.entitiesTableConfig.loadEntity(this.currentEntityId).subscribe(
+      (entity) => {
         this.entity = entity;
         this.entityComponent.entity = entity;
         if (this.entityTabsComponent) {
@@ -275,7 +241,8 @@ export class EntityDetailsPanelComponent
         }
         loadEntitySubject.next(entity);
         loadEntitySubject.complete();
-      });
+      }
+    );
     return loadEntitySubject;
   }
 
@@ -305,9 +272,7 @@ export class EntityDetailsPanelComponent
 
   helpLinkId(): string {
     if (this.resources.helpLinkIdForEntity && this.entityComponent.entityForm) {
-      return this.resources.helpLinkIdForEntity(
-        this.entityComponent.entityForm.getRawValue()
-      );
+      return this.resources.helpLinkIdForEntity(this.entityComponent.entityForm.getRawValue());
     } else {
       return this.resources.helpLinkId;
     }
@@ -316,19 +281,22 @@ export class EntityDetailsPanelComponent
   saveEntity(emitEntityUpdated = true): Observable<BaseData<HasId>> {
     const saveEntitySubject = new ReplaySubject<BaseData<HasId>>();
     if (this.detailsForm.valid) {
-      const editingEntity = {
-        ...this.editingEntity,
-        ...this.entityComponent.entityFormValue(),
-      };
-      if (this.editingEntity.hasOwnProperty("additionalInfo")) {
-        editingEntity.additionalInfo = mergeDeep(
-          (this.editingEntity as any).additionalInfo,
-          this.entityComponent.entityFormValue()?.additionalInfo
-        );
+      const editingEntity = {...this.editingEntity, ...this.entityComponent.entityFormValue()};
+      if (this.editingEntity.hasOwnProperty('additionalInfo')) {
+        editingEntity.additionalInfo =
+          mergeDeep((this.editingEntity as any).additionalInfo, this.entityComponent.entityFormValue()?.additionalInfo);
       }
-      this.entitiesTableConfig
-        .saveEntity(editingEntity, this.editingEntity)
-        .subscribe((entity) => {
+      this.entitiesTableConfig.saveEntity(editingEntity, this.editingEntity)
+        .pipe(
+          catchError((err) => {
+           if (err.status === HttpStatusCode.Conflict) {
+             return this.entitiesTableConfig.loadEntity(this.currentEntityId);
+           }
+           return throwError(() => err);
+          })
+        )
+        .subscribe(
+        (entity) => {
           this.entity = entity;
           this.entityComponent.entity = entity;
           if (this.entityTabsComponent) {
@@ -340,7 +308,8 @@ export class EntityDetailsPanelComponent
           }
           saveEntitySubject.next(entity);
           saveEntitySubject.complete();
-        });
+        }
+      );
     } else {
       saveEntitySubject.next(null);
       saveEntitySubject.complete();
@@ -351,12 +320,10 @@ export class EntityDetailsPanelComponent
   ngAfterViewInit(): void {
     this.viewInited = true;
     if (this.pendingTabs) {
-      this.matTabGroup._tabs.reset([
-        ...this.inclusiveTabs.toArray(),
-        ...this.pendingTabs,
-      ]);
+      this.matTabGroup._tabs.reset([...this.inclusiveTabs.toArray(), ...this.pendingTabs]);
       this.matTabGroup._tabs.notifyOnChanges();
       this.pendingTabs = null;
     }
   }
+
 }

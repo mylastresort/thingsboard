@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -22,13 +22,14 @@ import { Resource, ResourceInfo, ResourceType, ResourceTypeTranslationMap } from
 import { PageLink } from '@shared/models/page/page-link';
 
 @Component({
-  selector: 'tb-resources-table-header',
-  templateUrl: './resources-table-header.component.html',
-  styleUrls: []
+    selector: 'tb-resources-table-header',
+    templateUrl: './resources-table-header.component.html',
+    styleUrls: [],
+    standalone: false
 })
 export class ResourcesTableHeaderComponent extends EntityTableHeaderComponent<Resource, PageLink, ResourceInfo> {
 
-  readonly resourceTypes: ResourceType[] = Object.values(ResourceType);
+  readonly resourceTypes = [ResourceType.LWM2M_MODEL, ResourceType.PKCS_12, ResourceType.JKS, ResourceType.GENERAL];
   readonly resourceTypesTranslationMap = ResourceTypeTranslationMap;
 
   constructor(protected store: Store<AppState>) {

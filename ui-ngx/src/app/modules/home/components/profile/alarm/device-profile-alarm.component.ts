@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, EventEmitter, forwardRef, Input, OnInit, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, forwardRef, Input, OnInit, Output } from '@angular/core';
 import {
   ControlValueAccessor,
   UntypedFormBuilder,
@@ -31,23 +31,25 @@ import { COMMA, ENTER, SEMICOLON } from '@angular/cdk/keycodes';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { EntityId } from '@shared/models/id/entity-id';
 import { UtilsService } from '@core/services/utils.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'tb-device-profile-alarm',
-  templateUrl: './device-profile-alarm.component.html',
-  styleUrls: ['./device-profile-alarm.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => DeviceProfileAlarmComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => DeviceProfileAlarmComponent),
-      multi: true,
-    }
-  ]
+    selector: 'tb-device-profile-alarm',
+    templateUrl: './device-profile-alarm.component.html',
+    styleUrls: ['./device-profile-alarm.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => DeviceProfileAlarmComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => DeviceProfileAlarmComponent),
+            multi: true,
+        }
+    ],
+    standalone: false
 })
 export class DeviceProfileAlarmComponent implements ControlValueAccessor, OnInit, Validator {
 
@@ -74,7 +76,8 @@ export class DeviceProfileAlarmComponent implements ControlValueAccessor, OnInit
 
   constructor(private dialog: MatDialog,
               private utils: UtilsService,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
   }
 
   registerOnChange(fn: any): void {
@@ -101,7 +104,9 @@ export class DeviceProfileAlarmComponent implements ControlValueAccessor, OnInit
       propagateToOwner: [null],
       propagateToTenant: [null]
     }, { validators: deviceProfileAlarmValidator });
-    this.alarmFormGroup.valueChanges.subscribe(() => {
+    this.alarmFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }

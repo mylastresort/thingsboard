@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.thingsboard.server.common.data.TbResourceDataInfo;
 import org.thingsboard.server.dao.ExportableEntityRepository;
 import org.thingsboard.server.dao.model.sql.TbResourceEntity;
 
@@ -34,6 +35,7 @@ public interface TbResourceRepository extends JpaRepository<TbResourceEntity, UU
 
     @Query("SELECT tr FROM TbResourceEntity tr " +
             "WHERE tr.resourceType = :resourceType " +
+            "AND (:resourceSubType IS NULL OR tr.resourceSubType = :resourceSubType) " +
             "AND (:searchText IS NULL OR ilike(tr.searchText, CONCAT('%', :searchText, '%')) = true) " +
             "AND (tr.tenantId = :tenantId " +
             "OR (tr.tenantId = :systemAdminId " +
@@ -46,11 +48,13 @@ public interface TbResourceRepository extends JpaRepository<TbResourceEntity, UU
             @Param("tenantId") UUID tenantId,
             @Param("systemAdminId") UUID sysAdminId,
             @Param("resourceType") String resourceType,
+            @Param("resourceSubType") String resourceSubType,
             @Param("searchText") String searchText,
             Pageable pageable);
 
     @Query("SELECT tr FROM TbResourceEntity tr " +
             "WHERE tr.resourceType = :resourceType " +
+            "AND (:resourceSubType IS NULL OR tr.resourceSubType = :resourceSubType) " +
             "AND (:searchText IS NULL OR ilike(tr.searchText, CONCAT('%', :searchText, '%')) = true) " +
             "AND (tr.tenantId = :tenantId " +
             "OR (tr.tenantId = :systemAdminId " +
@@ -62,6 +66,7 @@ public interface TbResourceRepository extends JpaRepository<TbResourceEntity, UU
     List<TbResourceEntity> findResources(@Param("tenantId") UUID tenantId,
                                          @Param("systemAdminId") UUID sysAdminId,
                                          @Param("resourceType") String resourceType,
+                                         @Param("resourceSubType") String resourceSubType,
                                          @Param("searchText") String searchText);
 
     @Query("SELECT tr FROM TbResourceEntity tr " +
@@ -97,4 +102,6 @@ public interface TbResourceRepository extends JpaRepository<TbResourceEntity, UU
     @Query("SELECT r.id FROM TbResourceInfoEntity r WHERE r.tenantId = :tenantId")
     Page<UUID> findIdsByTenantId(@Param("tenantId") UUID tenantId, Pageable pageable);
 
+    @Query("SELECT new org.thingsboard.server.common.data.TbResourceDataInfo(r.data, r.descriptor) FROM TbResourceEntity r WHERE r.id = :id")
+    TbResourceDataInfo getDataInfoById(UUID id);
 }

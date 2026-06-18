@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit } from '@angular/core';
 import {
   ControlValueAccessor,
   UntypedFormBuilder,
@@ -39,21 +39,24 @@ import {
   SnmpPrivacyProtocolTranslationMap
 } from '@shared/models/device.models';
 import { isDefinedAndNotNull } from '@core/utils';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'tb-snmp-device-transport-configuration',
-  templateUrl: './snmp-device-transport-configuration.component.html',
-  styleUrls: [],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => SnmpDeviceTransportConfigurationComponent),
-      multi: true
-    }, {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => SnmpDeviceTransportConfigurationComponent),
-      multi: true
-    }]
+    selector: 'tb-snmp-device-transport-configuration',
+    templateUrl: './snmp-device-transport-configuration.component.html',
+    styleUrls: [],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => SnmpDeviceTransportConfigurationComponent),
+            multi: true
+        }, {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => SnmpDeviceTransportConfigurationComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class SnmpDeviceTransportConfigurationComponent implements ControlValueAccessor, OnInit, Validator {
 
@@ -82,7 +85,8 @@ export class SnmpDeviceTransportConfigurationComponent implements ControlValueAc
   private propagateChange = (v: any) => { };
 
   constructor(private store: Store<AppState>,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
   }
 
   registerOnChange(fn: any): void {
@@ -107,10 +111,14 @@ export class SnmpDeviceTransportConfigurationComponent implements ControlValueAc
       privacyPassphrase: ['', [Validators.required, Validators.pattern('(.|\\s)*\\S(.|\\s)*')]],
       engineId: ['']
     });
-    this.snmpDeviceTransportConfigurationFormGroup.get('protocolVersion').valueChanges.subscribe((protocol: SnmpDeviceProtocolVersion) => {
+    this.snmpDeviceTransportConfigurationFormGroup.get('protocolVersion').valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((protocol: SnmpDeviceProtocolVersion) => {
       this.updateDisabledFormValue(protocol);
     });
-    this.snmpDeviceTransportConfigurationFormGroup.valueChanges.subscribe(() => {
+    this.snmpDeviceTransportConfigurationFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }

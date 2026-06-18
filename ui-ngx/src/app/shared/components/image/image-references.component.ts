@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
-import { ImageReferences } from '@shared/models/resource.models';
+import { ResourceReferences } from '@shared/models/resource.models';
 import { EntityType, entityTypeTranslations } from '@shared/models/entity-type.models';
 import { TranslateService } from '@ngx-translate/core';
 import { getEntityDetailsPageURL } from '@core/utils';
@@ -47,14 +47,15 @@ type ReferencedEntities = {[tenantId: string]: TenantReferencedEntities};
 type ReferencedEntitiesEntry = [string, TenantReferencedEntities];
 
 @Component({
-  selector: 'tb-image-references',
-  templateUrl: './image-references.component.html',
-  styleUrls: ['./image-references.component.scss']
+    selector: 'tb-image-references',
+    templateUrl: './image-references.component.html',
+    styleUrls: ['./image-references.component.scss'],
+    standalone: false
 })
 export class ImageReferencesComponent implements OnInit {
 
   @Input()
-  references: ImageReferences;
+  references: ResourceReferences;
 
   popoverComponent: TbPopoverComponent<ImageReferencesComponent>;
 
@@ -99,7 +100,7 @@ export class ImageReferencesComponent implements OnInit {
     return tenantId === NULL_UUID;
   }
 
-  private hasNonSystemEntities(references: ImageReferences): boolean {
+  private hasNonSystemEntities(references: ResourceReferences): boolean {
     for (const entityTypeStr of Object.keys(references)) {
       const entities = this.references[entityTypeStr];
       if (entities.some(e => e.tenantId && e.tenantId.id && e.tenantId.id !== NULL_UUID)) {
@@ -109,7 +110,7 @@ export class ImageReferencesComponent implements OnInit {
     return false;
   }
 
-  private toReferencedEntitiesList(references: ImageReferences): ReferencedEntityInfo[] {
+  private toReferencedEntitiesList(references: ResourceReferences): ReferencedEntityInfo[] {
     const result: ReferencedEntityInfo[] = [];
     for (const entityTypeStr of Object.keys(references)) {
       const entityType = entityTypeStr as EntityType;
@@ -127,7 +128,7 @@ export class ImageReferencesComponent implements OnInit {
     return result;
   }
 
-  private toReferencedEntitiesEntries(references: ImageReferences): Observable<ReferencedEntitiesEntry[]> {
+  private toReferencedEntitiesEntries(references: ResourceReferences): Observable<ReferencedEntitiesEntry[]> {
     let referencedEntities: ReferencedEntities = {};
     const referencedEntitiesList = this.toReferencedEntitiesList(references);
     for (const referencedEntityInfo of referencedEntitiesList) {

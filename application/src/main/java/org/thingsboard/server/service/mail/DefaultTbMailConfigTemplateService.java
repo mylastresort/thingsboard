@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 package org.thingsboard.server.service.mail;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.thingsboard.common.util.JacksonUtil;
 
-import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 
 @Service
@@ -32,9 +32,7 @@ public class DefaultTbMailConfigTemplateService implements TbMailConfigTemplateS
 
     @PostConstruct
     private void postConstruct() throws IOException {
-        var inputStream = new ClassPathResource("templates/mail_config_templates.json").getInputStream();
-        String jsonContent = new String(inputStream.readAllBytes());
-        mailConfigTemplates = JacksonUtil.toJsonNode(jsonContent);
+        mailConfigTemplates = JacksonUtil.toJsonNode(new ClassPathResource("/templates/mail_config_templates.json").getInputStream());
     }
 
     @Override

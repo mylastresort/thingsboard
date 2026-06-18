@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,21 +43,20 @@ import java.util.concurrent.ExecutionException;
         nodeDetails = "Renames keys in the message or message metadata according to the provided mapping. " +
                 "If key to rename doesn't exist in the specified source (message or message metadata) it will be ignored.<br><br>" +
                 "Output connections: <code>Success</code>, <code>Failure</code>.",
-        uiResources = {"static/rulenode/rulenode-core-config.js"},
         configDirective = "tbTransformationNodeRenameKeysConfig",
-        icon = "find_replace"
+        icon = "find_replace",
+        docUrl = "https://thingsboard.io/docs/user-guide/rule-engine-2-0/nodes/transformation/rename-keys/"
 )
 public class TbRenameKeysNode extends TbAbstractTransformNodeWithTbMsgSource {
 
-    private TbRenameKeysNodeConfiguration config;
     private Map<String, String> renameKeysMapping;
     private TbMsgSource renameIn;
 
     @Override
     public void init(TbContext ctx, TbNodeConfiguration configuration) throws TbNodeException {
-        this.config = TbNodeUtils.convert(configuration, TbRenameKeysNodeConfiguration.class);
-        this.renameIn = config.getRenameIn();
-        this.renameKeysMapping = config.getRenameKeysMapping();
+        var config = TbNodeUtils.convert(configuration, TbRenameKeysNodeConfiguration.class);
+        renameIn = config.getRenameIn();
+        renameKeysMapping = config.getRenameKeysMapping();
         if (renameIn == null) {
             throw new TbNodeException("RenameIn can't be null! Allowed values: " + Arrays.toString(TbMsgSource.values()));
         }
@@ -106,7 +105,10 @@ public class TbRenameKeysNode extends TbAbstractTransformNodeWithTbMsgSource {
             default:
                 log.debug("Unexpected RenameIn value: {}. Allowed values: {}", renameIn, TbMsgSource.values());
         }
-        ctx.tellSuccess(msgChanged ? TbMsg.transformMsg(msg, metaDataCopy, data) : msg);
+        ctx.tellSuccess(msgChanged ? msg.transform()
+                .metaData(metaDataCopy)
+                .data(data)
+                .build() : msg);
     }
 
     @Override

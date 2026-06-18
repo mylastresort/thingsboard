@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package org.thingsboard.rule.engine.telemetry;
 
-import lombok.extern.slf4j.Slf4j;
+import org.thingsboard.rule.engine.api.AttributesDeleteRequest;
 import org.thingsboard.rule.engine.api.RuleNode;
 import org.thingsboard.rule.engine.api.TbContext;
 import org.thingsboard.rule.engine.api.TbNode;
@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 import static org.thingsboard.server.common.data.DataConstants.NOTIFY_DEVICE_METADATA_KEY;
 import static org.thingsboard.server.common.data.DataConstants.SCOPE;
 
-@Slf4j
 @RuleNode(
         type = ComponentType.ACTION,
         name = "delete attributes",
@@ -44,9 +43,9 @@ import static org.thingsboard.server.common.data.DataConstants.SCOPE;
                 " a key selected in the configuration, it will be ignored. If delete operation is completed successfully, " +
                 " rule node will send the \"Attributes Deleted\" event to the root chain of the message originator and " +
                 " send the incoming message via <b>Success</b> chain, otherwise, <b>Failure</b> chain is used.",
-        uiResources = {"static/rulenode/rulenode-core-config.js"},
         configDirective = "tbActionNodeDeleteAttributesConfig",
-        icon = "remove_circle"
+        icon = "remove_circle",
+        docUrl = "https://thingsboard.io/docs/user-guide/rule-engine-2-0/nodes/action/delete-attributes/"
 )
 public class TbMsgDeleteAttributesNode implements TbNode {
 
@@ -55,8 +54,8 @@ public class TbMsgDeleteAttributesNode implements TbNode {
 
     @Override
     public void init(TbContext ctx, TbNodeConfiguration configuration) throws TbNodeException {
-        this.config = TbNodeUtils.convert(configuration, TbMsgDeleteAttributesNodeConfiguration.class);
-        this.keys = config.getKeys();
+        config = TbNodeUtils.convert(configuration, TbMsgDeleteAttributesNodeConfiguration.class);
+        keys = config.getKeys();
     }
 
     @Override
@@ -70,16 +69,19 @@ public class TbMsgDeleteAttributesNode implements TbNode {
             ctx.tellSuccess(msg);
         } else {
             AttributeScope scope = getScope(msg.getMetaData().getValue(SCOPE));
-            ctx.getTelemetryService().deleteAndNotify(
-                    ctx.getTenantId(),
-                    msg.getOriginator(),
-                    scope,
-                    keysToDelete,
-                    checkNotifyDevice(msg.getMetaData().getValue(NOTIFY_DEVICE_METADATA_KEY), scope),
-                    config.isSendAttributesDeletedNotification() ?
+            ctx.getTelemetryService().deleteAttributes(AttributesDeleteRequest.builder()
+                    .tenantId(ctx.getTenantId())
+                    .entityId(msg.getOriginator())
+                    .scope(scope)
+                    .keys(keysToDelete)
+                    .notifyDevice(checkNotifyDevice(msg.getMetaData().getValue(NOTIFY_DEVICE_METADATA_KEY), scope))
+                    .previousCalculatedFieldIds(msg.getPreviousCalculatedFieldIds())
+                    .tbMsgId(msg.getId())
+                    .tbMsgType(msg.getInternalType())
+                    .callback(config.isSendAttributesDeletedNotification() ?
                             new AttributesDeleteNodeCallback(ctx, msg, scope.name(), keysToDelete) :
-                            new TelemetryNodeCallback(ctx, msg)
-            );
+                            new TelemetryNodeCallback(ctx, msg))
+                    .build());
         }
     }
 

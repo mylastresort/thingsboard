@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -21,21 +21,27 @@ import {
   OnDestroy, OnInit,
   Output, SimpleChanges
 } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { share } from 'rxjs/operators';
 import { HelpService } from '@core/services/help.service';
 import { coerceBoolean } from '@shared/decorators/coercion';
+import { base64toString } from '@core/utils';
 
 @Component({
-  selector: 'tb-help-markdown',
-  templateUrl: './help-markdown.component.html',
-  styleUrls: ['./help-markdown.component.scss']
+    selector: 'tb-help-markdown',
+    templateUrl: './help-markdown.component.html',
+    styleUrls: ['./help-markdown.component.scss'],
+    standalone: false
 })
 export class HelpMarkdownComponent implements OnDestroy, OnInit, OnChanges {
 
   @Input() helpId: string;
 
   @Input() helpContent: string;
+
+  @Input() helpContentBase64: string;
+
+  @Input() asyncHelpContent: Observable<string>;
 
   @Input()
   @coerceBoolean()
@@ -73,7 +79,7 @@ export class HelpMarkdownComponent implements OnDestroy, OnInit, OnChanges {
             this.loadHelp();
           }
         }
-        if (propName === 'helpId' || propName === 'helpContent') {
+        if (['helpId', 'helpContent', 'helpContentBase64', 'asyncHelpContent'].includes(propName)) {
           this.markdownText.next(null);
           this.loadHelpWhenVisible();
         }
@@ -96,6 +102,12 @@ export class HelpMarkdownComponent implements OnDestroy, OnInit, OnChanges {
       });
     } else if (this.helpContent) {
       this.markdownText.next(this.helpContent);
+    } else if (this.helpContentBase64) {
+      this.markdownText.next(base64toString(this.helpContentBase64));
+    } else if (this.asyncHelpContent) {
+      this.asyncHelpContent.subscribe((content) => {
+        this.markdownText.next(content);
+      });
     }
   }
 

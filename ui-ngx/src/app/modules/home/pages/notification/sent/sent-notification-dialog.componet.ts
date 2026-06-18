@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -54,9 +54,10 @@ export interface RequestNotificationDialogData {
 }
 
 @Component({
-  selector: 'tb-sent-notification-dialog',
-  templateUrl: './sent-notification-dialog.component.html',
-  styleUrls: ['./sent-notification-dialog.component.scss']
+    selector: 'tb-sent-notification-dialog',
+    templateUrl: './sent-notification-dialog.component.html',
+    styleUrls: ['./sent-notification-dialog.component.scss'],
+    standalone: false
 })
 export class SentNotificationDialogComponent extends
   TemplateConfiguration<SentNotificationDialogComponent, NotificationRequest> implements OnDestroy {
@@ -76,6 +77,30 @@ export class SentNotificationDialogComponent extends
   dialogTitle = 'notification.notify-again';
 
   showRefresh = false;
+
+  tinyMceOptions: Record<string, any> = {
+    base_url: '/assets/tinymce',
+    suffix: '.min',
+    plugins: ['autoresize'],
+    menubar: false,
+    toolbar: false,
+    statusbar: false,
+    resize: false,
+    readonly: true,
+    height: 400,
+    autofocus: false,
+    branding: false,
+    promotion: false,
+    setup: (ed) => {
+      ed.on('PreInit', () => {
+        const document = $(ed.iframeElement.contentDocument);
+        const body = $('#tinymce', document);
+        body.attr({contenteditable: false});
+        body.css('pointerEvents', 'none');
+        body.css('userSelect', 'none');
+      })
+    }
+  };
 
   private authUser: AuthUser = getCurrentAuthUser(this.store);
 

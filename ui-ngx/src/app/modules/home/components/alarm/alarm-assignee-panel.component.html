@@ -1,6 +1,6 @@
 <!--
 
-    Copyright © 2016-2024 The Thingsboard Authors
+    Copyright © 2016-2026 The Thingsboard Authors
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,11 +16,16 @@
 
 -->
 <mat-form-field appearance="outline" [formGroup]="selectUserFormGroup" class="mat-block search-users">
-  <input matInput type="text" placeholder="{{ 'user.search' | translate }}" #userInput formControlName="user"
-    (focusin)="onFocus()" [matAutocomplete]="userAutocomplete">
-  <mat-icon matSuffix>search haha</mat-icon>
-  <mat-autocomplete class="tb-assignee-autocomplete tb-autocomplete" #userAutocomplete="matAutocomplete"
-    [displayWith]="displayUserFn" (optionSelected)="selected($event)">
+  <input matInput type="text" placeholder="{{ 'user.search' | translate }}"
+         #userInput
+         formControlName="user"
+         (focusin)="onFocus()"
+         [matAutocomplete]="userAutocomplete">
+  <mat-icon matSuffix>search</mat-icon>
+  <mat-autocomplete class="tb-assignee-autocomplete tb-autocomplete"
+                    #userAutocomplete="matAutocomplete"
+                    [displayWith]="displayUserFn"
+                    (optionSelected)="selected($event)">
     <mat-option *ngIf="displayAssigneeNotSet" [value]="assigneeOptions.noAssignee">
       <mat-icon class="unassigned-icon">account_circle</mat-icon>
       <span>{{ assigneeNotSetText | translate }}</span>
@@ -29,20 +34,24 @@
       <mat-icon class="unassigned-icon">account_circle</mat-icon>
       <span>{{ assignedToCurrentUserText | translate }}</span>
     </mat-option>
-    <mat-option *ngFor="let user of filteredUsers | async" [value]="user" [fxHide]="assigneeId === user.id.id">
-      <span class="user-avatar" [innerHTML]="getUserInitials(user)" [style.background-color]="getAvatarBgColor(user)">
+    <mat-option *ngFor="let user of filteredUsers | async" [value]="user"
+                [class.!hidden]="assigneeId === user.id.id">
+      <span class="user-avatar" [innerHTML]="getUserInitials(user)"
+            [style.background-color]="getAvatarBgColor(user)">
       </span>
-      <div class="user-display-name" fxLayout="column" fxLayoutGap="2px">
-        <span *ngIf="user.firstName || user.lastName" [innerHTML]="getFullName(user) | highlight:searchText"></span>
-        <span [innerHTML]="user.email | highlight:searchText"></span>
+      <div class="user-display-name flex flex-col gap-0.5">
+        <span *ngIf="user.firstName || user.lastName"
+              [innerHTML]="getFullName(user) | highlight:searchText"></span>
+        <span [innerHTML]="user.email | highlight:searchText" tbTruncateWithTooltip></span>
       </div>
     </mat-option>
     <mat-option *ngIf="!(filteredUsers | async)?.length" [value]="null" class="tb-not-found">
       <div class="tb-not-found-content" (click)="$event.stopPropagation()">
         <span style="white-space: normal">
-          {{ translate.get('user.no-users-matching', {entity: searchText}) | async }}
+            {{ translate.get('user.no-users-matching', {entity: searchText}) | async }}
         </span>
       </div>
     </mat-option>
   </mat-autocomplete>
 </mat-form-field>
+

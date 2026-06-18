@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package org.thingsboard.rule.engine.rest;
 
 import com.datastax.oss.driver.api.core.uuid.Uuids;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -27,13 +26,21 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.thingsboard.common.util.DirectListeningExecutor;
 import org.thingsboard.common.util.JacksonUtil;
+import org.thingsboard.rule.engine.AbstractRuleNodeUpgradeTest;
+import org.thingsboard.rule.engine.api.TbHttpClientSettings;
 import org.thingsboard.rule.engine.api.TbContext;
+import org.thingsboard.rule.engine.api.TbNode;
 import org.thingsboard.rule.engine.api.TbNodeConfiguration;
 import org.thingsboard.rule.engine.api.TbNodeException;
 import org.thingsboard.server.common.data.id.DeviceId;
@@ -41,7 +48,7 @@ import org.thingsboard.server.common.data.id.EntityId;
 import org.thingsboard.server.common.data.id.RuleChainId;
 import org.thingsboard.server.common.data.id.RuleNodeId;
 import org.thingsboard.server.common.data.msg.TbMsgType;
-import org.thingsboard.server.common.data.util.TbPair;
+import org.thingsboard.server.common.data.msg.TbNodeConnectionType;
 import org.thingsboard.server.common.msg.TbMsg;
 import org.thingsboard.server.common.msg.TbMsgDataType;
 import org.thingsboard.server.common.msg.TbMsgMetaData;
@@ -50,15 +57,26 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-public class TbRestApiCallNodeTest {
+@ResourceLock("SsrfProtectionValidator") // to avoid race conditions when modifying SsrfProtectionValidator's static configuration
+public class TbRestApiCallNodeTest extends AbstractRuleNodeUpgradeTest {
 
+    static final long TIMEOUT = TimeUnit.SECONDS.toMillis(30);
+
+    @Spy
     private TbRestApiCallNode restNode;
 
     @Mock
@@ -112,18 +130,7 @@ public class TbRestApiCallNodeTest {
                     assertTrue(request.containsHeader("Foo"), "Custom header included");
                     assertEquals("Bar", request.getFirstHeader("Foo").getValue(), "Custom header value");
                     response.setStatusCode(200);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                Thread.sleep(1000L);
-                            } catch (InterruptedException e) {
-                                // ignore
-                            } finally {
-                                latch.countDown();
-                            }
-                        }
-                    }).start();
+                    latch.countDown();
                 } catch (Exception e) {
                     System.out.println("Exception handling request: " + e.toString());
                     e.printStackTrace();
@@ -132,6 +139,8 @@ public class TbRestApiCallNodeTest {
             }
         });
 
+        given(ctx.getExternalCallExecutor()).willReturn(DirectListeningExecutor.INSTANCE);
+
         TbRestApiCallNodeConfiguration config = new TbRestApiCallNodeConfiguration().defaultConfiguration();
         config.setRequestMethod("DELETE");
         config.setHeaders(Collections.singletonMap("Foo", "Bar"));
@@ -139,7 +148,15 @@ public class TbRestApiCallNodeTest {
         config.setRestEndpointUrlPattern(String.format("http://localhost:%d%s", server.getLocalPort(), path));
         initWithConfig(config);
 
-        TbMsg msg = TbMsg.newMsg(TbMsgType.POST_TELEMETRY_REQUEST, originator, metaData, TbMsgDataType.JSON, TbMsg.EMPTY_JSON_OBJECT, ruleChainId, ruleNodeId);
+        TbMsg msg = TbMsg.newMsg()
+                .type(TbMsgType.POST_TELEMETRY_REQUEST)
+                .originator(originator)
+                .copyMetaData(metaData)
+                .dataType(TbMsgDataType.JSON)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId)
+                .ruleNodeId(ruleNodeId)
+                .build();
         restNode.onMsg(ctx, msg);
 
         assertTrue(latch.await(10, TimeUnit.SECONDS), "Server handled request");
@@ -147,7 +164,7 @@ public class TbRestApiCallNodeTest {
         ArgumentCaptor<TbMsg> msgCaptor = ArgumentCaptor.forClass(TbMsg.class);
         ArgumentCaptor<TbMsgMetaData> metadataCaptor = ArgumentCaptor.forClass(TbMsgMetaData.class);
         ArgumentCaptor<String> dataCaptor = ArgumentCaptor.forClass(String.class);
-        verify(ctx).transformMsg(msgCaptor.capture(), metadataCaptor.capture(), dataCaptor.capture());
+        verify(ctx, timeout(TIMEOUT)).transformMsg(msgCaptor.capture(), metadataCaptor.capture(), dataCaptor.capture());
 
         assertNotSame(metaData, metadataCaptor.getValue());
         assertEquals(TbMsg.EMPTY_JSON_OBJECT, dataCaptor.getValue());
@@ -165,7 +182,7 @@ public class TbRestApiCallNodeTest {
                 try {
                     assertEquals(path, request.getRequestLine().getUri(), "Request path matches");
                     assertTrue(request.containsHeader("Content-Type"), "Content-Type included");
-                    assertEquals("text/plain;charset=UTF-8",
+                    assertEquals("application/json",
                             request.getFirstHeader("Content-Type").getValue(), "Content-Type value");
                     assertTrue(request.containsHeader("Content-Length"), "Content-Length included");
                     assertEquals("2",
@@ -173,18 +190,7 @@ public class TbRestApiCallNodeTest {
                     assertTrue(request.containsHeader("Foo"), "Custom header included");
                     assertEquals("Bar", request.getFirstHeader("Foo").getValue(), "Custom header value");
                     response.setStatusCode(200);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                Thread.sleep(1000L);
-                            } catch (InterruptedException e) {
-                                // ignore
-                            } finally {
-                                latch.countDown();
-                            }
-                        }
-                    }).start();
+                    latch.countDown();
                 } catch (Exception e) {
                     System.out.println("Exception handling request: " + e.toString());
                     e.printStackTrace();
@@ -193,6 +199,8 @@ public class TbRestApiCallNodeTest {
             }
         });
 
+        given(ctx.getExternalCallExecutor()).willReturn(DirectListeningExecutor.INSTANCE);
+
         TbRestApiCallNodeConfiguration config = new TbRestApiCallNodeConfiguration().defaultConfiguration();
         config.setRequestMethod("DELETE");
         config.setHeaders(Collections.singletonMap("Foo", "Bar"));
@@ -200,7 +208,15 @@ public class TbRestApiCallNodeTest {
         config.setRestEndpointUrlPattern(String.format("http://localhost:%d%s", server.getLocalPort(), path));
         initWithConfig(config);
 
-        TbMsg msg = TbMsg.newMsg(TbMsgType.POST_TELEMETRY_REQUEST, originator, metaData, TbMsgDataType.JSON, TbMsg.EMPTY_JSON_OBJECT, ruleChainId, ruleNodeId);
+        TbMsg msg = TbMsg.newMsg()
+                .type(TbMsgType.POST_TELEMETRY_REQUEST)
+                .originator(originator)
+                .copyMetaData(metaData)
+                .dataType(TbMsgDataType.JSON)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId)
+                .ruleNodeId(ruleNodeId)
+                .build();
         restNode.onMsg(ctx, msg);
 
         assertTrue(latch.await(10, TimeUnit.SECONDS), "Server handled request");
@@ -208,26 +224,200 @@ public class TbRestApiCallNodeTest {
         ArgumentCaptor<TbMsg> msgCaptor = ArgumentCaptor.forClass(TbMsg.class);
         ArgumentCaptor<TbMsgMetaData> metadataCaptor = ArgumentCaptor.forClass(TbMsgMetaData.class);
         ArgumentCaptor<String> dataCaptor = ArgumentCaptor.forClass(String.class);
-        verify(ctx).transformMsg(msgCaptor.capture(), metadataCaptor.capture(), dataCaptor.capture());
+        verify(ctx, timeout(TIMEOUT)).transformMsg(msgCaptor.capture(), metadataCaptor.capture(), dataCaptor.capture());
 
         assertNotSame(metaData, metadataCaptor.getValue());
         assertEquals(TbMsg.EMPTY_JSON_OBJECT, dataCaptor.getValue());
     }
 
     @Test
-    public void givenOldConfig_whenUpgrade_thenShouldReturnTrueResultWithNewConfig() throws Exception {
-        var defaultConfig = new TbRestApiCallNodeConfiguration().defaultConfiguration();
-        var node = new TbRestApiCallNode();
-        String oldConfig = "{\"restEndpointUrlPattern\":\"http://localhost/api\",\"requestMethod\":\"POST\"," +
-                "\"useSimpleClientHttpFactory\":false,\"ignoreRequestBody\":false,\"enableProxy\":false," +
-                "\"useSystemProxyProperties\":false,\"proxyScheme\":null,\"proxyHost\":null,\"proxyPort\":0," +
-                "\"proxyUser\":null,\"proxyPassword\":null,\"readTimeoutMs\":0,\"maxParallelRequestsCount\":0," +
-                "\"headers\":{\"Content-Type\":\"application/json\"},\"useRedisQueueForMsgPersistence\":false," +
-                "\"trimQueue\":null,\"maxQueueSize\":null,\"credentials\":{\"type\":\"anonymous\"},\"trimDoubleQuotes\":true}";
-        JsonNode configJson = JacksonUtil.toJsonNode(oldConfig);
-        TbPair<Boolean, JsonNode> upgrade = node.upgrade(0, configJson);
-        Assertions.assertTrue(upgrade.getFirst());
-        Assertions.assertTrue(JacksonUtil.treeToValue(upgrade.getSecond(), defaultConfig.getClass()).isParseToPlainText());
+    public void givenForceAckTrue_whenOnMsgAndServerReturns200_thenAckedImmediatelyAndEnqueuedForTellNext() throws IOException {
+        final String path = "/path/to/get";
+        setupServer("*", new HttpRequestHandler() {
+            @Override
+            public void handle(HttpRequest request, HttpResponse response, HttpContext context)
+                    throws HttpException, IOException {
+                response.setStatusCode(200);
+            }
+        });
+
+        TbMsg transformedMsg = TbMsg.newMsg()
+                .type(TbMsgType.POST_TELEMETRY_REQUEST)
+                .originator(originator)
+                .copyMetaData(metaData)
+                .dataType(TbMsgDataType.JSON)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId)
+                .ruleNodeId(ruleNodeId)
+                .build();
+
+        given(ctx.isExternalNodeForceAck()).willReturn(true);
+        given(ctx.getExternalCallExecutor()).willReturn(DirectListeningExecutor.INSTANCE);
+        given(ctx.transformMsg(any(), any(), any())).willReturn(transformedMsg);
+
+        TbRestApiCallNodeConfiguration config = new TbRestApiCallNodeConfiguration().defaultConfiguration();
+        config.setRequestMethod("GET");
+        config.setIgnoreRequestBody(true);
+        config.setRestEndpointUrlPattern(String.format("http://localhost:%d%s", server.getLocalPort(), path));
+        initWithConfig(config);
+
+        TbMsg msg = TbMsg.newMsg()
+                .type(TbMsgType.POST_TELEMETRY_REQUEST)
+                .originator(originator)
+                .copyMetaData(metaData)
+                .dataType(TbMsgDataType.JSON)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId)
+                .ruleNodeId(ruleNodeId)
+                .build();
+        restNode.onMsg(ctx, msg);
+
+        verify(ctx).ack(msg);
+        verify(ctx, timeout(TIMEOUT)).enqueueForTellNext(any(), eq(TbNodeConnectionType.SUCCESS));
+        verify(ctx, never()).tellSuccess(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void givenMaxParallelRequestsCountAndBadUrl_whenOnMsg_thenSemaphoreIsReleasedAndFailureReported(boolean forceAck) throws IOException {
+        given(ctx.isExternalNodeForceAck()).willReturn(forceAck);
+
+        TbRestApiCallNodeConfiguration config = new TbRestApiCallNodeConfiguration().defaultConfiguration();
+        config.setMaxParallelRequestsCount(1);
+        config.setRestEndpointUrlPattern("");
+        initWithConfig(config);
+
+        TbMsg msg = TbMsg.newMsg()
+                .type(TbMsgType.POST_TELEMETRY_REQUEST)
+                .originator(originator)
+                .copyMetaData(metaData)
+                .dataType(TbMsgDataType.JSON)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId)
+                .ruleNodeId(ruleNodeId)
+                .build();
+        restNode.onMsg(ctx, msg);
+
+        assertThat(restNode.httpClient.getSemaphore().availablePermits()).isEqualTo(1);
+        if (forceAck) {
+            verify(ctx).enqueueForTellFailure(any(), any(Throwable.class));
+        } else {
+            verify(ctx).tellFailure(any(), any());
+        }
+    }
+
+    @Test
+    public void givenMaxPendingRequestsExceeded_whenOnMsg_thenFailsImmediatelyAndQueuedRequestFiresAfterSlotOpens() throws IOException, InterruptedException {
+        CountDownLatch releaseResponse = new CountDownLatch(1);
+        setupServer("*", (request, response, context) -> {
+            try {
+                releaseResponse.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            response.setStatusCode(200);
+        });
+
+        given(ctx.isExternalNodeForceAck()).willReturn(false);
+        given(ctx.getExternalCallExecutor()).willReturn(DirectListeningExecutor.INSTANCE);
+        // Simulate server-level cap: maxPendingRequests=1 via TbHttpClientSettings
+        given(ctx.getTbHttpClientSettings()).willReturn(new TbHttpClientSettings() {
+            @Override public int getMaxParallelRequests() { return 0; }
+            @Override public int getMaxPendingRequests() { return 1; }
+            @Override public int getPoolMaxConnections() { return 0; }
+        });
+        TbMsg transformedMsg = TbMsg.newMsg()
+                .type(TbMsgType.POST_TELEMETRY_REQUEST)
+                .originator(originator)
+                .copyMetaData(metaData)
+                .data(TbMsg.EMPTY_JSON_OBJECT)
+                .build();
+        given(ctx.transformMsg(any(), any(), any())).willReturn(transformedMsg);
+
+        TbRestApiCallNodeConfiguration config = new TbRestApiCallNodeConfiguration().defaultConfiguration();
+        config.setMaxParallelRequestsCount(1);
+        config.setRequestMethod("GET");
+        config.setIgnoreRequestBody(true);
+        config.setRestEndpointUrlPattern(String.format("http://localhost:%d/path", server.getLocalPort()));
+        initWithConfig(config);
+
+        TbMsg msg1 = TbMsg.newMsg().type(TbMsgType.POST_TELEMETRY_REQUEST).originator(originator)
+                .copyMetaData(metaData).dataType(TbMsgDataType.JSON).data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId).ruleNodeId(ruleNodeId).build();
+        TbMsg msg2 = TbMsg.newMsg().type(TbMsgType.POST_TELEMETRY_REQUEST).originator(originator)
+                .copyMetaData(metaData).dataType(TbMsgDataType.JSON).data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId).ruleNodeId(ruleNodeId).build();
+        TbMsg msg3 = TbMsg.newMsg().type(TbMsgType.POST_TELEMETRY_REQUEST).originator(originator)
+                .copyMetaData(metaData).dataType(TbMsgDataType.JSON).data(TbMsg.EMPTY_JSON_OBJECT)
+                .ruleChainId(ruleChainId).ruleNodeId(ruleNodeId).build();
+
+        restNode.onMsg(ctx, msg1);  // fires immediately (semaphore acquired)
+        restNode.onMsg(ctx, msg2);  // queues (semaphore exhausted, queue has room)
+        restNode.onMsg(ctx, msg3);  // fails immediately (queue full — server-level maxPendingRequests=1)
+
+        verify(ctx, timeout(TIMEOUT)).tellFailure(any(), any());
+
+        releaseResponse.countDown();
+        verify(ctx, timeout(TIMEOUT).times(2)).tellSuccess(any());
+    }
+
+    private static Stream<Arguments> givenFromVersionAndConfig_whenUpgrade_thenVerifyHasChangesAndConfig() {
+        return Stream.of(
+                // config for version 2 with upgrade from version 0
+                Arguments.of(0,
+                        "{\"restEndpointUrlPattern\":\"http://localhost/api\",\"requestMethod\":\"POST\"," +
+                                "\"useSimpleClientHttpFactory\":false,\"ignoreRequestBody\":false,\"enableProxy\":false," +
+                                "\"useSystemProxyProperties\":false,\"proxyScheme\":null,\"proxyHost\":null,\"proxyPort\":0," +
+                                "\"proxyUser\":null,\"proxyPassword\":null,\"readTimeoutMs\":0,\"maxParallelRequestsCount\":0," +
+                                "\"headers\":{\"Content-Type\":\"application/json\"},\"useRedisQueueForMsgPersistence\":false," +
+                                "\"trimQueue\":null,\"maxQueueSize\":null,\"credentials\":{\"type\":\"anonymous\"},\"trimDoubleQuotes\":false}",
+                        true,
+                        "{\"restEndpointUrlPattern\":\"http://localhost/api\",\"requestMethod\": \"POST\"," +
+                                "\"useSimpleClientHttpFactory\": false,\"parseToPlainText\": false,\"ignoreRequestBody\": false," +
+                                "\"enableProxy\": false,\"useSystemProxyProperties\": false,\"proxyScheme\": null,\"proxyHost\": null," +
+                                "\"proxyPort\": 0,\"proxyUser\": null,\"proxyPassword\": null,\"readTimeoutMs\": 0," +
+                                "\"maxParallelRequestsCount\": 0,\"headers\": {\"Content-Type\": \"application/json\"}," +
+                                "\"credentials\": {\"type\": \"anonymous\"}," +
+                                "\"maxInMemoryBufferSizeInKb\": 256}"),
+                // config for version 2 with upgrade from version 1
+                Arguments.of(1,
+                        "{\"restEndpointUrlPattern\":\"http://localhost/api\",\"requestMethod\": \"POST\"," +
+                                "\"useSimpleClientHttpFactory\": false,\"parseToPlainText\": false,\"ignoreRequestBody\": false," +
+                                "\"enableProxy\": false,\"useSystemProxyProperties\": false,\"proxyScheme\": null,\"proxyHost\": null," +
+                                "\"proxyPort\": 0,\"proxyUser\": null,\"proxyPassword\": null,\"readTimeoutMs\": 0," +
+                                "\"maxParallelRequestsCount\": 0,\"headers\": {\"Content-Type\": \"application/json\"}," +
+                                "\"useRedisQueueForMsgPersistence\": false,\"trimQueue\": null,\"maxQueueSize\": null," +
+                                "\"credentials\": {\"type\": \"anonymous\"}}",
+                        true,
+                        "{\"restEndpointUrlPattern\":\"http://localhost/api\",\"requestMethod\": \"POST\"," +
+                                "\"useSimpleClientHttpFactory\": false,\"parseToPlainText\": false,\"ignoreRequestBody\": false," +
+                                "\"enableProxy\": false,\"useSystemProxyProperties\": false,\"proxyScheme\": null,\"proxyHost\": null," +
+                                "\"proxyPort\": 0,\"proxyUser\": null,\"proxyPassword\": null,\"readTimeoutMs\": 0," +
+                                "\"maxParallelRequestsCount\": 0,\"headers\": {\"Content-Type\": \"application/json\"}," +
+                                "\"credentials\": {\"type\": \"anonymous\"}," +
+                                "\"maxInMemoryBufferSizeInKb\": 256}"),
+                // config for version 3 with upgrade from version 2
+                Arguments.of(2,
+                        "{\"restEndpointUrlPattern\":\"http://localhost/api\",\"requestMethod\": \"POST\"," +
+                                "\"useSimpleClientHttpFactory\": false,\"parseToPlainText\": false,\"ignoreRequestBody\": false," +
+                                "\"enableProxy\": false,\"useSystemProxyProperties\": false,\"proxyScheme\": null,\"proxyHost\": null," +
+                                "\"proxyPort\": 0,\"proxyUser\": null,\"proxyPassword\": null,\"readTimeoutMs\": 0," +
+                                "\"maxParallelRequestsCount\": 0,\"headers\": {\"Content-Type\": \"application/json\"}," +
+                                "\"credentials\": {\"type\": \"anonymous\"}}",
+                        true,
+                        "{\"restEndpointUrlPattern\":\"http://localhost/api\",\"requestMethod\": \"POST\"," +
+                                "\"useSimpleClientHttpFactory\": false,\"parseToPlainText\": false,\"ignoreRequestBody\": false," +
+                                "\"enableProxy\": false,\"useSystemProxyProperties\": false,\"proxyScheme\": null,\"proxyHost\": null," +
+                                "\"proxyPort\": 0,\"proxyUser\": null,\"proxyPassword\": null,\"readTimeoutMs\": 0," +
+                                "\"maxParallelRequestsCount\": 0,\"headers\": {\"Content-Type\": \"application/json\"}," +
+                                "\"credentials\": {\"type\": \"anonymous\"}," +
+                                "\"maxInMemoryBufferSizeInKb\": 256}")
+        );
+    }
+
+    @Override
+    protected TbNode getTestNode() {
+        return restNode;
     }
 
 }

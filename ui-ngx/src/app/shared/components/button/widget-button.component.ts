@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import {
 import { coerceBoolean } from '@shared/decorators/coercion';
 import { ComponentStyle, iconStyle, validateCssSize } from '@shared/models/widget-settings.models';
 import { UtilsService } from '@core/services/utils.service';
-import { ResizeObserver } from '@juggle/resize-observer';
 import { Observable, of } from 'rxjs';
 import { WidgetContext } from '@home/models/widget-component.models';
 import { isDefinedAndNotNull, isNotEmptyStr } from '@core/utils';
@@ -46,10 +45,11 @@ const horizontalLayoutPadding = 24;
 const verticalLayoutPadding = 16;
 
 @Component({
-  selector: 'tb-widget-button',
-  templateUrl: './widget-button.component.html',
-  styleUrls: ['./widget-button.component.scss'],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-widget-button',
+    templateUrl: './widget-button.component.html',
+    styleUrls: ['./widget-button.component.scss'],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class WidgetButtonComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
 

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package org.thingsboard.server.dao.sql.query;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.server.common.data.EntityType;
@@ -118,10 +117,13 @@ public class AlarmDataAdapter {
         String originatorName = originatorNameObj != null ? originatorNameObj.toString() : null;
         Object originatorLabelObj = row.get(ModelConstants.ALARM_ORIGINATOR_LABEL_PROPERTY);
         String originatorLabel = originatorLabelObj != null ? originatorLabelObj.toString() : null;
+        Object originatorDisplayNameObj = row.get(ModelConstants.ALARM_ORIGINATOR_DISPLAY_NAME_PROPERTY);
+        String originatorDisplayName = originatorDisplayNameObj != null ? originatorDisplayNameObj.toString() : null;
 
         AlarmData alarmData = new AlarmData(alarm, entityId);
         alarmData.setOriginatorName(originatorName);
         alarmData.setOriginatorLabel(originatorLabel);
+        alarmData.setOriginatorDisplayName(originatorDisplayName);
         if (alarm.getAssigneeId() != null) {
             alarmData.setAssignee(new AlarmAssignee(alarm.getAssigneeId(), assigneeFirstName, assigneeLastName, assigneeEmail));
         }

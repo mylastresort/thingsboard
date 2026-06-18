@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@use "@angular/material" as mat;
-@import "../theme.scss";
+@use '@angular/material' as mat;
+@import '../theme.scss';
 
-$primary-color: rgba(mat.get-color-from-palette($tb-primary, 50), 0.4);
-$border: 1px solid mat.get-color-from-palette($tb-primary);
+$primary-color: rgba(mat.m2-get-color-from-palette($tb-primary, 50), 0.4);
+$border: 1px solid mat.m2-get-color-from-palette($tb-primary);
 
 :host {
   .tb-alarm-comments {
-    // background-color: $primary-color;
+    background-color: $primary-color;
     max-width: 600px;
     width: 100%;
 
@@ -32,7 +32,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
       .inner-wrap {
         border: $border;
         padding: 0 24px;
-        // background-color: $primary-color;
+        background-color: $primary-color;
       }
 
       &.oldest-first {
@@ -47,7 +47,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
           bottom: -1px;
 
           .inner-wrap {
-            border: none;
+            border: none
           }
         }
       }
@@ -75,7 +75,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
       z-index: 1;
       position: sticky;
       top: -24px;
-      // background-color: white;
+      background-color: white;
 
       &.activity-only {
         top: 0;
@@ -83,10 +83,10 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
 
       &-container {
         padding: 0 24px;
-        // background-color: $primary-color;
+        background-color: $primary-color;
         border: $border;
         border-bottom: none;
-        border-radius: 8px 8px 0px 0px;
+        border-radius: 8px 8px 0 0;
 
         &.activity-only {
           border: none;
@@ -94,7 +94,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
 
         &.asc {
           border-bottom: $border;
-          box-shadow: 0px 4px 10px rgba(23, 33, 90, 0.08);
+          box-shadow: 0 4px 10px rgba(23, 33, 90, 0.08);
 
           &.activity-only {
             border: none;
@@ -102,7 +102,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
         }
 
         .header-title {
-          // color: rgba(0, 0, 0, 0.76);
+          color: rgba(0, 0, 0, 0.76);
           letter-spacing: 0.25px;
           font-weight: 500;
         }
@@ -116,7 +116,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
     .comments-container {
       border: $border;
       border-top: none;
-      border-radius: 0px 0px 8px 8px;
+      border-radius: 0 0 8px 8px;
 
       &.activity-only {
         border: none;
@@ -134,6 +134,11 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
       &:hover {
         background-color: $primary-color;
       }
+
+      .mat-icon {
+        align-self: start;
+        color: rgba(0, 0, 0, 0.38);
+      }
     }
 
     .user-avatar {
@@ -149,7 +154,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
 
     .user-name {
       font-size: 16px;
-      // color: rgba(0, 0, 0, 0.76);
+      color: rgba(0, 0, 0, 0.76);
       font-weight: 500;
       letter-spacing: 0.25px;
     }
@@ -177,6 +182,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
       font-weight: 500;
       font-size: 14px;
       letter-spacing: 0.25px;
+      color: rgba(0, 0, 0, 0.38);
     }
 
     .text {
@@ -184,7 +190,7 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
       word-break: break-word;
       font-size: 16px;
       letter-spacing: 0.15px;
-      // color: rgba(0, 0, 0, 0.54);
+      color: rgba(0, 0, 0, 0.54);
     }
 
     .action-buttons {
@@ -199,11 +205,11 @@ $border: 1px solid mat.get-color-from-palette($tb-primary);
     }
 
     .green-button {
-      color: #00695c;
+      color: #00695C;
     }
 
     .red-button {
-      color: #d12730;
+      color: #D12730;
     }
 
     .mat-form-field {

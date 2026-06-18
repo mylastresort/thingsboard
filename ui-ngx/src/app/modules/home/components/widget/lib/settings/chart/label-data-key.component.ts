@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, EventEmitter, forwardRef, Input, OnInit, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, forwardRef, Input, OnInit, Output } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -28,6 +28,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { TranslateService } from '@ngx-translate/core';
 import { DataKeyType } from '@shared/models/telemetry/telemetry.models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export interface LabelDataKey {
   name: string;
@@ -45,16 +46,17 @@ export function labelDataKeyValidator(control: AbstractControl): ValidationError
 }
 
 @Component({
-  selector: 'tb-label-data-key',
-  templateUrl: './label-data-key.component.html',
-  styleUrls: ['./label-data-key.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => LabelDataKeyComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-label-data-key',
+    templateUrl: './label-data-key.component.html',
+    styleUrls: ['./label-data-key.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => LabelDataKeyComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class LabelDataKeyComponent extends PageComponent implements OnInit, ControlValueAccessor {
 
@@ -75,7 +77,8 @@ export class LabelDataKeyComponent extends PageComponent implements OnInit, Cont
 
   constructor(protected store: Store<AppState>,
               private translate: TranslateService,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
@@ -84,7 +87,9 @@ export class LabelDataKeyComponent extends PageComponent implements OnInit, Cont
       name: [null, [Validators.required]],
       type: [DataKeyType.attribute, [Validators.required]]
     });
-    this.labelDataKeyFormGroup.valueChanges.subscribe(() => {
+    this.labelDataKeyFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }

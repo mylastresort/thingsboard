@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -37,13 +37,13 @@ import { MobileService } from '@core/services/mobile.service';
 export class AuthGuard  {
 
   constructor(private store: Store<AppState>,
-    private router: Router,
-    private authService: AuthService,
-    private dialogService: DialogService,
-    private utils: UtilsService,
-    private translate: TranslateService,
-    private mobileService: MobileService,
-    private zone: NgZone) { }
+              private router: Router,
+              private authService: AuthService,
+              private dialogService: DialogService,
+              private utils: UtilsService,
+              private translate: TranslateService,
+              private mobileService: MobileService,
+              private zone: NgZone) {}
 
   getAuthState(): Observable<AuthState> {
     return this.store.pipe(
@@ -55,20 +55,17 @@ export class AuthGuard  {
   }
 
   canActivate(next: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot) {
+              state: RouterStateSnapshot) {
 
     return this.getAuthState().pipe(
       mergeMap((authState) => {
         const url: string = state.url;
-        // console.log("url === ", url);
+
         let lastChild = state.root;
-        // console.log("lastChild === ", lastChild);
-        // console.log("lastChild.url === ", lastChild.url);
         const urlSegments: string[] = [];
         if (lastChild.url) {
           urlSegments.push(...lastChild.url.map(segment => segment.path));
         }
-        // console.log("urlSegments === ", urlSegments);
         while (lastChild.children.length) {
           lastChild = lastChild.children[0];
           if (lastChild.url) {
@@ -76,31 +73,22 @@ export class AuthGuard  {
           }
         }
         const path = urlSegments.join('.');
-        // console.log("path === ", path);
         const publicId = this.utils.getQueryParam('publicId');
-        // console.log("publicId === ", publicId);
         const data = lastChild.data || {};
         const params = lastChild.params || {};
         const isPublic = data.module === 'public';
-        // console.log("data === ", data);
-        // console.log("params === ", params);
-        // console.log("data.module === ", data.module);
-        // console.log("authState.isAuthenticated === ", authState.isAuthenticated);
+
         if (!authState.isAuthenticated || isPublic) {
-          // console.log("here is auth/isPublic")
           if (publicId && publicId.length > 0) {
-            // console.log("here publicId")
             this.authService.setUserFromJwtToken(null, null, false);
             this.authService.reloadUser();
             return of(false);
           } else if (!isPublic) {
-            // console.log("here is not public")
             this.authService.redirectUrl = url;
             // this.authService.gotoDefaultPlace(false);
             return of(this.authService.defaultUrl(false));
           } else {
             if (path === 'login') {
-              // console.log("path is login")
               return forkJoin([this.authService.loadOAuth2Clients()]).pipe(
                 map(() => {
                   return true;
@@ -116,8 +104,17 @@ export class AuthGuard  {
               }
               this.authService.logout();
               return of(this.authService.defaultUrl(false));
+            } else if (path === 'login.force-mfa') {
+              if (authState.authUser?.authority === Authority.MFA_CONFIGURATION_TOKEN) {
+                return this.authService.getAvailableTwoFaProviders().pipe(
+                  map(() => {
+                    return true;
+                  })
+                );
+              }
+              this.authService.logout();
+              return of(this.authService.defaultUrl(false));
             } else {
-              // console.log("return true");
               return of(true);
             }
           }
@@ -134,7 +131,7 @@ export class AuthGuard  {
             }
           }
           if (this.mobileService.isMobileApp() && !path.startsWith('dashboard.')) {
-            this.mobileService.handleMobileNavigation(path, params);
+            this.mobileService.handleMobileNavigation(path, params, lastChild.queryParams);
             return of(false);
           }
           if (authState.authUser.authority === Authority.PRE_VERIFICATION_TOKEN) {
@@ -164,7 +161,7 @@ export class AuthGuard  {
           }
         }
       }),
-      catchError((err => { console.error(err); return of(false); }))
+      catchError((err => { console.error(err); return of(false); } ))
     );
   }
 

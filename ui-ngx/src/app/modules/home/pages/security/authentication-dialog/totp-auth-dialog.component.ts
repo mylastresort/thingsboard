@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -28,11 +28,13 @@ import {
   TwoFactorAuthProviderType
 } from '@shared/models/two-factor-auth.models';
 import { MatStepper } from '@angular/material/stepper';
+import { unwrapModule } from '@core/utils';
 
 @Component({
-  selector: 'tb-totp-auth-dialog',
-  templateUrl: './totp-auth-dialog.component.html',
-  styleUrls: ['./authentication-dialog.component.scss']
+    selector: 'tb-totp-auth-dialog',
+    templateUrl: './totp-auth-dialog.component.html',
+    styleUrls: ['./authentication-dialog.component.scss'],
+    standalone: false
 })
 export class TotpAuthDialogComponent extends DialogComponent<TotpAuthDialogComponent> {
 
@@ -41,6 +43,7 @@ export class TotpAuthDialogComponent extends DialogComponent<TotpAuthDialogCompo
 
   totpConfigForm: UntypedFormGroup;
   totpAuthURL: string;
+  totpAuthURLSecret: string;
 
   @ViewChild('stepper', {static: false}) stepper: MatStepper;
   @ViewChild('canvas', {static: false}) canvasRef: ElementRef<HTMLCanvasElement>;
@@ -54,9 +57,10 @@ export class TotpAuthDialogComponent extends DialogComponent<TotpAuthDialogCompo
     this.twoFaService.generateTwoFaAccountConfig(TwoFactorAuthProviderType.TOTP).subscribe(accountConfig => {
       this.authAccountConfig = accountConfig as TotpTwoFactorAuthAccountConfig;
       this.totpAuthURL = this.authAccountConfig.authUrl;
+      this.totpAuthURLSecret = new URL(this.totpAuthURL).searchParams.get('secret');
       this.authAccountConfig.useByDefault = true;
       import('qrcode').then((QRCode) => {
-        QRCode.toCanvas(this.canvasRef.nativeElement, this.totpAuthURL);
+        unwrapModule(QRCode).toCanvas(this.canvasRef.nativeElement, this.totpAuthURL);
         this.canvasRef.nativeElement.style.width = 'auto';
         this.canvasRef.nativeElement.style.height = 'auto';
       });

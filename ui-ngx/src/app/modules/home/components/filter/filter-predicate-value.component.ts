@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit } from '@angular/core';
 import {
   ControlValueAccessor,
   UntypedFormBuilder,
@@ -35,23 +35,25 @@ import {
   inheritModeForDynamicValueSourceType,
   StringOperation
 } from '@shared/models/query/query.models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'tb-filter-predicate-value',
-  templateUrl: './filter-predicate-value.component.html',
-  styleUrls: ['./filter-predicate.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => FilterPredicateValueComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => FilterPredicateValueComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-filter-predicate-value',
+    templateUrl: './filter-predicate-value.component.html',
+    styleUrls: ['./filter-predicate.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => FilterPredicateValueComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => FilterPredicateValueComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class FilterPredicateValueComponent implements ControlValueAccessor, Validator, OnInit {
 
@@ -113,7 +115,8 @@ export class FilterPredicateValueComponent implements ControlValueAccessor, Vali
   private propagateChange = null;
   private propagateChangePending = false;
 
-  constructor(private fb: UntypedFormBuilder) {
+  constructor(private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
   }
 
   ngOnInit(): void {
@@ -147,7 +150,9 @@ export class FilterPredicateValueComponent implements ControlValueAccessor, Vali
         }
       )
     });
-    this.filterPredicateValueFormGroup.get('dynamicValue').get('sourceType').valueChanges.subscribe(
+    this.filterPredicateValueFormGroup.get('dynamicValue').get('sourceType').valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(
       (sourceType) => {
         if (!sourceType) {
           this.filterPredicateValueFormGroup.get('dynamicValue').get('sourceAttribute').patchValue(null, {emitEvent: false});
@@ -156,7 +161,9 @@ export class FilterPredicateValueComponent implements ControlValueAccessor, Vali
       }
     );
     this.updateValidationDynamicMode();
-    this.filterPredicateValueFormGroup.valueChanges.subscribe(() => {
+    this.filterPredicateValueFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }

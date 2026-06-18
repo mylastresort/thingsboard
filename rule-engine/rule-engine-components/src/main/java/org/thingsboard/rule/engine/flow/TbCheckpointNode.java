@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package org.thingsboard.rule.engine.flow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.extern.slf4j.Slf4j;
 import org.thingsboard.rule.engine.api.EmptyNodeConfiguration;
 import org.thingsboard.rule.engine.api.RuleNode;
 import org.thingsboard.rule.engine.api.TbContext;
@@ -25,14 +24,12 @@ import org.thingsboard.rule.engine.api.TbNode;
 import org.thingsboard.rule.engine.api.TbNodeConfiguration;
 import org.thingsboard.rule.engine.api.TbNodeException;
 import org.thingsboard.server.common.data.msg.TbNodeConnectionType;
-import org.thingsboard.rule.engine.api.util.TbNodeUtils;
 import org.thingsboard.server.common.data.plugin.ComponentType;
 import org.thingsboard.server.common.data.util.TbPair;
 import org.thingsboard.server.common.msg.TbMsg;
 
 import static org.thingsboard.server.common.data.DataConstants.QUEUE_NAME;
 
-@Slf4j
 @RuleNode(
         type = ComponentType.FLOW,
         name = "checkpoint",
@@ -41,8 +38,8 @@ import static org.thingsboard.server.common.data.DataConstants.QUEUE_NAME;
         hasQueueName = true,
         nodeDescription = "transfers the message to another queue",
         nodeDetails = "After successful transfer incoming message is automatically acknowledged. Queue name is configurable.",
-        uiResources = {"static/rulenode/rulenode-core-config.js"},
-        configDirective = "tbNodeEmptyConfig"
+        configDirective = "tbNodeEmptyConfig",
+        docUrl = "https://thingsboard.io/docs/user-guide/rule-engine-2-0/nodes/flow/checkpoint/"
 )
 public class TbCheckpointNode implements TbNode {
 
@@ -50,7 +47,7 @@ public class TbCheckpointNode implements TbNode {
 
     @Override
     public void init(TbContext ctx, TbNodeConfiguration configuration) throws TbNodeException {
-        this.queueName = ctx.getQueueName();
+        queueName = ctx.getQueueName();
     }
 
     @Override

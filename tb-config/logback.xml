@@ -1,0 +1,54 @@
+<configuration scan="true" scanPeriod="10 seconds">
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="fileLogAppender"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/thingsboard/thingsboard.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>/var/log/thingsboard/thingsboard.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Base: INFO for all TB, not DEBUG -->
+    <logger name="org.thingsboard.server" level="INFO" />
+
+    <!-- Keep DEBUG only where you actually need detail -->
+    <logger name="org.thingsboard.server.controller" level="DEBUG" />
+    <logger name="org.thingsboard.server.transport" level="DEBUG" />
+
+    <!-- Rule engine: WARN — the actor/dispatch spam is useless at runtime -->
+    <logger name="org.thingsboard.server.actors" level="WARN" />
+    <logger name="org.thingsboard.server.service.queue" level="WARN" />
+
+    <!-- Silence the top 3 chatty classes explicitly -->
+    <logger name="org.thingsboard.server.service.queue.TbMsgPackProcessingContext" level="OFF" />
+    <logger name="org.thingsboard.server.actors.service.ContextAwareActor" level="OFF" />
+    <logger name="org.thingsboard.server.service.queue.processing.BurstTbRuleEngineSubmitStrategy" level="WARN" />
+
+    <!-- Existing suppressions -->
+    <logger name="com.microsoft.azure.servicebus.primitives.CoreMessageReceiver" level="OFF" />
+    <logger name="org.apache.kafka.common.utils.AppInfoParser" level="WARN" />
+    <logger name="org.apache.kafka.clients" level="WARN" />
+    <logger name="org.springframework" level="WARN" />
+    <logger name="org.hibernate" level="WARN" />
+
+    <!-- Silence MQTT connect/disconnect churn from sim devices -->
+    <logger name="org.thingsboard.server.transport.mqtt.MqttTransportHandler" level="WARN" />
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="fileLogAppender"/>
+    </root>
+
+</configuration>

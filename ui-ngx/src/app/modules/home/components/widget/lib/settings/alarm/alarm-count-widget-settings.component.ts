@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -22,9 +22,10 @@ import { AppState } from '@core/core.state';
 import { countDefaultSettings } from '@home/components/widget/lib/count/count-widget.models';
 
 @Component({
-  selector: 'tb-alarm-count-widget-settings',
-  templateUrl: './alarm-count-widget-settings.component.html',
-  styleUrls: ['./../widget-settings.scss']
+    selector: 'tb-alarm-count-widget-settings',
+    templateUrl: './alarm-count-widget-settings.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    standalone: false
 })
 export class AlarmCountWidgetSettingsComponent extends WidgetSettingsComponent {
 
@@ -40,7 +41,7 @@ export class AlarmCountWidgetSettingsComponent extends WidgetSettingsComponent {
   }
 
   protected defaultSettings(): WidgetSettings {
-    return {...countDefaultSettings(true)};
+    return countDefaultSettings(true);
   }
 
   protected onSettingsSet(settings: WidgetSettings) {

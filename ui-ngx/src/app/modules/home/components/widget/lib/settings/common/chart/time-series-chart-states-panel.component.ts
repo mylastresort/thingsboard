@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit, ViewEncapsulation } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -32,24 +32,26 @@ import {
   timeSeriesChartStateValid,
   timeSeriesChartStateValidator
 } from '@home/components/widget/lib/chart/time-series-chart.models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'tb-time-series-chart-states-panel',
-  templateUrl: './time-series-chart-states-panel.component.html',
-  styleUrls: ['./time-series-chart-states-panel.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => TimeSeriesChartStatesPanelComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => TimeSeriesChartStatesPanelComponent),
-      multi: true
-    }
-  ],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-time-series-chart-states-panel',
+    templateUrl: './time-series-chart-states-panel.component.html',
+    styleUrls: ['./time-series-chart-states-panel.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => TimeSeriesChartStatesPanelComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => TimeSeriesChartStatesPanelComponent),
+            multi: true
+        }
+    ],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class TimeSeriesChartStatesPanelComponent implements ControlValueAccessor, OnInit, Validator {
 
@@ -60,14 +62,17 @@ export class TimeSeriesChartStatesPanelComponent implements ControlValueAccessor
 
   private propagateChange = (_val: any) => {};
 
-  constructor(private fb: UntypedFormBuilder) {
+  constructor(private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
   }
 
   ngOnInit() {
     this.statesFormGroup = this.fb.group({
       states: [this.fb.array([]), []]
     });
-    this.statesFormGroup.valueChanges.subscribe(
+    this.statesFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(
       () => {
         let states: TimeSeriesChartStateSettings[] = this.statesFormGroup.get('states').value;
         if (states) {

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.thingsboard.server.dao.user;
 
 import org.thingsboard.server.common.data.User;
+import org.thingsboard.server.common.data.UserAuthDetails;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.id.TenantProfileId;
@@ -28,7 +29,7 @@ import org.thingsboard.server.dao.TenantEntityDao;
 import java.util.List;
 import java.util.UUID;
 
-public interface UserDao extends Dao<User>, TenantEntityDao {
+public interface UserDao extends Dao<User>, TenantEntityDao<User> {
 
     /**
      * Save or update user object
@@ -100,5 +101,11 @@ public interface UserDao extends Dao<User>, TenantEntityDao {
     PageData<User> findByAuthorityAndTenantsIds(Authority authority, List<TenantId> tenantsIds, PageLink pageLink);
 
     PageData<User> findByAuthorityAndTenantProfilesIds(Authority authority, List<TenantProfileId> tenantProfilesIds, PageLink pageLink);
+
+    int countTenantAdmins(UUID tenantId);
+
+    UserAuthDetails findUserAuthDetailsByUserId(UUID tenantId, UUID userId);
+
+    List<User> findUsersByTenantIdAndIds(UUID tenantId, List<UUID> userIds);
 
 }

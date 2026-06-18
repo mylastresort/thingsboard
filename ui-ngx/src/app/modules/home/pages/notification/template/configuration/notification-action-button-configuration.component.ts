@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -32,20 +32,21 @@ import { isDefinedAndNotNull } from '@core/utils';
 import { coerceBoolean } from '@shared/decorators/coercion';
 
 @Component({
-  selector: 'tb-notification-action-button-configuration',
-  templateUrl: './notification-action-button-configuration.component.html',
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => NotificationActionButtonConfigurationComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => NotificationActionButtonConfigurationComponent),
-      multi: true,
-    }
-  ]
+    selector: 'tb-notification-action-button-configuration',
+    templateUrl: './notification-action-button-configuration.component.html',
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => NotificationActionButtonConfigurationComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => NotificationActionButtonConfigurationComponent),
+            multi: true,
+        }
+    ],
+    standalone: false
 })
 export class NotificationActionButtonConfigurationComponent implements ControlValueAccessor, Validator, OnInit, OnDestroy {
 
@@ -84,7 +85,7 @@ export class NotificationActionButtonConfigurationComponent implements ControlVa
       enabled: [false],
       text: [{value: '', disabled: true}, [Validators.required, Validators.maxLength(50)]],
       linkType: [ActionButtonLinkType.LINK],
-      link: [{value: '', disabled: true}, Validators.required],
+      link: [{value: '', disabled: true}, [Validators.required, Validators.maxLength(300)]],
       dashboardId: [{value: null, disabled: true}, Validators.required],
       dashboardState: [{value: null, disabled: true}],
       setEntityIdInState: [{value: true, disabled: true}]

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package org.thingsboard.server.dao.ota;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,13 +41,14 @@ import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.dao.entity.AbstractCachedEntityService;
 import org.thingsboard.server.dao.eventsourcing.DeleteEntityEvent;
 import org.thingsboard.server.dao.eventsourcing.SaveEntityEvent;
-import org.thingsboard.server.dao.exception.DataValidationException;
+import org.thingsboard.server.exception.DataValidationException;
 import org.thingsboard.server.dao.service.DataValidator;
 import org.thingsboard.server.dao.service.PaginatedRemover;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 import static org.thingsboard.server.dao.service.Validator.validateId;
 import static org.thingsboard.server.dao.service.Validator.validatePageLink;
 
@@ -54,6 +56,7 @@ import static org.thingsboard.server.dao.service.Validator.validatePageLink;
 @Slf4j
 @RequiredArgsConstructor
 public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackageCacheKey, OtaPackageInfo, OtaPackageCacheEvictEvent> implements OtaPackageService {
+
     public static final String INCORRECT_OTA_PACKAGE_ID = "Incorrect otaPackageId ";
     public static final String INCORRECT_TENANT_ID = "Incorrect tenantId ";
 
@@ -73,7 +76,7 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
     @Override
     public OtaPackageInfo saveOtaPackageInfo(OtaPackageInfo otaPackageInfo, boolean isUrl) {
         log.trace("Executing saveOtaPackageInfo [{}]", otaPackageInfo);
-        if (isUrl && (StringUtils.isEmpty(otaPackageInfo.getUrl()) || otaPackageInfo.getUrl().trim().length() == 0)) {
+        if (isUrl && StringUtils.isBlank(otaPackageInfo.getUrl())) {
             throw new DataValidationException("Ota package URL should be specified!");
         }
         otaPackageInfoValidator.validate(otaPackageInfo, OtaPackageInfo::getTenantId);
@@ -90,12 +93,10 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
             if (otaPackageId != null) {
                 handleEvictEvent(new OtaPackageCacheEvictEvent(otaPackageId));
             }
-            ConstraintViolationException e = extractConstraintViolationException(t).orElse(null);
-            if (e != null && e.getConstraintName() != null && e.getConstraintName().equalsIgnoreCase("ota_package_tenant_title_version_unq_key")) {
-                throw new DataValidationException("OtaPackage with such title and version already exists!");
-            } else {
-                throw t;
-            }
+            checkConstraintViolation(t,
+                    "ota_package_tenant_title_version_unq_key", "OtaPackage with such title and version already exists!",
+                    "ota_package_external_id_unq_key", "OtaPackage with such external id already exists!");
+            throw t;
         }
     }
 
@@ -116,12 +117,10 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
             if (otaPackageId != null) {
                 handleEvictEvent(new OtaPackageCacheEvictEvent(otaPackageId));
             }
-            ConstraintViolationException e = extractConstraintViolationException(t).orElse(null);
-            if (e != null && e.getConstraintName() != null && e.getConstraintName().equalsIgnoreCase("ota_package_tenant_title_version_unq_key")) {
-                throw new DataValidationException("OtaPackage with such title and version already exists!");
-            } else {
-                throw t;
-            }
+            checkConstraintViolation(t,
+                    "ota_package_tenant_title_version_unq_key", "OtaPackage with such title and version already exists!",
+                    "ota_package_external_id_unq_key", "OtaPackage with such external id already exists!");
+            throw t;
         }
     }
 
@@ -136,24 +135,16 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
 
     @SuppressWarnings("deprecation")
     private HashFunction getHashFunction(ChecksumAlgorithm checksumAlgorithm) {
-        switch (checksumAlgorithm) {
-            case MD5:
-                return Hashing.md5();
-            case SHA256:
-                return Hashing.sha256();
-            case SHA384:
-                return Hashing.sha384();
-            case SHA512:
-                return Hashing.sha512();
-            case CRC32:
-                return Hashing.crc32();
-            case MURMUR3_32:
-                return Hashing.murmur3_32();
-            case MURMUR3_128:
-                return Hashing.murmur3_128();
-            default:
-                throw new DataValidationException("Unknown checksum algorithm!");
-        }
+        return switch (checksumAlgorithm) {
+            case MD5 -> Hashing.md5();
+            case SHA256 -> Hashing.sha256();
+            case SHA384 -> Hashing.sha384();
+            case SHA512 -> Hashing.sha512();
+            case CRC32 -> Hashing.crc32();
+            case MURMUR3_32 -> Hashing.murmur3_32();
+            case MURMUR3_128 -> Hashing.murmur3_128();
+            default -> throw new DataValidationException("Unknown checksum algorithm!");
+        };
     }
 
     @Override
@@ -169,6 +160,12 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
         validateId(otaPackageId, id -> INCORRECT_OTA_PACKAGE_ID + id);
         return cache.getAndPutInTransaction(new OtaPackageCacheKey(otaPackageId),
                 () -> otaPackageInfoDao.findById(tenantId, otaPackageId.getId()), true);
+    }
+
+    @Override
+    public OtaPackage findOtaPackageByTenantIdAndTitleAndVersion(TenantId tenantId, String title, String version) {
+        log.trace("Executing findOtaPackageByTenantIdAndTitle [{}] [{}] [{}]", tenantId, title, version);
+        return otaPackageDao.findOtaPackageByTenantIdAndTitleAndVersion(tenantId, title, version);
     }
 
     @Override
@@ -199,7 +196,9 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
         log.trace("Executing deleteOtaPackage [{}]", otaPackageId);
         validateId(otaPackageId, id -> INCORRECT_OTA_PACKAGE_ID + id);
         try {
+            Long oid = getDataOidById(tenantId, otaPackageId);
             otaPackageDao.removeById(tenantId, otaPackageId.getId());
+            unlinkDataIfPresent(tenantId, otaPackageId, oid);
             publishEvictEvent(new OtaPackageCacheEvictEvent(otaPackageId));
             eventPublisher.publishEvent(DeleteEntityEvent.builder().tenantId(tenantId).entityId(otaPackageId).build());
         } catch (Exception t) {
@@ -218,6 +217,30 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
         }
     }
 
+    private Long getDataOidById(TenantId tenantId, OtaPackageId otaPackageId) {
+        try {
+            log.trace("Executing getDataOidById tenantId [{}], otaPackageId [{}]", tenantId, otaPackageId);
+            return otaPackageDao.getDataOidById(otaPackageId.getId());
+        } catch (Exception e) {
+            log.warn("[{}][{}] Failed to retrieve OID before deletion", tenantId, otaPackageId, e);
+        }
+        return null;
+    }
+
+    private void unlinkDataIfPresent(TenantId tenantId, OtaPackageId otaPackageId, Long oid) {
+        if (oid == null) {
+            return;
+        }
+        try {
+            Integer result = otaPackageDao.unlinkLargeObject(oid);
+            if (result != 1) {
+                log.warn("[{}][{}] Failed to delete large object (OID: {}). Result code: {}", tenantId, otaPackageId, oid, result);
+            }
+        } catch (Exception e) {
+            log.warn("[{}][{}] Failed to delete large object (OID: {})", tenantId, otaPackageId, oid, e);
+        }
+    }
+
     @Override
     public void deleteEntity(TenantId tenantId, EntityId id, boolean force) {
         deleteOtaPackage(tenantId, (OtaPackageId) id);
@@ -229,34 +252,38 @@ public class BaseOtaPackageService extends AbstractCachedEntityService<OtaPackag
     }
 
     @Override
+    public void deleteByTenantId(TenantId tenantId) {
+        deleteOtaPackagesByTenantId(tenantId);
+    }
+
+    @Override
     public void deleteOtaPackagesByTenantId(TenantId tenantId) {
         log.trace("Executing deleteOtaPackagesByTenantId, tenantId [{}]", tenantId);
         validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
         tenantOtaPackageRemover.removeEntities(tenantId, tenantId);
     }
 
-    @Override
-    public void deleteByTenantId(TenantId tenantId) {
-        deleteOtaPackagesByTenantId(tenantId);
-    }
+    private final PaginatedRemover<TenantId, OtaPackageInfo> tenantOtaPackageRemover = new PaginatedRemover<>() {
+        @Override
+        protected PageData<OtaPackageInfo> findEntities(TenantId tenantId, TenantId id, PageLink pageLink) {
+            return otaPackageInfoDao.findOtaPackageInfoByTenantId(id, pageLink);
+        }
 
-    private PaginatedRemover<TenantId, OtaPackageInfo> tenantOtaPackageRemover =
-            new PaginatedRemover<>() {
-
-                @Override
-                protected PageData<OtaPackageInfo> findEntities(TenantId tenantId, TenantId id, PageLink pageLink) {
-                    return otaPackageInfoDao.findOtaPackageInfoByTenantId(id, pageLink);
-                }
-
-                @Override
-                protected void removeEntity(TenantId tenantId, OtaPackageInfo entity) {
-                    deleteOtaPackage(tenantId, entity.getId());
-                }
-            };
+        @Override
+        protected void removeEntity(TenantId tenantId, OtaPackageInfo entity) {
+            deleteOtaPackage(tenantId, entity.getId());
+        }
+    };
 
     @Override
     public Optional<HasId<?>> findEntity(TenantId tenantId, EntityId entityId) {
         return Optional.ofNullable(findOtaPackageInfoById(tenantId, new OtaPackageId(entityId.getId())));
+    }
+
+    @Override
+    public FluentFuture<Optional<HasId<?>>> findEntityAsync(TenantId tenantId, EntityId entityId) {
+        return FluentFuture.from(findOtaPackageInfoByIdAsync(tenantId, new OtaPackageId(entityId.getId())))
+                .transform(Optional::ofNullable, directExecutor());
     }
 
     @Override

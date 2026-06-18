@@ -1,132 +1,48 @@
+name: tb-lts43-monolith-merge
+
 services:
-  database:
-    image: postgres:16
-    container_name: database
-    restart: on-failure:3
-    # mem_limit: 1g
-    # cpus: 1.0
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+  postgres:
+    restart: always
+    image: "postgres:18"
+    container_name: tb-lts43-monolith-postgres
     ports:
-      - "5432:5432"
+      - "5432"
+    environment:
+      POSTGRES_DB: thingsboard
+      POSTGRES_PASSWORD: postgres
     volumes:
-      - ../psql_data/main:/var/lib/postgresql/data
+      - ../psql_data-merge:/var/lib/postgresql
       - .:/app
-    networks:
-      - thingsboard
-    env_file:
-      - ./.env
-    command:
-      - "postgres"
-      - "-c"
-      - "shared_buffers=256MB"
-      - "-c"
-      - "max_connections=50"
-      - "-c"
-      - "work_mem=16MB"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready",
-          "-d",
-          "${POSTGRES_DB}",
-          "-U",
-          "${POSTGRES_USER}",
-        ]
-      interval: 2m
-      timeout: 30s
-      retries: 3
-      start_period: 80s
-
-  # Commented out - uncomment only when needed
-  # anomalies-script:
-  #   build:
-  #     context: ./send-telemetry/
-  #     dockerfile: anomalies-script.Dockerfile
-  #   container_name: anomalies-script
-  #   mem_limit: 512m
-  #   cpus: 0.5
-  #   depends_on:
-  #     thingsboard:
-  #       condition: service_healthy
-  #   networks:
-  #     - thingsboard
-
-  # forecast-script:
-  #   build:
-  #     context: ./send-telemetry/
-  #     dockerfile: forecast-script.Dockerfile
-  #   container_name: forecast-script
-  #   mem_limit: 512m
-  #   cpus: 0.5
-  #   depends_on:
-  #     thingsboard:
-  #       condition: service_healthy
-  #   networks:
-  #     - thingsboard
-
-  ws-events:
-    build:
-      context: ./send-telemetry/
-      dockerfile: ws-events.Dockerfile
-    container_name: ws-events
-    mem_limit: 512m
-    cpus: 0.5
-    depends_on:
-      thingsboard:
-        condition: service_healthy
-    networks:
-      - thingsboard
-    volumes:
-      - .:/app
-
-  dashboard-script:
-    build:
-      context: ./send-telemetry/
-      dockerfile: dashboard-script.Dockerfile
-    container_name: dashboard-script
-    # mem_limit: 512m
-    # cpus: 0.5
-    depends_on:
-      thingsboard:
-        condition: service_healthy
-    volumes:
-      - .:/app
-    networks:
-      - thingsboard
+      test: ["CMD-SHELL", "pg_isready -U postgres -d thingsboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   model:
     build:
       context: ./predictive-maintenance
       dockerfile: .Dockerfile
-    container_name: model
-    # mem_limit: 2g
-    # mem_reservation: 512mb
-    # cpus: 0.75
+    container_name: tb-lts43-monolith-model
     volumes:
       - .:/app
-      - ../thingsboard_pip_cache:/root/.cache/pip
-      - ../thingsboard_models_cache:/models
-    depends_on:
-      - database
+      - pip-cache:/root/.cache/pip
+      - models-cache:/models
     ports:
       - "8000:8000"
-    networks:
-      - thingsboard
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 2m
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
     env_file:
-      - ./.env
+      - .env
     environment:
-      - WAIT_HOSTS=database:5432
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}
+      - WAIT_HOSTS=postgres:5432
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - MODELS_PATH=/models
+      - AUTO_START_PREDICTION_JOBS=${AUTO_START_PREDICTION_JOBS:-false}
+      - ENABLE_FILE_WATCH=false
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - AccountSid=${ACCOUNT_SID:-defaultSid}
       - AccountToken=${ACCOUNT_TOKEN:-defaultToken}
       - TwilioSmsFrom=${TWILIO_SMS_FROM:-+1234567890}
@@ -134,96 +50,142 @@ services:
       - WB_TOKEN=${WB_TOKEN:-defaultWBToken}
       - EMAIL_ADDRESS=${EMAIL_ADDRESS:-test@example.com}
       - APP_PASSWORD=${APP_PASSWORD:-defaultPassword}
-      - MODELS_PATH=/models
-      - AUTO_START_PREDICTION_JOBS=${AUTO_START_PREDICTION_JOBS:-false}
-      - ENABLE_FILE_WATCH=false
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-
-  thingsboard:
-    container_name: thingsboard
-    build:
-      context: .
-      dockerfile: .Dockerfile
-    # mem_limit: 3g
-    # mem_reservation: 512m
-    # cpus: 2.0
-    volumes:
-      - .:/app
-      - ../thingsboard_m2_cache:/root/.m2
-      - ../thingsboard_npm_cache:/root/.npm
-      - ../thingsboard_gradle:/root/.gradle
-    ports:
-      - "8080:8080"
-      - "1884:1884"
-      - "7071:7071"
-      - "8883:8883"
-    networks:
-      - thingsboard
-    depends_on:
-      database:
-        condition: service_healthy
-      model:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 2m
       timeout: 10s
       retries: 3
-      start_period: 120s
-    environment:
-      - WAIT_HOSTS=database:5432,model:8000
-      - FASTAPI_BASE_URL=http://model:8000/api/v1/
-      - FASTAPI_WS_URL=ws://model:8000/models/ws/unified
-      # Java heap size: 2GB as recommended by ThingsBoard docs
-      - JAVA_OPTS=-Xms2G -Xmx2G -XX:+UseG1GC -XX:MaxGCPauseMillis=200
-      # Changed to false - only load once, not on every startup
-      - PM_LOAD_SAMPLE_DATA=true
-      - PM_LOAD_SAMPLE_DATA_UPDATE_TO_CURRENT_TIME=true
-      - PM_AUTO_LOAD_ON_STARTUP=false
-      - PM_TENANT_EMAIL=${PM_TENANT_EMAIL:-tenant@thingsboard.org}
-      - PM_MACHINE_IDS=${PM_MACHINE_IDS:-1,11}
-      - PM_MAX_MACHINES=${PM_MAX_MACHINES:-10}
-      - PM_ROLLBACK_ON_FAILURE=${PM_ROLLBACK_ON_FAILURE:-true}
-      - PM_EXIT_ON_FAILURE=${PM_EXIT_ON_FAILURE:-true}
-      - PM_END_DATE_MACHINES=${PM_END_DATE_MACHINES:-2015-04-20 06:00:00,2024-12-31 00:00:00}
-      - PM_DATA_PATH=${PM_DATA_PATH:-predictive-maintenance/data}
+      start_period: 60s
 
-  ui-ngx:
+  thingsboard:
+    # restart: always
+    image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
+    container_name: tb-lts43-monolith-node
+    volumes:
+      - ./tb-config:/config
+    ports:
+      - "8080:8080"
+      - "7070:7070"
+      - "1883:1883"
+      - "8883:8883"
+      - "5683-5688:5683-5688/udp"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    environment:
+      TB_SERVICE_ID: tb-ce-node
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/thingsboard
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      TB_QUEUE_TYPE: in-memory
+      FASTAPI_BASE_URL: http://model:8000/api/v1/
+      FASTAPI_WS_URL: ws://model:8000/models/ws/unified
+      LOGGING_LEVEL_ORG_THINGSBOARD: INFO                          # base: no more DEBUG floods
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG       # keep REST controller detail
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_TRANSPORT: DEBUG        # keep MQTT/CoAP detail
+
+      # Silence the worst offenders explicitly
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_SERVICE_QUEUE: WARN
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_SERVICE: WARN
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_RULECHAIN: WARN
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # model:
+      #   condition: service_healthy
+    env_file:
+      - .env
+    # no healthcheck — actuator/health not available in this build;
+    # tb-web-ui-dev uses service_started below and lets the proxy retry
+
+  # Commented out — uncomment only when needed
+  # anomalies-script:
+  #   build:
+  #     context: ./send-telemetry
+  #     dockerfile: anomalies-script.Dockerfile
+  #   container_name: tb-lts43-monolith-anomalies-script
+  #   volumes:
+  #     - .:/app
+  #   depends_on:
+  #     thingsboard:
+  #       condition: service_started
+
+  # forecast-script:
+  #   build:
+  #     context: ./send-telemetry
+  #     dockerfile: forecast-script.Dockerfile
+  #   container_name: tb-lts43-monolith-forecast-script
+  #   volumes:
+  #     - .:/app
+  #   depends_on:
+  #     thingsboard:
+  #       condition: service_started
+
+  ws-events:
     build:
-      context: ui-ngx
-      dockerfile: .Dockerfile
-    container_name: thingsboard-dev
-    # mem_limit: 10g
-    # mem_reservation: 1g
-    # cpus: 1.0
+      context: ./send-telemetry
+      dockerfile: ws-events.Dockerfile
+    container_name: tb-lts43-monolith-ws-events
     volumes:
       - .:/app
-      - ../thingsboard_npm_cache:/root/.npm
-    ports:
-      - "4200:4200"
-    networks:
-      - thingsboard
     depends_on:
       thingsboard:
-        condition: service_healthy
-    environment:
-      - WAIT_HOSTS=thingsboard:8080
-      # Keep 8GB for stability
-      - NODE_OPTIONS=--max-old-space-size=8192
-      # Disable polling to reduce CPU usage
-      - CHOKIDAR_USEPOLLING=false
-      # Increase debounce interval to reduce file watch overhead
-      - CHOKIDAR_INTERVAL=3000
-      # Disable analytics
-      - NG_CLI_ANALYTICS=false
-      # Reduce TypeScript compilation overhead
-      - NG_BUILD_CACHE=.angular/cache
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4200 || exit 1"]
-      interval: 3m
-      timeout: 30s
-      retries: 3
-      start_period: 90s
+        condition: service_started
 
-networks:
-  thingsboard:
+  dashboard-script:
+    build:
+      context: ./send-telemetry
+      dockerfile: dashboard-script.Dockerfile
+    container_name: tb-lts43-monolith-dashboard-script
+    volumes:
+      - .:/app
+    depends_on:
+      thingsboard:
+        condition: service_started
+
+  tb-web-ui-dev:
+    build:
+      context: ./ui-ngx
+      dockerfile: .Dockerfile
+    container_name: tb-lts43-monolith-tb-web-ui-dev
+    working_dir: /app
+    volumes:
+      - ./ui-ngx:/app
+    environment:
+      - HOSTS=http://node:8080
+      - MODEL_URL=http://model:8000
+    command: sh ./entrypoint.sh
+    ports:
+      - "4200:4200"
+    depends_on:
+      thingsboard:
+        condition: service_started # downgraded — no healthcheck to wait on
+
+
+  tb-web-ui:
+    build:
+      context: .                        # ← repo root
+      dockerfile: msa/web-ui/Dockerfile
+    container_name: tb-lts43-monolith-tb-web-ui
+    ports:
+      - "8090:8090"
+    environment:
+      - TB_ENABLE_PROXY=true
+      - TB_HOST=thingsboard
+      - TB_PORT=8080
+      - HTTP_BIND_ADDRESS=0.0.0.0
+      - HTTP_BIND_PORT=8090
+    depends_on:
+      thingsboard:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  pip-cache:
+    driver: local
+  models-cache:
+    driver: local

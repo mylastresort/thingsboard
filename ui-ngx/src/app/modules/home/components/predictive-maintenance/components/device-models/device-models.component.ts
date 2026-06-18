@@ -34,7 +34,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PredictiveModelsService } from '@app/core/http/forecast.service';
 import { DeviceService, DialogService } from '@app/core/public-api';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import { Order } from '@app/modules/home/models/predictive-maintenance.models';
 import { AddModelDialogComponent } from '../model/add-model-dialog/add-model-dialog.component';
 
@@ -58,7 +57,6 @@ import { AddModelDialogComponent } from '../model/add-model-dialog/add-model-dia
     MatCheckboxModule,
     TranslateModule,
     ReactiveFormsModule,
-    FlexLayoutModule,
   ],
 })
 export class DeviceModelsComponent implements OnInit {
@@ -178,7 +176,7 @@ export class DeviceModelsComponent implements OnInit {
   }
 
   openModel(model: Order): void {
-    this.router.navigate(['/predictiveMaintenance/forecast', model.trueId]);
+    this.router.navigate(['/predictive-maintenance/forecast', model.trueId]);
   }
 
   editForecast(event: Event, forecast: Order): void {
@@ -286,7 +284,7 @@ export class DeviceModelsComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/predictiveMaintenance']);
+    this.router.navigate(['/predictive-maintenance']);
   }
 
   applyFilter(event: Event): void {

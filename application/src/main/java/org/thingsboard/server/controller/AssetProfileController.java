@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,15 @@
  */
 package org.thingsboard.server.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,15 +40,18 @@ import org.thingsboard.server.common.data.id.AssetProfileId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
-import org.thingsboard.server.dao.resource.ImageService;
 import org.thingsboard.server.config.annotations.ApiOperation;
+import org.thingsboard.server.dao.resource.ImageService;
 import org.thingsboard.server.queue.util.TbCoreComponent;
 import org.thingsboard.server.service.entitiy.asset.profile.TbAssetProfileService;
 import org.thingsboard.server.service.security.model.SecurityUser;
 import org.thingsboard.server.service.security.permission.Operation;
 import org.thingsboard.server.service.security.permission.Resource;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.thingsboard.server.controller.ControllerConstants.ASSET_PROFILE_ID;
 import static org.thingsboard.server.controller.ControllerConstants.ASSET_PROFILE_ID_PARAM_DESCRIPTION;
@@ -91,7 +94,7 @@ public class AssetProfileController extends BaseController {
         AssetProfileId assetProfileId = new AssetProfileId(toUUID(strAssetProfileId));
         var result = checkAssetProfileId(assetProfileId, Operation.READ);
         if (inlineImages) {
-            imageService.inlineImage(result);
+            result = imageService.inlineImage(result);
         }
         return result;
     }
@@ -173,8 +176,7 @@ public class AssetProfileController extends BaseController {
             notes = "Returns a page of asset profile objects owned by tenant. " +
                     PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAuthority('TENANT_ADMIN')")
-    @RequestMapping(value = "/assetProfiles", params = {"pageSize", "page"}, method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/assetProfiles")
     public PageData<AssetProfile> getAssetProfiles(
             @Parameter(description = PAGE_SIZE_DESCRIPTION, required = true)
             @RequestParam int pageSize,
@@ -194,8 +196,7 @@ public class AssetProfileController extends BaseController {
             notes = "Returns a page of asset profile info objects owned by tenant. " +
                     PAGE_DATA_PARAMETERS + ASSET_PROFILE_INFO_DESCRIPTION + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/assetProfileInfos", params = {"pageSize", "page"}, method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/assetProfileInfos")
     public PageData<AssetProfileInfo> getAssetProfileInfos(
             @Parameter(description = PAGE_SIZE_DESCRIPTION, required = true)
             @RequestParam int pageSize,
@@ -223,6 +224,31 @@ public class AssetProfileController extends BaseController {
         SecurityUser user = getCurrentUser();
         TenantId tenantId = user.getTenantId();
         return checkNotNull(assetProfileService.findAssetProfileNamesByTenantId(tenantId, activeOnly));
+    }
+
+    @Hidden
+    @PreAuthorize("hasAuthority('TENANT_ADMIN')")
+    @GetMapping(value = "/assetProfileInfos", params = {"assetProfileIds"})
+    public List<AssetProfileInfo> getAssetProfilesByIdsV1(
+            @Parameter(description = "A list of asset profile ids, separated by comma ','", array = @ArraySchema(schema = @Schema(type = "string")), required = true)
+            @RequestParam("assetProfileIds") Set<UUID> assetProfileUUIDs) throws ThingsboardException {
+        TenantId tenantId = getCurrentUser().getTenantId();
+        List<AssetProfileId> assetProfileIds = new ArrayList<>();
+        for (UUID assetProfileUUID : assetProfileUUIDs) {
+            assetProfileIds.add(new AssetProfileId(assetProfileUUID));
+        }
+        return assetProfileService.findAssetProfilesByIds(tenantId, assetProfileIds);
+    }
+
+    @ApiOperation(value = "Get Asset Profiles By Ids (getAssetProfilesByIds)",
+            notes = "Requested asset profiles must be owned by tenant which is performing the request. " +
+                    NEW_LINE)
+    @PreAuthorize("hasAuthority('TENANT_ADMIN')")
+    @GetMapping(value = "/assetProfileInfos/list")
+    public List<AssetProfileInfo> getAssetProfilesByIds(
+            @Parameter(description = "A list of asset profile ids, separated by comma ','", array = @ArraySchema(schema = @Schema(type = "string")), required = true)
+            @RequestParam("assetProfileIds") Set<UUID> assetProfileUUIDs) throws ThingsboardException {
+        return getAssetProfilesByIdsV1(assetProfileUUIDs);
     }
 
 }

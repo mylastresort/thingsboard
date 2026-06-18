@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package org.thingsboard.server.service.action;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -172,7 +173,14 @@ public class EntityActionService {
                 if (tenantId != null && !tenantId.isSysTenantId()) {
                     processNotificationRules(tenantId, entityId, entity, actionType, user, additionalInfo);
                 }
-                TbMsg tbMsg = TbMsg.newMsg(msgType.get(), entityId, customerId, metaData, TbMsgDataType.JSON, JacksonUtil.toString(entityNode));
+                TbMsg tbMsg = TbMsg.newMsg()
+                        .type(msgType.get())
+                        .originator(entityId)
+                        .customerId(customerId)
+                        .copyMetaData(metaData)
+                        .dataType(TbMsgDataType.JSON)
+                        .data(JacksonUtil.toString(entityNode))
+                        .build();
                 tbClusterService.pushMsgToRuleEngine(tenantId, entityId, tbMsg, null);
             } catch (Exception e) {
                 log.warn("[{}] Failed to push entity action to rule engine: {}", entityId, actionType, e);
@@ -228,7 +236,7 @@ public class EntityActionService {
         }
     }
 
-    public <E extends HasName, I extends EntityId> void logEntityAction(User user, I entityId, E entity, CustomerId customerId,
+    public <E extends HasName, I extends EntityId> void logEntityAction(User user, @NotNull I entityId, E entity, CustomerId customerId,
                                                                         ActionType actionType, Exception e, Object... additionalInfo) {
         if (customerId == null || customerId.isNullUid()) {
             customerId = user.getCustomerId();

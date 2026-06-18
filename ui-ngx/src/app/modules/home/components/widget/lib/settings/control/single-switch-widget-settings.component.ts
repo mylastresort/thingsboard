@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 ///
 
 import { Component } from '@angular/core';
-import { TargetDevice, WidgetSettings, WidgetSettingsComponent, widgetType } from '@shared/models/widget.models';
+import { TargetDevice, WidgetSettings, WidgetSettingsComponent, widgetTitleAutocompleteValues, widgetType } from '@shared/models/widget.models';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
@@ -28,9 +28,10 @@ import {
 import { ValueType } from '@shared/models/constants';
 
 @Component({
-  selector: 'tb-single-switch-widget-settings',
-  templateUrl: './single-switch-widget-settings.component.html',
-  styleUrls: ['./../widget-settings.scss']
+    selector: 'tb-single-switch-widget-settings',
+    templateUrl: './single-switch-widget-settings.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    standalone: false
 })
 export class SingleSwitchWidgetSettingsComponent extends WidgetSettingsComponent {
 
@@ -51,6 +52,8 @@ export class SingleSwitchWidgetSettingsComponent extends WidgetSettingsComponent
 
   singleSwitchWidgetSettingsForm: UntypedFormGroup;
 
+  predefinedValues = widgetTitleAutocompleteValues;
+
   constructor(protected store: Store<AppState>,
               private fb: UntypedFormBuilder) {
     super(store);
@@ -61,7 +64,7 @@ export class SingleSwitchWidgetSettingsComponent extends WidgetSettingsComponent
   }
 
   protected defaultSettings(): WidgetSettings {
-    return {...singleSwitchDefaultSettings};
+    return singleSwitchDefaultSettings;
   }
 
   protected onSettingsSet(settings: WidgetSettings) {
@@ -102,7 +105,8 @@ export class SingleSwitchWidgetSettingsComponent extends WidgetSettingsComponent
       offLabelFont: [settings.offLabelFont, []],
       offLabelColor: [settings.offLabelColor, []],
 
-      background: [settings.background, []]
+      background: [settings.background, []],
+      padding: [settings.padding, []]
     });
   }
 

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { FlowDirective } from '@flowjs/ngx-flow';
+import { FlowConfig } from '@flowjs/ngx-flow';
 import { TranslateService } from '@ngx-translate/core';
 import { UtilsService } from '@core/services/utils.service';
 import { DialogService } from '@core/services/dialog.service';
@@ -40,16 +40,17 @@ import { FileSizePipe } from '@shared/pipe/file-size.pipe';
 import { coerceBoolean } from '@shared/decorators/coercion';
 
 @Component({
-  selector: 'tb-file-input',
-  templateUrl: './file-input.component.html',
-  styleUrls: ['./file-input.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => FileInputComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-file-input',
+    templateUrl: './file-input.component.html',
+    styleUrls: ['./file-input.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => FileInputComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class FileInputComponent extends PageComponent implements AfterViewInit, OnDestroy, ControlValueAccessor, OnChanges {
 
@@ -102,6 +103,16 @@ export class FileInputComponent extends PageComponent implements AfterViewInit, 
   @Input()
   workFromFileObj = false;
 
+  @Input()
+  @coerceBoolean()
+  asButton: boolean;
+
+  @Input()
+  uploadButtonClass = 'browse-file';
+
+  @Input()
+  uploadButtonText: string;
+
   private multipleFileValue = false;
 
   @Input()
@@ -119,12 +130,17 @@ export class FileInputComponent extends PageComponent implements AfterViewInit, 
   @Output()
   fileNameChanged = new EventEmitter<string|string[]>();
 
+  @Output()
+  mediaTypeChanged = new EventEmitter<string>();
+
   fileName: string | string[];
   fileContent: any;
   files: File[];
 
+  mediaType: string;
+
   @ViewChild('flow', {static: true})
-  flow: FlowDirective;
+  flow: FlowConfig;
 
   @ViewChild('flowInput', {static: true})
   flowInput: ElementRef;
@@ -165,16 +181,18 @@ export class FileInputComponent extends PageComponent implements AfterViewInit, 
 
         if (readers.length) {
           Promise.all(readers).then((files) => {
-            files = files.filter(file => file.fileContent != null || file.files != null);
-            if (files.length === 1) {
-              this.fileContent = files[0].fileContent;
-              this.fileName = files[0].fileName;
-              this.files = files[0].files;
+            const validResults = files.filter(file => file.fileContent != null || file.files != null);
+
+            if (validResults.length === 1) {
+              this.fileContent = validResults[0].fileContent;
+              this.fileName = validResults[0].fileName;
+              this.files = validResults[0].files;
+              this.mediaType = validResults[0].mediaType;
               this.updateModel();
-            } else if (files.length > 1) {
-              this.fileContent = files.map(content => content.fileContent);
-              this.fileName = files.map(content => content.fileName);
-              this.files = files.map(content => content.files);
+            } else if (validResults.length > 1) {
+              this.fileContent = validResults.map(content => content.fileContent);
+              this.fileName = validResults.map(content => content.fileName);
+              this.files = validResults.map(content => content.files);
               this.updateModel();
             }
           });
@@ -188,29 +206,35 @@ export class FileInputComponent extends PageComponent implements AfterViewInit, 
 
   private readerAsFile(file: flowjs.FlowFile): Promise<any> {
     return new Promise((resolve) => {
+      if (this.workFromFileObj) {
+        resolve({
+          fileContent: null,
+          fileName: file.name,
+          files: file.file,
+          mediaType: file.file.type || null
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => {
         let fileName = null;
         let fileContent = null;
-        let files = null;
+        let mediaType = null;
         if (reader.readyState === reader.DONE) {
-          if (!this.workFromFileObj) {
-            fileContent = reader.result;
-            if (fileContent && fileContent.length > 0) {
-              if (this.contentConvertFunction) {
-                fileContent = this.contentConvertFunction(fileContent);
-              }
-              fileName = fileContent ? file.name : null;
+          fileContent = reader.result;
+          if (fileContent && fileContent.length > 0) {
+            if (this.contentConvertFunction) {
+              fileContent = this.contentConvertFunction(fileContent);
             }
-          } else if (file.name || file.file){
-            files = file.file;
-            fileName = file.name;
+            fileName = fileContent ? file.name : null;
+            mediaType = file?.file?.type || null;
           }
         }
-        resolve({fileContent, fileName, files});
+        resolve({fileContent, fileName, files: null, mediaType});
       };
       reader.onerror = () => {
-        resolve({fileContent: null, fileName: null, files: null});
+        resolve({fileContent: null, fileName: null, files: null, mediaType: null});
       };
       if (this.readAsBinary) {
         reader.readAsBinaryString(file.file);
@@ -273,6 +297,7 @@ export class FileInputComponent extends PageComponent implements AfterViewInit, 
       this.propagateChange(this.files);
     } else {
       this.propagateChange(this.fileContent);
+      this.mediaTypeChanged.emit(this.mediaType);
       this.fileNameChanged.emit(this.fileName);
     }
   }

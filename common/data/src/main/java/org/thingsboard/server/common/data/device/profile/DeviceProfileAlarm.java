@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,19 @@
 package org.thingsboard.server.common.data.device.profile;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import lombok.Data;
 import org.thingsboard.server.common.data.alarm.AlarmSeverity;
 import org.thingsboard.server.common.data.validation.Length;
 import org.thingsboard.server.common.data.validation.NoXss;
 
-import jakarta.validation.Valid;
 import java.io.Serializable;
 import java.util.List;
 import java.util.TreeMap;
 
 @Schema
 @Data
+@Deprecated
 public class DeviceProfileAlarm implements Serializable {
 
     @Schema(description = "String value representing the alarm rule id", example = "highTemperatureAlarmID")

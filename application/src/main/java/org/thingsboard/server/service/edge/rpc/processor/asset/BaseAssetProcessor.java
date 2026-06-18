@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,50 +16,50 @@
 package org.thingsboard.server.service.edge.rpc.processor.asset;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.util.Pair;
-import org.thingsboard.server.common.data.StringUtils;
+import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.server.common.data.asset.Asset;
+import org.thingsboard.server.common.data.edge.Edge;
 import org.thingsboard.server.common.data.id.AssetId;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.TenantId;
+import org.thingsboard.server.common.data.msg.TbMsgType;
+import org.thingsboard.server.dao.service.DataValidator;
 import org.thingsboard.server.gen.edge.v1.AssetUpdateMsg;
 import org.thingsboard.server.service.edge.rpc.processor.BaseEdgeProcessor;
 
 @Slf4j
 public abstract class BaseAssetProcessor extends BaseEdgeProcessor {
 
+    @Autowired
+    private DataValidator<Asset> assetValidator;
+
     protected Pair<Boolean, Boolean> saveOrUpdateAsset(TenantId tenantId, AssetId assetId, AssetUpdateMsg assetUpdateMsg) {
         boolean created = false;
         boolean assetNameUpdated = false;
         assetCreationLock.lock();
         try {
-            Asset asset = constructAssetFromUpdateMsg(tenantId, assetId, assetUpdateMsg);
+            Asset asset = JacksonUtil.fromString(assetUpdateMsg.getEntity(), Asset.class, true);
             if (asset == null) {
                 throw new RuntimeException("[{" + tenantId + "}] assetUpdateMsg {" + assetUpdateMsg + " } cannot be converted to asset");
             }
-            Asset assetById = assetService.findAssetById(tenantId, assetId);
+            Asset assetById = edgeCtx.getAssetService().findAssetById(tenantId, assetId);
             if (assetById == null) {
                 created = true;
                 asset.setId(null);
             } else {
                 asset.setId(assetId);
             }
-            String assetName = asset.getName();
-            Asset assetByName = assetService.findAssetByTenantIdAndName(tenantId, assetName);
-            if (assetByName != null && !assetByName.getId().equals(assetId)) {
-                assetName = assetName + "_" + StringUtils.randomAlphanumeric(15);
-                log.warn("[{}] Asset with name {} already exists. Renaming asset name to {}",
-                        tenantId, asset.getName(), assetName);
-                assetNameUpdated = true;
+            if (isSaveRequired(assetById, asset)) {
+                assetNameUpdated = updateAssetNameIfDuplicateExists(tenantId, assetId, asset);
+                setCustomerId(tenantId, created ? null : assetById.getCustomerId(), asset, assetUpdateMsg);
+                assetValidator.validate(asset, Asset::getTenantId);
+                if (created) {
+                    asset.setId(assetId);
+                }
+                edgeCtx.getAssetService().saveAsset(asset, false);
             }
-            asset.setName(assetName);
-            setCustomerId(tenantId, created ? null : assetById.getCustomerId(), asset, assetUpdateMsg);
-
-            assetValidator.validate(asset, Asset::getTenantId);
-            if (created) {
-                asset.setId(assetId);
-            }
-            assetService.saveAsset(asset, false);
         } catch (Exception e) {
             log.error("[{}] Failed to process asset update msg [{}]", tenantId, assetUpdateMsg, e);
             throw e;
@@ -69,8 +69,27 @@ public abstract class BaseAssetProcessor extends BaseEdgeProcessor {
         return Pair.of(created, assetNameUpdated);
     }
 
-    protected abstract Asset constructAssetFromUpdateMsg(TenantId tenantId, AssetId assetId, AssetUpdateMsg assetUpdateMsg);
+    private boolean updateAssetNameIfDuplicateExists(TenantId tenantId, AssetId assetId, Asset asset) {
+        Asset assetByName = edgeCtx.getAssetService().findAssetByTenantIdAndName(tenantId, asset.getName());
+
+        return generateUniqueNameIfDuplicateExists(tenantId, assetId, asset, assetByName).map(uniqueName -> {
+            asset.setName(uniqueName);
+            return true;
+        }).orElse(false);
+    }
 
     protected abstract void setCustomerId(TenantId tenantId, CustomerId customerId, Asset asset, AssetUpdateMsg assetUpdateMsg);
+
+    protected void deleteAsset(TenantId tenantId, AssetId assetId) {
+        deleteAsset(tenantId, null, assetId);
+    }
+
+    protected void deleteAsset(TenantId tenantId, Edge edge, AssetId assetId) {
+        Asset assetById = edgeCtx.getAssetService().findAssetById(tenantId, assetId);
+        if (assetById != null) {
+            edgeCtx.getAssetService().deleteAsset(tenantId, assetId);
+            pushEntityEventToRuleEngine(tenantId, edge, assetById, TbMsgType.ENTITY_DELETED);
+        }
+    }
 
 }

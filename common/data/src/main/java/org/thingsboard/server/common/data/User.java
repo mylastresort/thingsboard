@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.EntityId;
 import org.thingsboard.server.common.data.id.TenantId;
@@ -33,7 +35,7 @@ import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 @Schema
 @EqualsAndHashCode(callSuper = true)
-public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName, HasTenantId, HasCustomerId, NotificationRecipient {
+public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName, HasTenantId, HasCustomerId, NotificationRecipient, HasVersion {
 
     private static final long serialVersionUID = 8250339805336035966L;
 
@@ -49,6 +51,9 @@ public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName,
     private String lastName;
     @NoXss
     private String phone;
+
+    @Getter @Setter
+    private Long version;
 
     public User() {
         super();
@@ -67,6 +72,7 @@ public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName,
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.phone = user.getPhone();
+        this.version = user.getVersion();
     }
 
 
@@ -85,7 +91,7 @@ public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName,
         return super.getCreatedTime();
     }
 
-    @Schema(description = "JSON object with the Tenant Id.", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "JSON object with the Tenant Id.")
     public TenantId getTenantId() {
         return tenantId;
     }
@@ -94,7 +100,7 @@ public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName,
         this.tenantId = tenantId;
     }
 
-    @Schema(description = "JSON object with the Customer Id.", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "JSON object with the Customer Id.")
     public CustomerId getCustomerId() {
         return customerId;
     }
@@ -155,7 +161,16 @@ public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName,
         this.phone = phone;
     }
 
-    @Schema(description = "Additional parameters of the user", implementation = com.fasterxml.jackson.databind.JsonNode.class)
+    @Schema(description = "Additional parameters of the user. " +
+            "May include: 'defaultDashboardId' (string, UUID of the default dashboard), " +
+            "'defaultDashboardFullscreen' (boolean), " +
+            "'homeDashboardId' (string, UUID of the home dashboard), " +
+            "'homeDashboardHideToolbar' (boolean), " +
+            "'lang' (string, user locale, e.g. 'en_US'), " +
+            "'authProviderName' (string, name of the authentication provider).",
+            implementation = com.fasterxml.jackson.databind.JsonNode.class,
+            example = "{\"defaultDashboardId\":\"784f394c-42b6-435a-983c-b7beff2784f9\",\"defaultDashboardFullscreen\":false," +
+                    "\"homeDashboardId\":\"784f394c-42b6-435a-983c-b7beff2784f9\",\"homeDashboardHideToolbar\":true,\"lang\":\"en_US\"}")
     @Override
     public JsonNode getAdditionalInfo() {
         return super.getAdditionalInfo();
@@ -222,4 +237,5 @@ public class User extends BaseDataWithAdditionalInfo<UserId> implements HasName,
     public boolean isCustomerUser() {
         return !isSystemAdmin() && !isTenantAdmin();
     }
+
 }

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -49,7 +49,6 @@ import {
 import { DataKey } from '@shared/models/widget.models';
 import { formatNumberValue, formatValue, isDefined, isDefinedAndNotNull, isNumeric } from '@core/utils';
 import { map } from 'rxjs/operators';
-import { ResizeObserver } from '@juggle/resize-observer';
 import { ImagePipe } from '@shared/pipe/image.pipe';
 import { DomSanitizer } from '@angular/platform-browser';
 import { TbTimeSeriesChart } from '@home/components/widget/lib/chart/time-series-chart';
@@ -64,9 +63,10 @@ const valuesLayoutHeight = 66;
 const valuesLayoutVerticalPadding = 16;
 
 @Component({
-  selector: 'tb-aggregated-value-card-widget',
-  templateUrl: './aggregated-value-card-widget.component.html',
-  styleUrls: ['./aggregated-value-card-widget.component.scss']
+    selector: 'tb-aggregated-value-card-widget',
+    templateUrl: './aggregated-value-card-widget.component.html',
+    styleUrls: ['./aggregated-value-card-widget.component.scss'],
+    standalone: false
 })
 export class AggregatedValueCardWidgetComponent implements OnInit, AfterViewInit, OnDestroy {
 
@@ -137,7 +137,7 @@ export class AggregatedValueCardWidgetComponent implements OnInit, AfterViewInit
     if (dataKey?.name && this.ctx.defaultSubscription.firstDatasource?.latestDataKeys?.length) {
       const dataKeys = this.ctx.defaultSubscription.firstDatasource?.latestDataKeys;
       for (const position of Object.keys(AggregatedValueCardKeyPosition)) {
-        const value = computeAggregatedCardValue(dataKeys, dataKey?.name, AggregatedValueCardKeyPosition[position]);
+        const value = computeAggregatedCardValue(dataKeys, dataKey?.name, AggregatedValueCardKeyPosition[position], this.ctx.$injector, this.ctx.decimals);
         if (value) {
           this.values[position] = value;
         }
@@ -253,7 +253,7 @@ export class AggregatedValueCardWidgetComponent implements OnInit, AfterViewInit
         if (tsValue && isDefinedAndNotNull(tsValue[1]) && isNumeric(tsValue[1])) {
           ts = tsValue[0];
           value = tsValue[1];
-          aggValue.value = formatValue(value, (aggValue.key.decimals || this.ctx.decimals), null, false);
+          aggValue.value = aggValue.valueFormat.format(value);
         } else {
           aggValue.value = 'N/A';
         }

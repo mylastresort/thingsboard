@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import { CustomerId } from './id/customer-id';
 import { EntityId } from './id/entity-id';
 import { UserId } from './id/user-id';
 import { TenantId } from './id/tenant-id';
+import { isArraysEqualIgnoreUndefined } from "@core/utils";
 
 export enum AuditLogMode {
   TENANT,
@@ -48,6 +49,7 @@ export enum ActionType {
   ALARM_ACK = 'ALARM_ACK',
   ALARM_CLEAR = 'ALARM_CLEAR',
   ALARM_ASSIGNED = 'ALARM_ASSIGNED',
+  ALARM_DELETE = 'ALARM_DELETE',
   ALARM_UNASSIGNED = 'ALARM_UNASSIGNED',
   ADDED_COMMENT = 'ADDED_COMMENT',
   UPDATED_COMMENT = 'UPDATED_COMMENT',
@@ -91,6 +93,7 @@ export const actionTypeTranslations = new Map<ActionType, string>(
     [ActionType.RELATIONS_DELETED, 'audit-log.type-relations-delete'],
     [ActionType.ALARM_ACK, 'audit-log.type-alarm-ack'],
     [ActionType.ALARM_CLEAR, 'audit-log.type-alarm-clear'],
+    [ActionType.ALARM_DELETE, 'audit-log.type-alarm-delete'],
     [ActionType.ALARM_ASSIGNED, 'audit-log.type-alarm-assign'],
     [ActionType.ALARM_UNASSIGNED, 'audit-log.type-alarm-unassign'],
     [ActionType.ADDED_COMMENT, 'audit-log.type-added-comment'],
@@ -130,3 +133,11 @@ export interface AuditLog extends BaseData<AuditLogId> {
   actionStatus: ActionStatus;
   actionFailureDetails: string;
 }
+
+export interface AuditLogFilter {
+  actionTypes: string[];
+}
+
+export const auditLogFilterEquals = (filter1?: AuditLogFilter, filter2?: AuditLogFilter): boolean => {
+  return isArraysEqualIgnoreUndefined(filter1.actionTypes, filter2.actionTypes);
+};

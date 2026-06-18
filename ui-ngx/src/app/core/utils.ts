@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -15,18 +15,29 @@
 ///
 
 import _ from 'lodash';
-import { from, Observable, Subject } from 'rxjs';
-import { finalize, share } from 'rxjs/operators';
-import { Datasource, DatasourceData, FormattedData, ReplaceInfo } from '@app/shared/models/widget.models';
+import { from, isObservable, Observable, of, ReplaySubject, Subject } from 'rxjs';
+import { catchError, finalize, share } from 'rxjs/operators';
+import { DataKey, Datasource, DatasourceData, FormattedData, ReplaceInfo } from '@app/shared/models/widget.models';
 import { EntityId } from '@shared/models/id/entity-id';
 import { NULL_UUID } from '@shared/models/id/has-uuid';
 import { baseDetailsPageByEntityType, EntityType } from '@shared/models/entity-type.models';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
-import { serverErrorCodesTranslations } from '@shared/models/constants';
+import { httpStatusMessageMap, serverErrorCodesTranslations } from '@shared/models/constants';
 import { SubscriptionEntityInfo } from '@core/api/widget-api.models';
+import {
+  CompiledTbFunction,
+  compileTbFunction,
+  GenericFunction,
+  isNotEmptyTbFunction,
+  TbFunction
+} from '@shared/models/js-function.models';
+import { DomSanitizer } from '@angular/platform-browser';
+import { SecurityContext } from '@angular/core';
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 const varsRegex = /\${([^}]*)}/g;
+const emailRegex = /^[A-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export function onParentScrollOrWindowResize(el: Node): Observable<Event> {
   const scrollSubject = new Subject<Event>();
@@ -131,18 +142,26 @@ export function isLiteralObject(value: any) {
   return (!!value) && (value.constructor === Object);
 }
 
+export const isDate = (obj: any): boolean => {
+  return Object.prototype.toString.call(obj) === "[object Date]";
+}
+
+export const isFile = (obj: any): boolean => {
+  return Object.prototype.toString.call(obj) === "[object File]";
+}
+
 export const formatValue = (value: any, dec?: number, units?: string, showZeroDecimals?: boolean): string | undefined => {
   if (isDefinedAndNotNull(value) && isNumeric(value) &&
-    (isDefinedAndNotNull(dec) || isDefinedAndNotNull(units) || Number(value).toString() === value)) {
-    let formatted: string | number = Number(value);
+    (isDefinedAndNotNull(dec) || isNotEmptyStr(units) || Number(value).toString() === value)) {
+    let formatted = value;
     if (isDefinedAndNotNull(dec)) {
-      formatted = formatted.toFixed(dec);
+      formatted = Number(formatted).toFixed(dec);
     }
     if (!showZeroDecimals) {
       formatted = (Number(formatted));
     }
     formatted = formatted.toString();
-    if (isDefinedAndNotNull(units) && units.length > 0) {
+    if (isNotEmptyStr(units)) {
       formatted += ' ' + units;
     }
     return formatted;
@@ -174,9 +193,26 @@ export function deleteNullProperties(obj: any) {
       delete obj[propName];
     } else if (isObject(obj[propName])) {
       deleteNullProperties(obj[propName]);
-    } else if (obj[propName] instanceof Array) {
+    } else if (Array.isArray(obj[propName])) {
       (obj[propName] as any[]).forEach((elem) => {
         deleteNullProperties(elem);
+      });
+    }
+  });
+}
+
+export function deleteFalseProperties(obj: Record<string, any>): void  {
+  if (isUndefinedOrNull(obj)) {
+    return;
+  }
+  Object.keys(obj).forEach((propName) => {
+    if (obj[propName] === false || isUndefinedOrNull(obj[propName])) {
+      delete obj[propName];
+    } else if (isObject(obj[propName])) {
+      deleteFalseProperties(obj[propName]);
+    } else if (Array.isArray(obj[propName])) {
+      (obj[propName] as any[]).forEach((elem) => {
+        deleteFalseProperties(elem);
       });
     }
   });
@@ -216,6 +252,23 @@ export const blobToBase64 = (blob: Blob): Observable<string> => from(new Promise
       reader.readAsDataURL(blob);
     }
   ));
+
+export const blobToText = (blob: Blob): Observable<string> => from(new Promise<string>((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.readAsText(blob);
+  }
+));
+
+export const updateFileContent = (file: File, newContent: string): File => {
+  const blob = new Blob([newContent], { type: file.type });
+  return new File([blob], file.name, {type: file.type});
+};
+
+export const createFileFromContent = (content: string, name: string, type: string): File => {
+  const blob = new Blob([content], { type });
+  return new File([blob], name, { type });
+};
 
 const scrollRegex = /(auto|scroll)/;
 
@@ -308,13 +361,15 @@ export function deepClone<T>(target: T, ignoreFields?: string[]): T {
   if (target === null) {
     return target;
   }
-  if (target instanceof Date) {
-    return new Date(target.getTime()) as any;
+  // Observables can't be cloned using the spread operator, because they have non-enumerable methods (like .pipe).
+  if (isObservable(target)) {
+    return target;
   }
-  if (target instanceof Array) {
-    const cp = [] as any[];
-    (target as any[]).forEach((v) => { cp.push(v); });
-    return cp.map((n: any) => deepClone<any>(n)) as any;
+  if (isDate(target)) {
+    return new Date((target as Date).getTime()) as T;
+  }
+  if (Array.isArray(target)) {
+    return (target as any[]).map((item) => deepClone(item)) as any;
   }
   if (typeof target === 'object') {
     const cp = {...(target as { [key: string]: any })} as { [key: string]: any };
@@ -362,6 +417,16 @@ export const isArraysEqualIgnoreUndefined = (a: any[], b: any[]): boolean => {
 
 export function mergeDeep<T>(target: T, ...sources: T[]): T {
   return _.merge(target, ...sources);
+}
+
+function ignoreArrayMergeFunc(target: any, sources: any) {
+  if (_.isArray(target)) {
+    return deepClone(sources);
+  }
+}
+
+export function mergeDeepIgnoreArray<T>(target: T, ...sources: T[]): T {
+  return _.mergeWith(target, ...sources, ignoreArrayMergeFunc);
 }
 
 export function guid(): string {
@@ -458,11 +523,12 @@ export const createLabelFromSubscriptionEntityInfo = (entityInfo: SubscriptionEn
 
 export const hasDatasourceLabelsVariables = (pattern: string): boolean => varsRegex.test(pattern) !== null;
 
-export function formattedDataFormDatasourceData(input: DatasourceData[], dataIndex?: number, ts?: number): FormattedData[] {
-  return _(input).groupBy(el => el.datasource.entityName + el.datasource.entityType)
+export function formattedDataFormDatasourceData<D extends Datasource = Datasource>(input: DatasourceData[], dataIndex?: number, ts?: number,
+                                                groupFunction: (el: DatasourceData) => any = (el) => el.datasource.entityName + el.datasource.entityType): FormattedData<D>[] {
+  return _(input).groupBy(groupFunction)
     .values().value().map((entityArray, i) => {
-      const datasource = entityArray[0].datasource;
-      const obj = formattedDataFromDatasource(datasource, i);
+      const datasource = entityArray[0].datasource as D;
+      const obj = formattedDataFromDatasource<D>(datasource, i);
       entityArray.filter(el => el.data.length).forEach(el => {
         const index = isDefined(dataIndex) ? dataIndex : el.data.length - 1;
         const dataSet = isDefined(ts) ? el.data.find(data => data[0] === ts) : el.data[index];
@@ -478,18 +544,20 @@ export function formattedDataFormDatasourceData(input: DatasourceData[], dataInd
     });
 }
 
-export function formattedDataArrayFromDatasourceData(input: DatasourceData[]): FormattedData[][] {
-  return _(input).groupBy(el => el.datasource.entityName)
+export function formattedDataArrayFromDatasourceData<D extends Datasource = Datasource>(input: DatasourceData[],
+                                                                                        groupFunction: (el: DatasourceData) => any =
+                                                                                        (el) => el.datasource.entityName + el.datasource.entityType): FormattedData<D>[][] {
+  return _(input).groupBy(groupFunction)
     .values().value().map((entityArray, dsIndex) => {
-      const timeDataMap: {[time: number]: FormattedData} = {};
+      const timeDataMap: {[time: number]: FormattedData<D>} = {};
       entityArray.filter(e => e.data.length).forEach(entity => {
         entity.data.forEach(tsData => {
           const time = tsData[0];
           const value = tsData[1];
           let data = timeDataMap[time];
           if (!data) {
-            const datasource = entity.datasource;
-            data = formattedDataFromDatasource(datasource, dsIndex);
+            const datasource = entity.datasource as D;
+            data = formattedDataFromDatasource<D>(datasource, dsIndex);
             data.time = time;
             timeDataMap[time] = data;
           }
@@ -504,7 +572,7 @@ export function formattedDataArrayFromDatasourceData(input: DatasourceData[]): F
     });
 }
 
-export function formattedDataFromDatasource(datasource: Datasource, dsIndex: number): FormattedData {
+export function formattedDataFromDatasource<D extends Datasource = Datasource>(datasource: D, dsIndex: number): FormattedData<D> {
   return {
     entityName: datasource.entityName,
     deviceName: datasource.entityName,
@@ -646,11 +714,29 @@ export function parseFunction(source: any, params: string[] = ['def']): (...args
   return res;
 }
 
-export function safeExecute(func: (...args: any[]) => any, params = []) {
+export function parseTbFunction<T extends GenericFunction>(http: HttpClient, source: TbFunction, params: string[] = ['def']): Observable<CompiledTbFunction<T>> {
+  if (isNotEmptyTbFunction(source)) {
+    return compileTbFunction<T>(http, source, ...params).pipe(
+      catchError(() => {
+        return of(null);
+      }),
+      share({
+        connector: () => new ReplaySubject(1),
+        resetOnError: false,
+        resetOnComplete: false,
+        resetOnRefCountZero: false
+      })
+    );
+  } else {
+    return of(null);
+  }
+}
+
+export function safeExecuteTbFunction<T extends GenericFunction>(func: CompiledTbFunction<T>, params = []) {
   let res = null;
-  if (func && typeof (func) === 'function') {
+  if (func) {
     try {
-      res = func(...params);
+      res = func.execute(...params);
     }
     catch (err) {
       console.log('error in external function:', err);
@@ -694,7 +780,7 @@ export function sortObjectKeys<T>(obj: T): T {
 }
 
 export function deepTrim<T>(obj: T): T {
-  if (isNumber(obj) || isUndefined(obj) || isString(obj) || obj === null || obj instanceof File) {
+  if (isNumber(obj) || isUndefined(obj) || isString(obj) || obj === null || isFile(obj)) {
     return obj;
   }
   return Object.keys(obj).reduce((acc, curr) => {
@@ -707,6 +793,74 @@ export function deepTrim<T>(obj: T): T {
     }
     return acc;
   }, (Array.isArray(obj) ? [] : {}) as T);
+}
+
+const isValidValue = (value: any): boolean => {
+  return (
+    value !== undefined &&
+    value !== null &&
+    value !== '' &&
+    !Number.isNaN(value)
+  );
+};
+
+export function deepClean<T extends Record<string, any> | any[]>(obj: T, {
+  cleanKeys = [],
+  cleanOnlyKey = false
+} = {}): T {
+  const keysToRemove = new Set(cleanKeys);
+
+  const clean = (input: any): any => {
+    if (Array.isArray(input)) {
+      const result: any[] = [];
+      for (const item of input) {
+        const value = clean(item);
+
+        if (cleanOnlyKey) {
+          result.push(value);
+          continue;
+        }
+
+        if (isValidValue(value)) {
+          const isEmptyArray = Array.isArray(value) && value.length === 0;
+          const isEmptyObj = isLiteralObject(value) && Object.keys(value).length === 0;
+
+          if (!isEmptyArray && !isEmptyObj) {
+            result.push(value);
+          }
+        }
+      }
+      return result;
+    }
+
+    if (isLiteralObject(input)) {
+      const result: Record<string, any> = {};
+
+      for (const key in input) {
+        if (keysToRemove.has(key)) continue;
+
+        const value = clean(input[key]);
+
+        if (cleanOnlyKey) {
+          result[key] = value;
+          continue;
+        }
+
+        if (isValidValue(value)) {
+          const isEmptyArray = Array.isArray(value) && value.length === 0;
+          const isEmptyObj = isLiteralObject(value) && Object.keys(value).length === 0;
+
+          if (!isEmptyArray && !isEmptyObj) {
+            result[key] = value;
+          }
+        }
+      }
+      return result;
+    }
+    return input;
+  };
+
+  return clean(obj);
 }
 
 export function generateSecret(length?: number): string {
@@ -745,7 +899,7 @@ export function getEntityDetailsPageURL(id: string, entityType: EntityType): str
 }
 
 export function parseHttpErrorMessage(errorResponse: HttpErrorResponse,
-                                      translate: TranslateService, responseType?: string): {message: string; timeout: number} {
+                                      translate: TranslateService, responseType?: string, sanitizer?:DomSanitizer): {message: string; timeout: number} {
   let error = null;
   let errorMessage: string;
   let timeout = 0;
@@ -756,11 +910,13 @@ export function parseHttpErrorMessage(errorResponse: HttpErrorResponse,
   } else {
     error = errorResponse.error;
   }
-  if (error && !error.message) {
-    errorMessage = prepareMessageFromData(error);
-  } else if (error && error.message) {
+  if (error && error.message) {
     errorMessage = error.message;
     timeout = error.timeout ? error.timeout : 0;
+  } else if (isProxyError(errorResponse)) {
+    errorMessage = httpStatusMessageMap.get(errorResponse.status);
+  } else if (error) {
+    errorMessage = prepareMessageFromData(error);
   } else {
     errorMessage = `Unhandled error code ${error ? error.status : '\'Unknown\''}`;
   }
@@ -772,6 +928,9 @@ export function parseHttpErrorMessage(errorResponse: HttpErrorResponse,
     }
     errorText += errorKey ? translate.instant(errorKey) : errorResponse.statusText;
     errorMessage = errorText;
+  }
+  if(sanitizer) {
+    errorMessage = sanitizer.sanitize(SecurityContext.HTML,errorMessage);
   }
   return {message: errorMessage, timeout};
 }
@@ -794,7 +953,15 @@ function prepareMessageFromData(data): string {
   }
 }
 
-export function genNextLabel(name: string, datasources: Datasource[]): string {
+function isProxyError(errorResponse: HttpErrorResponse): boolean {
+  if (!httpStatusMessageMap.has(errorResponse.status)) {
+    return false;
+  }
+  const error = errorResponse.error;
+  return !error || typeof error === 'string' || (typeof error === 'object' && !error.message);
+}
+
+export const genNextLabel = (name: string, datasources: Datasource[]): string => {
   let label = name;
   let i = 1;
   let matches = false;
@@ -828,6 +995,25 @@ export function genNextLabel(name: string, datasources: Datasource[]): string {
   return label;
 }
 
+export const genNextLabelForDataKeys = (name: string, dataKeys: DataKey[]): string => {
+  let label = name;
+  let i = 1;
+  let matches = false;
+  if (dataKeys) {
+    do {
+      matches = false;
+      dataKeys.forEach((dataKey) => {
+        if (dataKey?.label === label) {
+          i++;
+          label = name + ' ' + i;
+          matches = true;
+        }
+      });
+    } while (matches)
+  }
+  return label;
+}
+
 export const getOS = (): string => {
   const userAgent = window.navigator.userAgent.toLowerCase();
   const macosPlatforms = /(macintosh|macintel|macppc|mac68k|macos|mac_powerpc)/i;
@@ -850,6 +1036,15 @@ export const getOS = (): string => {
   return os;
 };
 
+export const isSafari = (): boolean => {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /^((?!chrome|android).)*safari/i.test(userAgent);
+};
+
+export const isFirefox = (): boolean => {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /^((?!seamonkey).)*firefox/i.test(userAgent);
+};
 
 export const camelCase = (str: string): string => {
   return _.camelCase(str);
@@ -858,3 +1053,53 @@ export const camelCase = (str: string): string => {
 export const convertKeysToCamelCase = (obj: Record<string, any>): Record<string, any> => {
   return _.mapKeys(obj, (value, key) => _.camelCase(key));
 };
+
+export const unwrapModule = (module: any) : any => {
+  if ('default' in module && Object.keys(module).length === 1) {
+    return module.default;
+  } else {
+    return module;
+  }
+};
+
+export const trimDefaultValues = (input: Record<string, any>, defaults: Record<string, any>): Record<string, any> => {
+  const result: Record<string, any> = {};
+
+  for (const key in input) {
+    if (!(key in defaults)) {
+      result[key] = input[key];
+    } else if (typeof defaults[key] === 'object' && defaults[key] !== null && typeof input[key] === 'object' && input[key] !== null) {
+      const subPatch = trimDefaultValues(input[key], defaults[key]);
+      if (Object.keys(subPatch).length > 0) {
+        result[key] = subPatch;
+      }
+    } else if (defaults[key] !== input[key]) {
+      result[key] = input[key];
+    }
+  }
+
+  for (const key in defaults) {
+    if (!(key in input)) {
+      delete result[key];
+    }
+  }
+
+  return result;
+}
+
+export const validateEmail = (control: AbstractControl): ValidationErrors | null => {
+  if (isUndefinedOrNull(control.value) || (typeof control.value === 'string' && control.value.length === 0)) {
+    return null;
+  }
+  return emailRegex.test(control.value) ? null : {email: true};
+};
+
+export const objectRequired = (): ValidatorFn => {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value;
+    if (value && !isObject(value)) {
+      return { objectRequired: true };
+    }
+    return null;
+  };
+}

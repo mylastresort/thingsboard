@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -31,8 +31,9 @@ import { IStateControllerComponent } from '@home/components/dashboard-page/state
 import { BehaviorSubject, Subject } from 'rxjs';
 
 @Directive({
-  // eslint-disable-next-line @angular-eslint/directive-selector
-  selector: 'tb-states-component'
+    // eslint-disable-next-line @angular-eslint/directive-selector
+    selector: 'tb-states-component',
+    standalone: false
 })
 export class StatesComponentDirective implements OnInit, OnDestroy, OnChanges {
 
@@ -126,8 +127,7 @@ export class StatesComponentDirective implements OnInit, OnDestroy, OnChanges {
     }
     const stateControllerInstanceId = this.dashboardCtrl.dashboardCtx.instanceId + '_' +  this.statesControllerId;
     const preservedState = this.statesControllerService.withdrawStateControllerState(stateControllerInstanceId);
-    const stateControllerFactory = stateControllerData.factory;
-    this.stateControllerComponentRef = this.viewContainerRef.createComponent(stateControllerFactory);
+    this.stateControllerComponentRef = this.viewContainerRef.createComponent(stateControllerData.component);
     this.stateControllerComponent = this.stateControllerComponentRef.instance;
     this.dashboardCtrl.dashboardCtx.stateController = this.stateControllerComponent;
     this.dashboardCtrl.dashboardCtx.stateChanged = this.stateChangedSubject.asObservable();

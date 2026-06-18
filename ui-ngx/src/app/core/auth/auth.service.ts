@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import { HttpClient } from '@angular/common/http';
 
 import { Observable, of, ReplaySubject, throwError } from 'rxjs';
 import { catchError, map, mergeMap, tap } from 'rxjs/operators';
+import { setEdqsEnabled, setNullsOrderStrategy } from '@shared/models/page/page-link';
 
 import { LoginRequest, LoginResponse, PublicLoginRequest } from '@shared/models/login.models';
 import { Router, UrlTree } from '@angular/router';
@@ -42,7 +43,7 @@ import { TimeService } from '@core/services/time.service';
 import { UtilsService } from '@core/services/utils.service';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { AlertDialogComponent } from '@shared/components/dialog/alert-dialog.component';
-import { OAuth2ClientInfo, PlatformType } from '@shared/models/oauth2.models';
+import { OAuth2ClientLoginInfo, PlatformType } from '@shared/models/oauth2.models';
 import { isMobileApp } from '@core/utils';
 import { TwoFactorAuthProviderType, TwoFaProviderInfo } from '@shared/models/two-factor-auth.models';
 import { UserPasswordPolicy } from '@shared/models/settings.models';
@@ -66,8 +67,9 @@ export class AuthService {
   }
 
   redirectUrl: string;
-  oauth2Clients: Array<OAuth2ClientInfo> = null;
+  oauth2Clients: Array<OAuth2ClientLoginInfo> = null;
   twoFactorAuthProviders: Array<TwoFaProviderInfo> = null;
+  forceTwoFactorAuthProviders: Array<TwoFactorAuthProviderType> = null;
 
   private refreshTokenSubject: ReplaySubject<LoginResponse> = null;
   private jwtHelper = new JwtHelperService();
@@ -117,6 +119,9 @@ export class AuthService {
           if (loginResponse.scope === Authority.PRE_VERIFICATION_TOKEN) {
             this.router.navigateByUrl(`login/mfa`);
           }
+          if (loginResponse.scope === Authority.MFA_CONFIGURATION_TOKEN) {
+            this.router.navigateByUrl(`login/force-mfa`);
+          }
         }
       ));
   }
@@ -152,12 +157,8 @@ export class AuthService {
       ));
   }
 
-  public resetPassword(resetToken: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>('/api/noauth/resetPassword', {resetToken, password}, defaultHttpOptions()).pipe(
-      tap((loginResponse: LoginResponse) => {
-          this.setUserFromJwtToken(loginResponse.token, loginResponse.refreshToken, true);
-        }
-      ));
+  public resetPassword(resetToken: string, password: string): Observable<void> {
+    return this.http.post<void>('/api/noauth/resetPassword', {resetToken, password}, defaultHttpOptions());
   }
 
   public changePassword(currentPassword: string, newPassword: string, config?: RequestConfig) {
@@ -168,8 +169,8 @@ export class AuthService {
       ));
   }
 
-  public getUserPasswordPolicy() {
-    return this.http.get<UserPasswordPolicy>(`/api/noauth/userPasswordPolicy`, defaultHttpOptions());
+  public getUserPasswordPolicy(config?: RequestConfig) {
+    return this.http.get<UserPasswordPolicy>(`/api/noauth/userPasswordPolicy`, defaultHttpOptionsFromConfig(config));
   }
 
   public activateByEmailCode(emailCode: string): Observable<LoginResponse> {
@@ -223,9 +224,9 @@ export class AuthService {
     }
   }
 
-  public loadOAuth2Clients(): Observable<Array<OAuth2ClientInfo>> {
+  public loadOAuth2Clients(): Observable<Array<OAuth2ClientLoginInfo>> {
     const url = '/api/noauth/oauth2Clients?platform=' + PlatformType.WEB;
-    return this.http.post<Array<OAuth2ClientInfo>>(url,
+    return this.http.post<Array<OAuth2ClientLoginInfo>>(url,
       null, defaultHttpOptions()).pipe(
       catchError(err => of([])),
       tap((OAuth2Clients) => {
@@ -239,6 +240,15 @@ export class AuthService {
       catchError(() => of([])),
       tap((providers) => {
         this.twoFactorAuthProviders = providers;
+      })
+    );
+  }
+
+  public getAvailableTwoFaProviders(): Observable<Array<TwoFaProviderInfo>> {
+    return this.http.get<Array<TwoFaProviderInfo>>(`/api/2fa/providers`, defaultHttpOptions()).pipe(
+      catchError(() => of([])),
+      tap((providers) => {
+        this.forceTwoFactorAuthProviders = providers;
       })
     );
   }
@@ -270,6 +280,8 @@ export class AuthService {
     if (isAuthenticated) {
       if (authState.authUser.authority === Authority.PRE_VERIFICATION_TOKEN) {
         result = this.router.parseUrl('login/mfa');
+      } else if (authState.authUser.authority === Authority.MFA_CONFIGURATION_TOKEN) {
+        result = this.router.parseUrl('login/force-mfa');
       } else if (!path || path === 'login' || this.forceDefaultPlace(authState, path, params)) {
         if (this.redirectUrl) {
           const redirectUrl = this.redirectUrl;
@@ -350,7 +362,7 @@ export class AuthService {
           )
         );
       } else if (loginError) {
-        this.showLoginErrorDialog(loginError);
+        Promise.resolve().then(() => this.showLoginErrorDialog(loginError));
         this.utils.updateQueryParam('loginError', null);
         return throwError(Error());
       }
@@ -403,7 +415,7 @@ export class AuthService {
               loadUserSubject.error(err);
             }
           );
-        } else if (authPayload.authUser?.authority === Authority.PRE_VERIFICATION_TOKEN) {
+        } else if (authPayload.authUser?.authority === Authority.PRE_VERIFICATION_TOKEN || authPayload.authUser?.authority === Authority.MFA_CONFIGURATION_TOKEN) {
           loadUserSubject.next(authPayload);
           loadUserSubject.complete();
         } else if (authPayload.authUser?.userId) {
@@ -445,6 +457,8 @@ export class AuthService {
     return this.http.get<SysParams>('/api/system/params', defaultHttpOptions()).pipe(
       map((sysParams) => {
         this.timeService.setMaxDatapointsLimit(sysParams.maxDatapointsLimit);
+        setNullsOrderStrategy(sysParams.nullsOrderStrategy);
+        setEdqsEnabled(sysParams.edqsEnabled);
         return sysParams;
       }),
       catchError(() => of({} as SysParamsState))
@@ -624,6 +638,7 @@ export class AuthService {
   private userForceFullscreen(authPayload: AuthPayload): boolean {
     return (authPayload.authUser && authPayload.authUser.isPublic) ||
       (authPayload.userDetails && authPayload.userDetails.additionalInfo &&
+        authPayload.userDetails.additionalInfo.defaultDashboardId &&
         authPayload.userDetails.additionalInfo.defaultDashboardFullscreen &&
         authPayload.userDetails.additionalInfo.defaultDashboardFullscreen === true);
   }

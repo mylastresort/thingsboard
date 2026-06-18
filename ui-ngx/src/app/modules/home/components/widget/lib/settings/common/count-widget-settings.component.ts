@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -32,24 +32,26 @@ import {
   CountWidgetSettings, entityCountCardLayoutImages
 } from '@home/components/widget/lib/count/count-widget.models';
 import {PageComponent} from '@shared/components/page.component';
-import {Component, forwardRef, Input, OnInit} from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit } from '@angular/core';
 import { coerceBoolean } from '@shared/decorators/coercion';
 import {
   valueCardLayoutImages,
   valueCardLayoutTranslations
 } from '@home/components/widget/lib/cards/value-card-widget.models';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'tb-count-widget-settings',
-  templateUrl: './count-widget-settings.component.html',
-  styleUrls: ['./../widget-settings.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => CountWidgetSettingsComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-count-widget-settings',
+    templateUrl: './count-widget-settings.component.html',
+    styleUrls: ['./../widget-settings.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => CountWidgetSettingsComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class CountWidgetSettingsComponent extends PageComponent implements OnInit, ControlValueAccessor {
 
@@ -60,6 +62,9 @@ export class CountWidgetSettingsComponent extends PageComponent implements OnIni
   @Input()
   alarmElseEntity: boolean;
 
+  @Input()
+  predefinedValues: string[];
+  
   private propagateChange = null;
 
   countCardLayouts = countCardLayouts;
@@ -68,9 +73,9 @@ export class CountWidgetSettingsComponent extends PageComponent implements OnIni
   countCardLayoutImageMap: Map<CountCardLayout, string>;
 
   countWidgetConfigForm: UntypedFormGroup;
-
   constructor(protected store: Store<AppState>,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
@@ -104,7 +109,9 @@ export class CountWidgetSettingsComponent extends PageComponent implements OnIni
       chevronSizeUnit: [null, []],
       chevronColor: [null, []],
     });
-    this.countWidgetConfigForm.valueChanges.subscribe(() => {
+    this.countWidgetConfigForm.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
     for (const trigger of ['showLabel', 'showIcon', 'showIconBackground', 'showChevron']) {
@@ -113,7 +120,9 @@ export class CountWidgetSettingsComponent extends PageComponent implements OnIni
       for (const part of path) {
         control = this.countWidgetConfigForm.get(part);
       }
-      control.valueChanges.subscribe(() => {
+      control.valueChanges.pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe(() => {
         this.updateValidators();
       });
     }

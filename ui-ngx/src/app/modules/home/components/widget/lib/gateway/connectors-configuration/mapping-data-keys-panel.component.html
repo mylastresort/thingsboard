@@ -24,7 +24,7 @@
         <div class="tb-form-panel stroked tb-flex">
           <ng-container [formGroup]="keyControl">
             <mat-expansion-panel class="tb-settings" [expanded]="last">
-              <mat-expansion-panel-header fxLayout="row wrap">
+              <mat-expansion-panel-header class="flex flex-row flex-wrap">
                 <mat-panel-title>
                   <div class="title-container">{{ keyControl.get('key').value }}</div>
                     {{ '-' }}
@@ -36,7 +36,7 @@
                      *ngIf="keysType !== MappingKeysType.CUSTOM; else customPanel">
                   <div class="tb-form-panel stroked">
                     <div class="tb-form-panel-title" translate>gateway.platform-side</div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width tb-required"
                            tb-hint-tooltip-icon="{{ 'gateway.JSONPath-hint' | translate }}" translate>
                         gateway.key
@@ -93,12 +93,12 @@
                         </mat-select>
                       </mat-form-field>
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width tb-required"
                            tb-hint-tooltip-icon="{{ 'gateway.JSONPath-hint' | translate }}" translate>
                         gateway.value
                       </div>
-                      <mat-form-field fxFlex appearance="outline" subscriptSizing="dynamic" class="tb-flex no-gap">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tb-flex no-gap flex-1">
                         <input matInput required formControlName="value"
                                placeholder="{{ 'gateway.set' | translate }}"/>
                         <mat-icon matSuffix
@@ -121,7 +121,7 @@
                   </div>
                 </div>
                 <ng-template #customPanel>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" translate>gateway.key</div>
                     <div class="tb-flex no-gap">
                       <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -137,9 +137,9 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" translate>gateway.value</div>
-                    <mat-form-field fxFlex appearance="outline" subscriptSizing="dynamic" class="tb-inline-field flex tb-suffix-absolute">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="flex-1 tb-inline-field flex tb-suffix-absolute">
                       <input matInput required formControlName="value"
                              placeholder="{{ 'gateway.set' | translate }}"/>
                       <mat-icon matSuffix

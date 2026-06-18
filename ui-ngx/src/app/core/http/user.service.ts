@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -16,14 +16,13 @@
 
 import { Injectable } from '@angular/core';
 import { defaultHttpOptionsFromConfig, RequestConfig } from './http-utils';
-import { User, UserEmailInfo, UserSettings } from '@shared/models/user.model';
-import { Observable, of, throwError } from 'rxjs';
+import { ActivationLinkInfo, User, UserEmailInfo } from '@shared/models/user.model';
+import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { PageLink } from '@shared/models/page/page-link';
 import { PageData } from '@shared/models/page/page-data';
 import { isDefined } from '@core/utils';
 import { InterceptorHttpParams } from '@core/interceptors/interceptor-http-params';
-import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -62,6 +61,10 @@ export class UserService {
     return this.http.get<User>(`/api/user/${userId}`, defaultHttpOptionsFromConfig(config));
   }
 
+  public getUsersByIds(userIds: Array<string>, config?: RequestConfig): Observable<Array<User>> {
+    return this.http.get<Array<User>>(`/api/users?userIds=${userIds.join(',')}`, defaultHttpOptionsFromConfig(config));
+  }
+
   public saveUser(user: User, sendActivationMail: boolean = false,
                   config?: RequestConfig): Observable<User> {
     let url = '/api/user';
@@ -76,6 +79,10 @@ export class UserService {
   public getActivationLink(userId: string, config?: RequestConfig): Observable<string> {
     return this.http.get(`/api/user/${userId}/activationLink`,
       {...{responseType: 'text'}, ...defaultHttpOptionsFromConfig(config)});
+  }
+
+  public getActivationLinkInfo(userId: string, config?: RequestConfig): Observable<ActivationLinkInfo> {
+    return this.http.get<ActivationLinkInfo>(`/api/user/${userId}/activationLinkInfo`, defaultHttpOptionsFromConfig(config));
   }
 
   public sendActivationEmail(email: string, config?: RequestConfig) {
@@ -95,31 +102,4 @@ export class UserService {
     return this.http.get<PageData<UserEmailInfo>>(`/api/users/info${pageLink.toQuery()}`, defaultHttpOptionsFromConfig(config));
   }
 
-  public getUserSettings() {
-    return this.http.get<UserSettings>(`/api/user/settings`)
-  }
-
-  public setUserSettings(body: UserSettings) {
-    return this.http.post<UserSettings>(`/api/user/settings`, body);
-  }
-
-  public validateUserVerifyCode(code: string) {
-    
-    return 
-  }
-
-  public requestUserVerifyCode(phone: string) {
-    return this.http.post(
-      `https://graph.facebook.com/v22.0/` + environment.phone_id +`/request_code`,
-      {
-        "code_method": "SMS",
-        "locale": "en_US"
-      },
-      {
-        headers: {
-          'Authorization': 'Bearer ' + environment.WT_ACCESS_TOKEN,
-        }
-      }
-    )
-  }
 }

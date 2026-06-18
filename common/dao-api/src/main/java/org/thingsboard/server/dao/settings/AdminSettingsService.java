@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,11 @@ package org.thingsboard.server.dao.settings;
 import org.thingsboard.server.common.data.AdminSettings;
 import org.thingsboard.server.common.data.id.AdminSettingsId;
 import org.thingsboard.server.common.data.id.TenantId;
+import org.thingsboard.server.common.data.page.PageData;
+import org.thingsboard.server.common.data.page.PageLink;
+import org.thingsboard.server.dao.entity.EntityDaoService;
 
-public interface AdminSettingsService {
+public interface AdminSettingsService extends EntityDaoService {
 
     AdminSettings findAdminSettingsById(TenantId tenantId, AdminSettingsId adminSettingsId);
 
@@ -27,10 +30,10 @@ public interface AdminSettingsService {
 
     AdminSettings findAdminSettingsByTenantIdAndKey(TenantId tenantId, String key);
 
+    PageData<AdminSettings> findAllByTenantId(TenantId tenantId, PageLink pageLink);
+
     AdminSettings saveAdminSettings(TenantId tenantId, AdminSettings adminSettings);
 
     boolean deleteAdminSettingsByTenantIdAndKey(TenantId tenantId, String key);
-
-    void deleteAdminSettingsByTenantId(TenantId tenantId);
 
 }

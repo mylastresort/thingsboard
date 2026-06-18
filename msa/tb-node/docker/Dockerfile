@@ -1,5 +1,5 @@
 #
-# Copyright © 2016-2024 The Thingsboard Authors
+# Copyright © 2016-2026 The Thingsboard Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +14,31 @@
 # limitations under the License.
 #
 
-FROM thingsboard/openjdk17:bookworm-slim
+FROM ${docker.base.image}
 
-COPY start-tb-node.sh ${pkg.name}.deb /tmp/
+# For SVG renderer Debian Trixie slim fonts should be installed explicitly
+RUN echo "Previously installed font libraries:" \
+ && (dpkg -l | grep -E 'font|dejavu|harfbuzz' || echo "  (none)") \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+      libharfbuzz0b fontconfig fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/* \
+ && echo "Current fonts libraries:" \
+ && (dpkg -l | grep -E 'font|dejavu|harfbuzz') \
+ && echo "Font config list:" \
+ && fc-list && test -n "$(fc-list)" \
+ && (fc-list | grep -i dejavu) \
+ && echo "Harfbuzz library test with ldconfig:" \
+ && (ldconfig -p | grep harfbuzz)
 
-# Required for SWAGGER UI when reverse proxy is used
-ENV HTTP_FORWARD_HEADERS_STRATEGY=framework
+COPY logback.xml start-tb-node.sh ${pkg.name}.deb /tmp/
 
 RUN chmod a+x /tmp/*.sh \
     && mv /tmp/start-tb-node.sh /usr/bin && \
     (yes | dpkg -i /tmp/${pkg.name}.deb) && \
     rm /tmp/${pkg.name}.deb && \
+    mv /tmp/logback.xml ${pkg.installFolder}/conf && \
+    chown -R ${pkg.user}:${pkg.user} ${pkg.installFolder}/conf/logback.xml && \
     (systemctl --no-reload disable --now ${pkg.name}.service > /dev/null 2>&1 || :) && \
     chown -R ${pkg.user}:${pkg.user} /tmp && \
     chmod 555 ${pkg.installFolder}/bin/${pkg.name}.jar

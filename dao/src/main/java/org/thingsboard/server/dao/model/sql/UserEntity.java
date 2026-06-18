@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,20 +29,17 @@ import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.id.UserId;
 import org.thingsboard.server.common.data.security.Authority;
-import org.thingsboard.server.dao.model.BaseSqlEntity;
+import org.thingsboard.server.dao.model.BaseVersionedEntity;
 import org.thingsboard.server.dao.model.ModelConstants;
 import org.thingsboard.server.dao.util.mapping.JsonConverter;
 
 import java.util.UUID;
 
-/**
- * Created by Valerii Sosliuk on 4/21/2017.
- */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(name = ModelConstants.USER_PG_HIBERNATE_TABLE_NAME)
-public class UserEntity extends BaseSqlEntity<User> {
+public class UserEntity extends BaseVersionedEntity<User> {
 
     @Column(name = ModelConstants.USER_TENANT_ID_PROPERTY)
     private UUID tenantId;
@@ -74,10 +71,7 @@ public class UserEntity extends BaseSqlEntity<User> {
     }
 
     public UserEntity(User user) {
-        if (user.getId() != null) {
-            this.setUuid(user.getId().getId());
-        }
-        this.setCreatedTime(user.getCreatedTime());
+        super(user);
         this.authority = user.getAuthority();
         if (user.getTenantId() != null) {
             this.tenantId = user.getTenantId().getId();
@@ -96,6 +90,7 @@ public class UserEntity extends BaseSqlEntity<User> {
     public User toData() {
         User user = new User(new UserId(this.getUuid()));
         user.setCreatedTime(createdTime);
+        user.setVersion(version);
         user.setAuthority(authority);
         if (tenantId != null) {
             user.setTenantId(TenantId.fromUUID(tenantId));

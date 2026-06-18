@@ -15,7 +15,7 @@
     limitations under the License.
 
 -->
-<div fxLayout="column" class="command-form" [formGroup]="commandForm">
+<div class="command-form flex flex-col" [formGroup]="commandForm">
   <div
     class="mat-subtitle-1 title">{{ 'gateway.rpc.title' | translate: {type: gatewayConnectorDefaultTypesTranslates.get(connectorType)} }}</div>
   <ng-template [ngIf]="connectorType">
@@ -55,8 +55,8 @@
           <mat-label>{{ 'gateway.rpc.tag' | translate }}</mat-label>
           <input matInput formControlName="tag" placeholder="setValue"/>
         </mat-form-field>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field fxFlex="50" class="mat-block">
+        <div class="flex-1 flex flex-row justify-between items-center gap-2.5">
+          <mat-form-field class="mat-block w-1/2">
             <mat-label>{{ 'gateway.rpc.type' | translate }}</mat-label>
             <mat-select formControlName="type">
               <mat-option *ngFor="let type of modbusCommandTypes" [value]="type">
@@ -64,7 +64,7 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field fxFlex="50" class="mat-block">
+          <mat-form-field class="mat-block w-1/2">
             <mat-label>{{ 'gateway.rpc.functionCode' | translate }}</mat-label>
             <mat-select formControlName="functionCode">
               <mat-option *ngFor="let code of codesArray" [value]="code">
@@ -77,13 +77,13 @@
           <mat-label>{{ 'gateway.rpc.value' | translate }}</mat-label>
           <input matInput formControlName="value" placeholder="value"/>
         </mat-form-field>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field fxFlex="50">
+        <div class="flex-1 flex flex-row justify-between items-center gap-2.5">
+          <mat-form-field class="w-1/2">
             <mat-label>{{ 'gateway.rpc.address' | translate }}</mat-label>
             <input matInput formControlName="address" type="number" min="0"
                    placeholder="1" step="1"/>
           </mat-form-field>
-          <mat-form-field fxFlex="50">
+          <mat-form-field class="w-1/2">
             <mat-label>{{ 'gateway.rpc.objectsCount' | translate }}</mat-label>
             <input matInput formControlName="objectsCount" type="number" min="0"
                    placeholder="31" step="1"/>
@@ -108,8 +108,8 @@
           <input matInput formControlName="requestTimeout" type="number"
                  min="10" step="1" placeholder="1000"/>
         </mat-form-field>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field fxFlex="50" class="mat-block">
+        <div class="flex-1 flex flex-row justify-between items-center gap-2.5">
+          <mat-form-field class="mat-block w-1/2">
             <mat-label>{{ 'gateway.rpc.objectType' | translate }}</mat-label>
             <mat-select formControlName="objectType">
               <mat-option *ngFor="let type of bACnetObjectTypes" [value]="type">
@@ -117,7 +117,7 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field fxFlex="50">
+          <mat-form-field class="w-1/2">
             <mat-label>{{ 'gateway.rpc.identifier' | translate }}</mat-label>
             <input matInput formControlName="identifier" type="number"
                    min="1" step="1" placeholder="1"/>
@@ -167,12 +167,12 @@
         <mat-slide-toggle class="mat-slide margin" formControlName="bitrateSwitch">
           {{ 'gateway.rpc.bitrateSwitch' | translate }}
         </mat-slide-toggle>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field fxFlex="50">
+        <div class="flex-1 flex flex-row justify-between items-center gap-2.5">
+          <mat-form-field class="w-1/2">
             <mat-label>{{ 'gateway.rpc.dataLength' | translate }}</mat-label>
             <input matInput formControlName="dataLength" type="number" placeholder="2" min="1" step="1"/>
           </mat-form-field>
-          <mat-form-field class="mat-block" fxFlex="50">
+          <mat-form-field class="mat-block w-1/2">
             <mat-label>{{ 'gateway.rpc.dataByteorder' | translate }}</mat-label>
             <mat-select formControlName="dataByteorder">
               <mat-option *ngFor="let order of cANByteOrders" [value]="order">
@@ -181,12 +181,12 @@
             </mat-select>
           </mat-form-field>
         </div>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field fxFlex="50">
+        <div class="flex-1 flex flex-row justify-between items-center gap-2.5">
+          <mat-form-field class="w-1/2">
             <mat-label>{{ 'gateway.rpc.dataBefore' | translate }}</mat-label>
             <input matInput formControlName="dataBefore" placeholder="00AA"/>
           </mat-form-field>
-          <mat-form-field fxFlex="50">
+          <mat-form-field class="w-1/2">
             <mat-label>{{ 'gateway.rpc.dataAfter' | translate }}</mat-label>
             <input matInput formControlName="dataAfter" placeholder="0102"/>
           </mat-form-field>
@@ -275,21 +275,21 @@
         <mat-slide-toggle class="mat-slide margin" formControlName="withResponse">
           {{ 'gateway.rpc.withResponse' | translate }}
         </mat-slide-toggle>
-        <fieldset class="fields border" fxLayout="column" fxLayoutGap="10px" formArrayName="oid">
+        <fieldset class="fields border flex flex-col gap-2.5" formArrayName="oid">
           <span class="fields-label">{{ 'gateway.rpc.oids' | translate }}*</span>
-          <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center"
+          <div class="flex flex-row justify-between items-center gap-2.5"
                *ngFor="let control of getFormArrayControls('oid'); let i = index">
-            <mat-form-field class="tb-inline-field" appearance="outline" fxFlex subscriptSizing="dynamic">
+            <mat-form-field class="tb-inline-field flex-1" appearance="outline" subscriptSizing="dynamic">
               <input matInput [formControl]="control" required/>
             </mat-form-field>
             <mat-icon style="cursor:pointer;"
-                      fxFlex="30px"
+                      class="w-[30px]"
                       (click)="removeSNMPoid(i)"
                       matTooltip="{{ 'gateway.rpc.remove' | translate }}">delete
             </mat-icon>
           </div>
           <button mat-raised-button
-                  fxFlexAlign="start"
+                  class="self-start"
                   (click)="addSNMPoid()">
             {{ 'gateway.rpc.add-oid' | translate }}
           </button>
@@ -300,8 +300,8 @@
           <mat-label>{{ 'gateway.rpc.methodFilter' | translate }}</mat-label>
           <input matInput formControlName="methodFilter" placeholder="post_attributes"/>
         </mat-form-field>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field class="mat-block" fxFlex="33">
+        <div class="flex flex-row justify-between items-center gap-2.5">
+          <mat-form-field class="mat-block w-1/3">
             <mat-label>{{ 'gateway.rpc.httpMethod' | translate }}</mat-label>
             <mat-select formControlName="httpMethod">
               <mat-option *ngFor="let method of hTTPMethods" [value]="method">
@@ -309,24 +309,24 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field fxFlex>
+          <mat-form-field class="mat-block w-2/3">
             <mat-label>{{ 'gateway.rpc.requestUrlExpression' | translate }}</mat-label>
             <input matInput formControlName="requestUrlExpression"
                    placeholder="http://127.0.0.1:5000/my_devices"/>
           </mat-form-field>
         </div>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field fxFlex="33">
+        <div class="flex flex-row justify-between items-center gap-2.5">
+          <mat-form-field class="mat-block w-1/3">
             <mat-label>{{ 'gateway.rpc.responseTimeout' | translate }}</mat-label>
             <input matInput formControlName="responseTimeout" type="number"
                    step="1" min="10" placeholder="10"/>
           </mat-form-field>
-          <mat-form-field fxFlex>
+          <mat-form-field class="mat-block w-1/3">
             <mat-label>{{ 'gateway.rpc.timeout' | translate }}</mat-label>
             <input matInput formControlName="timeout" type="number"
                    step="1" min="10" placeholder="1000"/>
           </mat-form-field>
-          <mat-form-field fxFlex>
+          <mat-form-field class="mat-block w-1/3">
             <mat-label>{{ 'gateway.rpc.tries' | translate }}</mat-label>
             <input matInput formControlName="tries" type="number"
                    step="1" min="1" placeholder="3"/>
@@ -336,26 +336,26 @@
           <mat-label>{{ 'gateway.rpc.valueExpression' | translate }}</mat-label>
           <input matInput formControlName="valueExpression" placeholder="${params}"/>
         </mat-form-field>
-        <fieldset class="fields border" fxLayout="column" fxLayoutGap="10px" formArrayName="httpHeaders">
+        <fieldset class="fields border gap-2.5 flex flex-col" formArrayName="httpHeaders">
           <span class="fields-label">{{ 'gateway.rpc.httpHeaders' | translate }}</span>
-          <div class="border" fxLayout="column" fxLayoutGap="10px" *ngIf="getFormArrayControls('httpHeaders').length">
-            <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
-              <span fxFlex class="title">{{ 'gateway.rpc.header-name' | translate }}</span>
-              <span fxFlex class="title">{{ 'gateway.rpc.value' | translate }}</span>
-              <span fxFlex="30px"></span>
+          <div class="border flex flex-col gap-2.5" *ngIf="getFormArrayControls('httpHeaders').length">
+            <div class="flex flex-row justify-between items-center gap-2.5">
+              <span class="flex-1 title">{{ 'gateway.rpc.header-name' | translate }}</span>
+              <span class="flex-1 title">{{ 'gateway.rpc.value' | translate }}</span>
+              <span class="w-[30px]"></span>
             </div>
             <mat-divider></mat-divider>
-            <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center"
+            <div class="flex flex-row justify-between items-center gap-2.5"
                  *ngFor="let control of getFormArrayControls('httpHeaders'); let i = index">
               <ng-container [formGroupName]="i">
-                <mat-form-field appearance="outline" fxFlex>
+                <mat-form-field appearance="outline" class="flex-1">
                   <input matInput formControlName="headerName"/>
                 </mat-form-field>
-                <mat-form-field appearance="outline" fxFlex>
+                <mat-form-field appearance="outline" class="flex-1">
                   <input matInput formControlName="value" placeholder="application/json"/>
                 </mat-form-field>
                 <mat-icon style="cursor:pointer;"
-                          fxFlex="30px"
+                          class="w-[30px]"
                           (click)="removeHTTPHeader(i)"
                           matTooltip="{{ 'gateway.rpc.remove' | translate }}">delete
                 </mat-icon>
@@ -363,31 +363,31 @@
             </div>
           </div>
           <button mat-raised-button
-                  fxFlexAlign="start"
+                  class="self-start"
                   (click)="addHTTPHeader()">
             {{ 'gateway.rpc.add-header' | translate }}
           </button>
         </fieldset>
-        <fieldset class="fields border" fxLayout="column" fxLayoutGap="10px" formArrayName="security">
+        <fieldset class="fields border" class="flex flex-col gap-2.5" formArrayName="security">
           <span class="fields-label">{{ 'gateway.rpc.security' | translate }}</span>
-          <div class="border" fxLayout="column" fxLayoutGap="10px" *ngIf="getFormArrayControls('security').length">
-            <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
-              <span fxFlex class="title">{{ 'gateway.rpc.security-name' | translate }}</span>
-              <span fxFlex class="title">{{ 'gateway.rpc.value' | translate }}</span>
-              <span fxFlex="30px"></span>
+          <div class="border flex flex-col gap-2.5" *ngIf="getFormArrayControls('security').length">
+            <div class="flex flex-row justify-between items-center gap-2.5">
+              <span class="flex-1 title">{{ 'gateway.rpc.security-name' | translate }}</span>
+              <span class="flex-1 title">{{ 'gateway.rpc.value' | translate }}</span>
+              <span class="w-[30px]"></span>
             </div>
             <mat-divider></mat-divider>
-            <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center"
+            <div class="flex flex-row justify-between items-center gap-2.5"
                  *ngFor="let control of getFormArrayControls('security'); let i = index">
               <ng-container [formGroupName]="i">
-                <mat-form-field appearance="outline" fxFlex>
+                <mat-form-field appearance="outline" class="flex-1">
                   <input matInput formControlName="securityName"/>
                 </mat-form-field>
-                <mat-form-field appearance="outline" fxFlex>
+                <mat-form-field appearance="outline" class="flex-1">
                   <input matInput formControlName="value" placeholder="anonymous"/>
                 </mat-form-field>
                 <mat-icon style="cursor:pointer;"
-                          fxFlex="30px"
+                          class="w-[30px]"
                           (click)="removeHTTPSecurity(i)"
                           matTooltip="{{ 'gateway.rpc.remove' | translate }}">delete
                 </mat-icon>
@@ -395,7 +395,7 @@
             </div>
           </div>
           <button mat-raised-button
-                  fxFlexAlign="start"
+                  class="self-start"
                   (click)="addHTTPSecurity()">
             {{ 'gateway.rpc.add-security' | translate }}
           </button>
@@ -406,8 +406,8 @@
           <mat-label>{{ 'gateway.rpc.methodFilter' | translate }}</mat-label>
           <input matInput formControlName="methodFilter" placeholder="echo"/>
         </mat-form-field>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field class="mat-block" fxFlex="33">
+        <div class="flex flex-row gap-2.5">
+          <mat-form-field class="mat-block flex-1">
             <mat-label>{{ 'gateway.rpc.httpMethod' | translate }}</mat-label>
             <mat-select formControlName="httpMethod">
               <mat-option *ngFor="let method of hTTPMethods" [value]="method">
@@ -415,23 +415,23 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field fxFlex>
+          <mat-form-field class="flex-1">
             <mat-label>{{ 'gateway.rpc.requestUrlExpression' | translate }}</mat-label>
             <input matInput formControlName="requestUrlExpression" placeholder="http://127.0.0.1:5000/my_devices"/>
           </mat-form-field>
         </div>
-        <div fxFlex fxLayout="row" fxLayoutGap="10px">
-          <mat-form-field fxFlex="33">
+        <div class="flex flex-row gap-2.5">
+          <mat-form-field class="flex-1">
             <mat-label>{{ 'gateway.rpc.responseTimeout' | translate }}</mat-label>
             <input matInput formControlName="responseTimeout" type="number"
                    step="1" min="10" placeholder="10"/>
           </mat-form-field>
-          <mat-form-field fxFlex>
+          <mat-form-field class="flex-1">
             <mat-label>{{ 'gateway.rpc.timeout' | translate }}</mat-label>
             <input matInput formControlName="timeout" type="number"
                    step="1" min="10" placeholder="10"/>
           </mat-form-field>
-          <mat-form-field fxFlex>
+          <mat-form-field class="flex-1">
             <mat-label>{{ 'gateway.rpc.tries' | translate }}</mat-label>
             <input matInput formControlName="tries" type="number"
                    step="1" min="1" placeholder="1"/>
@@ -445,26 +445,27 @@
           <mat-label>{{ 'gateway.rpc.responseValueExpression' | translate }}</mat-label>
           <input matInput formControlName="responseValueExpression" placeholder="${temp}"/>
         </mat-form-field>
-        <fieldset class="fields border" fxLayout="column" fxLayoutGap="10px" formArrayName="httpHeaders">
+        <fieldset class="fields border flex flex-col gap-2.5" formArrayName="httpHeaders">
           <span class="fields-label">{{ 'gateway.rpc.httpHeaders' | translate }}</span>
-          <div class="border" fxLayout="column" fxLayoutGap="10px" *ngIf="getFormArrayControls('httpHeaders').length">
-            <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
-              <span fxFlex class="title">{{ 'gateway.rpc.header-name' | translate }}</span>
-              <span fxFlex class="title">{{ 'gateway.rpc.value' | translate }}</span>
-              <span fxFlex="30px"></span>
+          <div class="border flex flex-col gap-2.5" *ngIf="getFormArrayControls('httpHeaders').length">
+            <div class="flex flex-row gap-2.5 justify-center items-center">
+              <span class="title flex-1">{{ 'gateway.rpc.header-name' | translate }}</span>
+              <span class="title flex-1">{{ 'gateway.rpc.value' | translate }}</span>
+              <span class="w-[30px]"></span>
             </div>
             <mat-divider></mat-divider>
-            <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center"
+            <div class="flex flex-row gap-2.5 items-center"
+
                  *ngFor="let control of getFormArrayControls('httpHeaders'); let i = index">
               <ng-container [formGroupName]="i">
-                <mat-form-field appearance="outline" fxFlex>
+                <mat-form-field class="flex-1" appearance="outline">
                   <input matInput formControlName="headerName" placeholder="{{ 'gateway.rpc.set' | translate }}"/>
                 </mat-form-field>
-                <mat-form-field appearance="outline" fxFlex>
+                <mat-form-field class="flex-1" appearance="outline">
                   <input matInput formControlName="value"/>
                 </mat-form-field>
                 <mat-icon style="cursor:pointer;"
-                          fxFlex="30px"
+                          class="w-[30px]"
                           (click)="removeHTTPHeader(i)"
                           matTooltip="{{ 'gateway.rpc.remove' | translate }}">delete
                 </mat-icon>
@@ -472,7 +473,7 @@
             </div>
           </div>
           <button mat-raised-button
-                  fxFlexAlign="start"
+                  class="self-start"
                   (click)="addHTTPHeader()">
             {{ 'gateway.rpc.add-header' | translate }}
           </button>
@@ -486,21 +487,21 @@
           <mat-label>{{ 'gateway.rpc.method' | translate }}</mat-label>
           <input matInput formControlName="method" placeholder="multiply"/>
         </mat-form-field>
-        <fieldset class="fields border" fxLayout="column" fxLayoutGap="10px" formArrayName="arguments">
+        <fieldset class="fields border flex flex-col gap-2.5" formArrayName="arguments">
           <span class="fields-label">{{ 'gateway.rpc.arguments' | translate }}</span>
-          <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center"
+          <div class="flex flex-row gap-2.5 items-center"
                *ngFor="let control of getFormArrayControls('arguments'); let i = index">
-            <mat-form-field appearance="outline" fxFlex>
+            <mat-form-field class="flex-1" appearance="outline">
               <input matInput [formControl]="control" required/>
             </mat-form-field>
             <mat-icon style="cursor:pointer;"
-                      fxFlex="30px"
+                      class="w-[30px]"
                       (click)="removeOCPUAArguments(i)"
                       matTooltip="{{ 'gateway.rpc.remove' | translate }}">delete
             </mat-icon>
           </div>
           <button mat-raised-button
-                  fxFlexAlign="start"
+                  class="self-start"
                   (click)="addOCPUAArguments()">
             {{ 'gateway.rpc.add-argument' | translate }}
           </button>
@@ -511,7 +512,7 @@
           <mat-label>{{ 'gateway.statistics.command' | translate }}</mat-label>
           <input matInput formControlName="command"/>
         </mat-form-field>
-        <mat-form-field fxFlex>
+        <mat-form-field class="flex-1">
           <mat-label>{{ 'widget-config.datasource-parameters' | translate }}</mat-label>
           <input matInput formControlName="params" type="JSON" tb-json-to-string/>
           <mat-icon class="material-icons-outlined" aria-hidden="false" aria-label="help-icon"
@@ -526,7 +527,7 @@
       </ng-template>
     </ng-container>
   </ng-template>
-  <div class="template-actions" fxFlex fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
+  <div class="template-actions flex flex-row justify-end items-center gap-2.5">
     <button mat-raised-button
             (click)="save()"
             [disabled]="commandForm.invalid">

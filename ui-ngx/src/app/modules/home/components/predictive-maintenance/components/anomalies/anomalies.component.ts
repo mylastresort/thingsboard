@@ -33,7 +33,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatDividerModule } from '@angular/material/divider';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import { FormsModule } from '@angular/forms';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -164,7 +163,6 @@ export interface AnomalyLogs {
     MatCardModule,
     MatToolbarModule,
     MatDividerModule,
-    FlexLayoutModule,
     WidgetComponentsModule,
     TranslateModule,
     FormsModule,

@@ -1,6 +1,6 @@
 <!--
 
-    Copyright © 2016-2024 The Thingsboard Authors
+    Copyright © 2016-2026 The Thingsboard Authors
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 -->
 <mat-toolbar color="primary">
   <h2 translate>{{ dialogTitle }}</h2>
-  <span fxFlex></span>
+  <span class="flex-1"></span>
   <button mat-icon-button
           (click)="close()"
           type="button">
@@ -28,6 +28,19 @@
   <section *ngIf="loadedInstructions; else loadingInstructions" class="tb-form-panel no-padding no-border">
     <div class="tb-form-panel no-padding no-border">
       <mat-tab-group [(selectedIndex)]="tabIndex" (selectedTabChange)="selectedTabChange(tabIndex)">
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tabs-icon" svgIcon="docker"></mat-icon>
+            Docker
+          </ng-template>
+          <ng-template matTabContent>
+            <div class="tb-form-panel no-padding no-border">
+              <div class="tb-form-panel no-padding stroked">
+                <tb-markdown [data]='contentData.docker'></tb-markdown>
+              </div>
+            </div>
+          </ng-template>
+        </mat-tab>
         <mat-tab>
           <ng-template mat-tab-label>
             <mat-icon class="tabs-icon" svgIcon="mdi:ubuntu"></mat-icon>
@@ -54,26 +67,13 @@
             </div>
           </ng-template>
         </mat-tab>
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <mat-icon class="tabs-icon" svgIcon="docker"></mat-icon>
-            Docker
-          </ng-template>
-          <ng-template matTabContent>
-            <div class="tb-form-panel no-padding no-border">
-              <div class="tb-form-panel no-padding stroked">
-                <tb-markdown [data]='contentData.docker'></tb-markdown>
-              </div>
-            </div>
-          </ng-template>
-        </mat-tab>
       </mat-tab-group>
     </div>
   </section>
 </div>
 <div mat-dialog-actions class="tb-dialog-actions">
-  <mat-slide-toggle fxShow="{{ showDontShowAgain }}" [(ngModel)]="notShowAgain">{{ 'action.dont-show-again' | translate}}</mat-slide-toggle>
-  <span fxFlex></span>
+  <mat-slide-toggle [class.!hidden]="!showDontShowAgain" [(ngModel)]="notShowAgain">{{ 'action.dont-show-again' | translate}}</mat-slide-toggle>
+  <span class="flex-1"></span>
   <button mat-button
           [disabled]="(isLoading$ | async)"
           (click)="close()">{{ 'action.close' | translate }}</button>

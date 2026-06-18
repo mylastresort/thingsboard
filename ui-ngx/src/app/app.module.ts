@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -27,9 +27,25 @@ import { AppComponent } from './app.component';
 import { DashboardRoutingModule } from '@modules/dashboard/dashboard-routing.module';
 import { RouterModule, Routes } from '@angular/router';
 
+import { DefaultUrlSerializer, UrlSerializer, UrlTree } from '@angular/router';
+
+export default class TbUrlSerializer implements UrlSerializer {
+  private _defaultUrlSerializer: DefaultUrlSerializer = new DefaultUrlSerializer();
+
+  parse(url: string): UrlTree {
+    // Encode parentheses
+    url = url.replace(/\(/g, '%28').replace(/\)/g, '%29');
+    // Use the default serializer.
+    return this._defaultUrlSerializer.parse(url)
+  }
+
+  serialize(tree: UrlTree): string {
+    return this._defaultUrlSerializer.serialize(tree).replace(/%28/g, '(').replace(/%29/g, ')');
+  }
+}
+
 const routes: Routes = [
-  {
-    path: '**',
+  { path: '**',
     redirectTo: 'home'
   }
 ];
@@ -54,9 +70,11 @@ export class PageNotFoundRoutingModule { }
     LoginModule,
     HomeModule,
     DashboardRoutingModule,
-    PageNotFoundRoutingModule,
+    PageNotFoundRoutingModule
   ],
-  providers: [],
+  providers: [
+    { provide: UrlSerializer, useClass: TbUrlSerializer }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

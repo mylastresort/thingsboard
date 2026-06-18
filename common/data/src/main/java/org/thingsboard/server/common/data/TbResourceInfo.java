@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,18 @@ package org.thingsboard.server.common.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.thingsboard.server.common.data.id.TbResourceId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.validation.Length;
 import org.thingsboard.server.common.data.validation.NoXss;
 
+import java.io.Serial;
 import java.util.function.UnaryOperator;
 
 @Schema
@@ -36,6 +37,7 @@ import java.util.function.UnaryOperator;
 @EqualsAndHashCode(callSuper = true)
 public class TbResourceInfo extends BaseData<TbResourceId> implements HasName, HasTenantId, ExportableEntity<TbResourceId> {
 
+    @Serial
     private static final long serialVersionUID = 7282664529021651736L;
 
     @Schema(description = "JSON object with Tenant Id. Tenant Id of the resource can't be changed.", accessMode = Schema.AccessMode.READ_ONLY)
@@ -44,13 +46,17 @@ public class TbResourceInfo extends BaseData<TbResourceId> implements HasName, H
     @Length(fieldName = "title")
     @Schema(description = "Resource title.", example = "BinaryAppDataContainer id=19 v1.0")
     private String title;
-    @Schema(description = "Resource type.", example = "LWM2M_MODEL", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Resource type.", example = "LWM2M_MODEL")
     private ResourceType resourceType;
+    @Schema(description = "Resource sub type.", example = "IOT_SVG")
+    private ResourceSubType resourceSubType;
     @NoXss
     @Length(fieldName = "resourceKey")
-    @Schema(description = "Resource key.", example = "19_1.0", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Resource key.", example = "19_1.0")
     private String resourceKey;
+    @Schema(description = "Whether the resource is public.", example = "false")
     private boolean isPublic;
+    @Schema(description = "Public resource key.")
     private String publicResourceKey;
     @Schema(description = "Resource search text.", example = "19_1.0:binaryappdatacontainer", accessMode = Schema.AccessMode.READ_ONLY)
     private String searchText;
@@ -59,10 +65,12 @@ public class TbResourceInfo extends BaseData<TbResourceId> implements HasName, H
     private String etag;
     @NoXss
     @Length(fieldName = "file name")
-    @Schema(description = "Resource file name.", example = "19.xml", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(description = "Resource file name.", example = "19.xml")
     private String fileName;
+    @Schema(description = "Resource descriptor.")
     private JsonNode descriptor;
 
+    @Schema(description = "External resource Id used for import/export.")
     private TbResourceId externalId;
 
     public TbResourceInfo() {
@@ -78,6 +86,7 @@ public class TbResourceInfo extends BaseData<TbResourceId> implements HasName, H
         this.tenantId = resourceInfo.tenantId;
         this.title = resourceInfo.title;
         this.resourceType = resourceInfo.resourceType;
+        this.resourceSubType = resourceInfo.resourceSubType;
         this.resourceKey = resourceInfo.resourceKey;
         this.searchText = resourceInfo.searchText;
         this.isPublic = resourceInfo.isPublic;
@@ -111,11 +120,12 @@ public class TbResourceInfo extends BaseData<TbResourceId> implements HasName, H
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     public String getLink() {
+        String scope = (tenantId != null && tenantId.isSysTenantId()) ? "system" : "tenant"; // tenantId is null in case of export to git
         if (resourceType == ResourceType.IMAGE) {
-            String type = (tenantId != null && tenantId.isSysTenantId()) ? "system" : "tenant"; // tenantId is null in case of export to git
-            return "/api/images/" + type + "/" + resourceKey;
+            return "/api/images/" + scope + "/" + resourceKey;
+        } else {
+            return "/api/resource/" + resourceType.name().toLowerCase() + "/" + scope + "/" + resourceKey;
         }
-        return null;
     }
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
@@ -131,11 +141,12 @@ public class TbResourceInfo extends BaseData<TbResourceId> implements HasName, H
         return title;
     }
 
-    public <T> T getDescriptor(Class<T> type) throws JsonProcessingException {
+    @SneakyThrows
+    public <T> T getDescriptor(Class<T> type) {
         return descriptor != null ? mapper.treeToValue(descriptor, type) : null;
     }
 
-    public <T> void updateDescriptor(Class<T> type, UnaryOperator<T> updater) throws JsonProcessingException {
+    public <T> void updateDescriptor(Class<T> type, UnaryOperator<T> updater) {
         T descriptor = getDescriptor(type);
         descriptor = updater.apply(descriptor);
         setDescriptorValue(descriptor);

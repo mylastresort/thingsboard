@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.dao.device.DeviceProfileService;
 import org.thingsboard.server.dao.device.DeviceService;
-import org.thingsboard.server.dao.exception.DataValidationException;
+import org.thingsboard.server.exception.DataValidationException;
 import org.thingsboard.server.dao.ota.OtaPackageService;
 
 import java.nio.ByteBuffer;
@@ -207,6 +207,18 @@ public class DeviceProfileServiceTest extends AbstractServiceTest {
         Assertions.assertThrows(DataValidationException.class, () -> {
             deviceProfileService.saveDeviceProfile(deviceProfile2);
         });
+    }
+
+    @Test
+    public void testSaveDeviceProfileWithNameDefaultAndProfileWithIsDefaultAndDifferentNameAlreadyExists() {
+        DeviceProfile defaultDeviceProfile = deviceProfileService.findDefaultDeviceProfile(tenantId);
+        Assert.assertNotNull(defaultDeviceProfile);
+        defaultDeviceProfile.setName("Device Profile 1");
+        deviceProfileService.saveDeviceProfile(defaultDeviceProfile);
+        DeviceProfile createdDeviceProfile = deviceProfileService.findOrCreateDeviceProfile(tenantId, "default");
+        Assert.assertNotNull(createdDeviceProfile);
+        Assert.assertEquals("default", createdDeviceProfile.getName());
+        Assert.assertFalse(createdDeviceProfile.isDefault());
     }
 
     @Ignore

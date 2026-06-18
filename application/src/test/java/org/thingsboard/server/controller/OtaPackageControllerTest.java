@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ import org.thingsboard.server.common.data.id.DeviceProfileId;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.security.Authority;
-import org.thingsboard.server.dao.exception.DataValidationException;
+import org.thingsboard.server.exception.DataValidationException;
 import org.thingsboard.server.dao.service.DaoSqlTest;
 
 import java.nio.ByteBuffer;
@@ -216,7 +216,7 @@ public class OtaPackageControllerTest extends AbstractControllerTest {
         Assert.assertEquals(CHECKSUM_ALGORITHM, savedFirmware.getChecksumAlgorithm().name());
         Assert.assertEquals(CHECKSUM, savedFirmware.getChecksum());
 
-        testNotifyEntityAllOneTime(savedFirmware, savedFirmware.getId(), savedFirmware.getId(),
+        testNotifyEntityAllOneTime(new OtaPackageInfo(savedFirmware), savedFirmware.getId(), savedFirmware.getId(),
                 savedTenant.getId(), tenantAdmin.getCustomerId(), tenantAdmin.getId(), tenantAdmin.getEmail(),
                 ActionType.UPDATED);
     }

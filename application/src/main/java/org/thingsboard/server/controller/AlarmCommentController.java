@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,22 +16,21 @@
 package org.thingsboard.server.controller;
 
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.thingsboard.server.common.data.alarm.Alarm;
 import org.thingsboard.server.common.data.alarm.AlarmComment;
 import org.thingsboard.server.common.data.alarm.AlarmCommentInfo;
+import org.thingsboard.server.common.data.alarm.AlarmCommentType;
 import org.thingsboard.server.common.data.exception.ThingsboardException;
 import org.thingsboard.server.common.data.id.AlarmCommentId;
 import org.thingsboard.server.common.data.id.AlarmId;
@@ -57,6 +56,7 @@ import static org.thingsboard.server.controller.ControllerConstants.UUID_WIKI_LI
 @RequiredArgsConstructor
 @RequestMapping("/api")
 public class AlarmCommentController extends BaseController {
+
     public static final String ALARM_ID = "alarmId";
     public static final String ALARM_COMMENT_ID = "commentId";
 
@@ -71,22 +71,21 @@ public class AlarmCommentController extends BaseController {
                     "\n\n If comment type is not specified the default value 'OTHER' will be saved. If 'alarmId' or 'userId' specified in body it will be ignored." +
                     TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/alarm/{alarmId}/comment", method = RequestMethod.POST)
-    @ResponseBody
+    @PostMapping(value = "/alarm/{alarmId}/comment")
     public AlarmComment saveAlarmComment(@Parameter(description = ALARM_ID_PARAM_DESCRIPTION)
                                          @PathVariable(ALARM_ID) String strAlarmId, @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "A JSON value representing the comment.") @RequestBody AlarmComment alarmComment) throws ThingsboardException {
         checkParameter(ALARM_ID, strAlarmId);
         AlarmId alarmId = new AlarmId(toUUID(strAlarmId));
         Alarm alarm = checkAlarmInfoId(alarmId, Operation.WRITE);
         alarmComment.setAlarmId(alarmId);
+        alarmComment.setType(AlarmCommentType.OTHER);
         return tbAlarmCommentService.saveAlarmComment(alarm, alarmComment, getCurrentUser());
     }
 
     @ApiOperation(value = "Delete Alarm comment (deleteAlarmComment)",
             notes = "Deletes the Alarm comment. Referencing non-existing Alarm comment Id will cause an error." + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/alarm/{alarmId}/comment/{commentId}", method = RequestMethod.DELETE)
-    @ResponseBody
+    @DeleteMapping(value = "/alarm/{alarmId}/comment/{commentId}")
     public void deleteAlarmComment(@Parameter(description = ALARM_ID_PARAM_DESCRIPTION) @PathVariable(ALARM_ID) String strAlarmId, @Parameter(description = ALARM_COMMENT_ID_PARAM_DESCRIPTION) @PathVariable(ALARM_COMMENT_ID) String strCommentId) throws ThingsboardException {
         checkParameter(ALARM_ID, strAlarmId);
         AlarmId alarmId = new AlarmId(toUUID(strAlarmId));
@@ -101,8 +100,7 @@ public class AlarmCommentController extends BaseController {
             notes = "Returns a page of alarm comments for specified alarm. " +
                     PAGE_DATA_PARAMETERS + TENANT_OR_CUSTOMER_AUTHORITY_PARAGRAPH)
     @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN', 'CUSTOMER_USER')")
-    @RequestMapping(value = "/alarm/{alarmId}/comment", method = RequestMethod.GET)
-    @ResponseBody
+    @GetMapping(value = "/alarm/{alarmId}/comment")
     public PageData<AlarmCommentInfo> getAlarmComments(
             @Parameter(description = ALARM_ID_PARAM_DESCRIPTION, required = true)
             @PathVariable(ALARM_ID) String strAlarmId,
@@ -121,4 +119,5 @@ public class AlarmCommentController extends BaseController {
         PageLink pageLink = createPageLink(pageSize, page, null, sortProperty, sortOrder);
         return checkNotNull(alarmCommentService.findAlarmComments(alarm.getTenantId(), alarmId, pageLink));
     }
+
 }

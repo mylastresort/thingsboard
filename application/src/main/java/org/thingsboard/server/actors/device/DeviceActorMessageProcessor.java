@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ import org.thingsboard.server.common.data.security.DeviceCredentials;
 import org.thingsboard.server.common.data.security.DeviceCredentialsType;
 import org.thingsboard.server.common.msg.TbActorMsg;
 import org.thingsboard.server.common.msg.TbMsgMetaData;
+import org.thingsboard.server.common.msg.edge.EdgeHighPriorityMsg;
 import org.thingsboard.server.common.msg.queue.TbCallback;
 import org.thingsboard.server.common.msg.rpc.FromDeviceRpcResponse;
 import org.thingsboard.server.common.msg.rpc.FromDeviceRpcResponseActorMsg;
@@ -74,6 +75,7 @@ import org.thingsboard.server.gen.transport.TransportProtos.DeviceSessionsCacheE
 import org.thingsboard.server.gen.transport.TransportProtos.GetAttributeRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.GetAttributeResponseMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.SessionCloseNotificationProto;
+import org.thingsboard.server.gen.transport.TransportProtos.SessionCloseReason;
 import org.thingsboard.server.gen.transport.TransportProtos.SessionEvent;
 import org.thingsboard.server.gen.transport.TransportProtos.SessionEventMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.SessionInfoProto;
@@ -90,7 +92,6 @@ import org.thingsboard.server.gen.transport.TransportProtos.ToTransportUpdateCre
 import org.thingsboard.server.gen.transport.TransportProtos.TransportToDeviceActorMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.TsKvProto;
 import org.thingsboard.server.gen.transport.TransportProtos.UplinkNotificationMsg;
-import org.thingsboard.server.gen.transport.TransportProtos.SessionCloseReason;
 import org.thingsboard.server.service.rpc.RpcSubmitStrategy;
 import org.thingsboard.server.service.state.DefaultDeviceStateService;
 import org.thingsboard.server.service.transport.msg.TransportToDeviceActorMsgWrapper;
@@ -114,23 +115,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-
-/**
- * @author Andrew Shvayka
- */
 @Slf4j
 public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcessor {
 
-    static final String SESSION_TIMEOUT_MESSAGE = "session timeout!";
     final TenantId tenantId;
     final DeviceId deviceId;
     final LinkedHashMapRemoveEldest<UUID, SessionInfoMetaData> sessions;
-    private final Map<UUID, SessionInfo> attributeSubscriptions;
-    private final Map<UUID, SessionInfo> rpcSubscriptions;
+    final Map<UUID, SessionInfo> attributeSubscriptions;
+    final Map<UUID, SessionInfo> rpcSubscriptions;
     private final Map<Integer, ToDeviceRpcRequestMetadata> toDeviceRpcPendingMap;
     private final boolean rpcSequential;
     private final RpcSubmitStrategy rpcSubmitStrategy;
     private final ScheduledExecutorService scheduler;
+    private final boolean closeTransportSessionOnRpcDeliveryTimeout;
 
     private int rpcSeq = 0;
     private String deviceName;
@@ -144,6 +141,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
         this.tenantId = tenantId;
         this.deviceId = deviceId;
         this.rpcSubmitStrategy = RpcSubmitStrategy.parse(systemContext.getRpcSubmitStrategy());
+        this.closeTransportSessionOnRpcDeliveryTimeout = systemContext.isCloseTransportSessionOnRpcDeliveryTimeout();
         this.rpcSequential = !rpcSubmitStrategy.equals(RpcSubmitStrategy.BURST);
         this.attributeSubscriptions = new HashMap<>();
         this.rpcSubscriptions = new HashMap<>();
@@ -175,7 +173,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
     private EdgeId findRelatedEdgeId() {
         List<EntityRelation> result =
                 systemContext.getRelationService().findByToAndType(tenantId, deviceId, EntityRelation.CONTAINS_TYPE, RelationTypeGroup.EDGE);
-        if (result != null && result.size() > 0) {
+        if (result != null && !result.isEmpty()) {
             EntityRelation relationToEdge = result.get(0);
             if (relationToEdge.getFrom() != null && relationToEdge.getFrom().getId() != null) {
                 log.trace("[{}][{}] found edge [{}] for device", tenantId, deviceId, relationToEdge.getFrom().getId());
@@ -214,7 +212,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
             log.debug("[{}][{}] device is related to edge: [{}]. Saving RPC request: [{}][{}] to edge queue", tenantId, deviceId, edgeId.getId(), rpcId, requestId);
             try {
                 if (systemContext.getEdgeService().isEdgeActiveAsync(tenantId, edgeId, DefaultDeviceStateService.ACTIVITY_STATE).get()) {
-                    saveRpcRequestToEdgeQueue(request, requestId).get();
+                    saveRpcRequestToEdgeQueue(request, requestId);
                 } else {
                     log.error("[{}][{}][{}] Failed to save RPC request to edge queue {}. The Edge is currently offline or unreachable", tenantId, deviceId, edgeId.getId(), request);
                 }
@@ -222,7 +220,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
                 log.error("[{}][{}][{}] Failed to save RPC request to edge queue {}", tenantId, deviceId, edgeId.getId(), request, e);
             }
         } else if (isSendNewRpcAvailable()) {
-            sent = rpcSubscriptions.size() > 0;
+            sent = !rpcSubscriptions.isEmpty();
             Set<UUID> syncSessionSet = new HashSet<>();
             rpcSubscriptions.forEach((sessionId, sessionInfo) -> {
                 log.debug("[{}][{}][{}][{}] send RPC request to transport ...", deviceId, sessionId, rpcId, requestId);
@@ -254,8 +252,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
     private boolean isSendNewRpcAvailable() {
         return switch (rpcSubmitStrategy) {
             case SEQUENTIAL_ON_ACK_FROM_DEVICE -> toDeviceRpcPendingMap.values().stream().filter(md -> !md.isDelivered()).findAny().isEmpty();
-            case SEQUENTIAL_ON_RESPONSE_FROM_DEVICE ->
-                    toDeviceRpcPendingMap.values().stream().filter(ToDeviceRpcRequestMetadata::isDelivered).findAny().isEmpty();
+            case SEQUENTIAL_ON_RESPONSE_FROM_DEVICE -> toDeviceRpcPendingMap.isEmpty();
             default -> true;
         };
     }
@@ -268,8 +265,17 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
         rpc.setExpirationTime(request.getExpirationTime());
         rpc.setRequest(JacksonUtil.valueToTree(request));
         rpc.setStatus(status);
-        rpc.setAdditionalInfo(JacksonUtil.toJsonNode(request.getAdditionalInfo()));
+        rpc.setAdditionalInfo(getAdditionalInfo(request));
         systemContext.getTbRpcService().save(tenantId, rpc);
+    }
+
+    private JsonNode getAdditionalInfo(ToDeviceRpcRequest request) {
+        try {
+            return JacksonUtil.toJsonNode(request.getAdditionalInfo());
+        } catch (IllegalArgumentException e) {
+            log.debug("Failed to parse additional info [{}]", request.getAdditionalInfo());
+            return JacksonUtil.valueToTree(request.getAdditionalInfo());
+        }
     }
 
     private ToDeviceRpcRequestMsg createToDeviceRpcRequestMsg(ToDeviceRpcRequest request) {
@@ -490,7 +496,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
         UUID sessionId = getSessionId(sessionInfo);
         DeviceId deviceId = new DeviceId(new UUID(msg.getDeviceIdMSB(), msg.getDeviceIdLSB()));
         ListenableFuture<Void> registrationFuture = systemContext.getClaimDevicesService()
-                        .registerClaimingInfo(tenantId, deviceId, msg.getSecretKey(), msg.getDurationMs());
+                .registerClaimingInfo(tenantId, deviceId, msg.getSecretKey(), msg.getDurationMs());
         Futures.addCallback(registrationFuture, new FutureCallback<>() {
             @Override
             public void onSuccess(Void result) {
@@ -597,7 +603,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
     }
 
     void processAttributesUpdate(DeviceAttributesEventNotificationMsg msg) {
-        if (attributeSubscriptions.size() > 0) {
+        if (!attributeSubscriptions.isEmpty()) {
             boolean hasNotificationData = false;
             AttributeUpdateNotificationMsg.Builder notification = AttributeUpdateNotificationMsg.newBuilder();
             if (msg.isDeleted()) {
@@ -612,7 +618,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
             } else {
                 if (DataConstants.SHARED_SCOPE.equals(msg.getScope())) {
                     List<AttributeKvEntry> attributes = new ArrayList<>(msg.getValues());
-                    if (attributes.size() > 0) {
+                    if (!attributes.isEmpty()) {
                         List<TsKvProto> sharedUpdated = msg.getValues().stream().map(t -> KvProtoUtil.toTsKvProto(t.getLastUpdateTs(), t))
                                 .collect(Collectors.toList());
                         if (!sharedUpdated.isEmpty()) {
@@ -704,10 +710,16 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
                 maxRpcRetries = maxRpcRetries == null ?
                         systemContext.getMaxRpcRetries() : Math.min(maxRpcRetries, systemContext.getMaxRpcRetries());
                 if (maxRpcRetries <= md.getRetries()) {
-                    toDeviceRpcPendingMap.remove(requestId);
-                    status = RpcStatus.FAILED;
-                    response = JacksonUtil.newObjectNode().put("error", "There was a Timeout and all retry " +
-                            "attempts have been exhausted. Retry attempts set: " + maxRpcRetries);
+                    if (closeTransportSessionOnRpcDeliveryTimeout) {
+                        md.setRetries(0);
+                        status = RpcStatus.QUEUED;
+                        notifyTransportAboutSessionsCloseAndDumpSessions(TransportSessionCloseReason.RPC_DELIVERY_TIMEOUT);
+                    } else {
+                        toDeviceRpcPendingMap.remove(requestId);
+                        status = RpcStatus.FAILED;
+                        response = JacksonUtil.newObjectNode().put("error", "There was a Timeout and all retry " +
+                                "attempts have been exhausted. Retry attempts set: " + maxRpcRetries);
+                    }
                 } else {
                     md.setRetries(md.getRetries() + 1);
                 }
@@ -842,28 +854,32 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
 
     void processCredentialsUpdate(TbActorMsg msg) {
         if (((DeviceCredentialsUpdateNotificationMsg) msg).getDeviceCredentials().getCredentialsType() == DeviceCredentialsType.LWM2M_CREDENTIALS) {
-            sessions.forEach((k, v) -> {
-                notifyTransportAboutDeviceCredentialsUpdate(k, v, ((DeviceCredentialsUpdateNotificationMsg) msg).getDeviceCredentials());
-            });
+            sessions.forEach((k, v) ->
+                    notifyTransportAboutDeviceCredentialsUpdate(k, v, ((DeviceCredentialsUpdateNotificationMsg) msg).getDeviceCredentials()));
         } else {
-            sessions.forEach((sessionId, sessionMd) -> notifyTransportAboutClosedSession(sessionId, sessionMd, "device credentials updated!", SessionCloseReason.CREDENTIALS_UPDATED));
-            attributeSubscriptions.clear();
-            rpcSubscriptions.clear();
-            dumpSessions();
-
+            notifyTransportAboutSessionsCloseAndDumpSessions(TransportSessionCloseReason.CREDENTIALS_UPDATED);
         }
     }
 
-    private void notifyTransportAboutClosedSessionMaxSessionsLimit(UUID sessionId, SessionInfoMetaData sessionMd) {
-        log.debug("remove eldest session (max concurrent sessions limit reached per device) sessionId: [{}] sessionMd: [{}]", sessionId, sessionMd);
-        notifyTransportAboutClosedSession(sessionId, sessionMd, "max concurrent sessions limit reached per device!", SessionCloseReason.MAX_CONCURRENT_SESSIONS_LIMIT_REACHED);
+    private void notifyTransportAboutSessionsCloseAndDumpSessions(TransportSessionCloseReason transportSessionCloseReason) {
+        sessions.forEach((sessionId, sessionMd) -> notifyTransportAboutClosedSession(sessionId, sessionMd, transportSessionCloseReason));
+        attributeSubscriptions.clear();
+        rpcSubscriptions.clear();
+        dumpSessions();
     }
 
-    private void notifyTransportAboutClosedSession(UUID sessionId, SessionInfoMetaData sessionMd, String message, SessionCloseReason reason) {
+    private void notifyTransportAboutClosedSessionMaxSessionsLimit(UUID sessionId, SessionInfoMetaData sessionMd) {
+        attributeSubscriptions.remove(sessionId);
+        rpcSubscriptions.remove(sessionId);
+        notifyTransportAboutClosedSession(sessionId, sessionMd, TransportSessionCloseReason.MAX_CONCURRENT_SESSIONS_LIMIT_REACHED);
+    }
+
+    private void notifyTransportAboutClosedSession(UUID sessionId, SessionInfoMetaData sessionMd, TransportSessionCloseReason transportSessionCloseReason) {
+        log.debug("{} sessionId: [{}] sessionMd: [{}]", transportSessionCloseReason.getLogMessage(), sessionId, sessionMd);
         SessionCloseNotificationProto sessionCloseNotificationProto = SessionCloseNotificationProto
                 .newBuilder()
-                .setMessage(message)
-                .setReason(reason)
+                .setMessage(transportSessionCloseReason.getNotificationMessage())
+                .setReason(SessionCloseReason.forNumber(transportSessionCloseReason.getProtoNumber()))
                 .build();
         ToTransportMsg msg = ToTransportMsg.newBuilder()
                 .setSessionIdMSB(sessionId.getMostSignificantBits())
@@ -921,7 +937,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
         systemContext.getTbCoreToTransportService().process(nodeId, msg);
     }
 
-    private ListenableFuture<Void> saveRpcRequestToEdgeQueue(ToDeviceRpcRequest msg, Integer requestId) {
+    private void saveRpcRequestToEdgeQueue(ToDeviceRpcRequest msg, Integer requestId) {
         ObjectNode body = JacksonUtil.newObjectNode();
         body.put("requestId", requestId);
         body.put("requestUUID", msg.getId().toString());
@@ -935,7 +951,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
 
         EdgeEvent edgeEvent = EdgeUtils.constructEdgeEvent(tenantId, edgeId, EdgeEventType.DEVICE, EdgeEventActionType.RPC_CALL, deviceId, body);
 
-        return systemContext.getEdgeEventService().saveAsync(edgeEvent);
+        systemContext.getClusterService().onEdgeHighPriorityMsg(new EdgeHighPriorityMsg(tenantId, edgeEvent));
     }
 
     void restoreSessions() {
@@ -1047,7 +1063,7 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
                 attributeSubscriptions.remove(id);
                 if (session != null) {
                     removed++;
-                    notifyTransportAboutClosedSession(id, session, SESSION_TIMEOUT_MESSAGE, SessionCloseReason.SESSION_TIMEOUT);
+                    notifyTransportAboutClosedSession(id, session, TransportSessionCloseReason.SESSION_TIMEOUT);
                 }
             }
             if (removed != 0) {

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import { DetailsPanelComponent } from '@home/components/details-panel.component'
 import { EntityDetailsPanelComponent } from '@home/components/entity/entity-details-panel.component';
 import { AuditLogDetailsDialogComponent } from '@home/components/audit-log/audit-log-details-dialog.component';
 import { AuditLogTableComponent } from '@home/components/audit-log/audit-log-table.component';
+import { AuditLogHeaderComponent } from '@home/components/audit-log/audit-log-header.component';
 import { EventTableHeaderComponent } from '@home/components/event/event-table-header.component';
 import { EventTableComponent } from '@home/components/event/event-table.component';
 import { EventFilterPanelComponent } from '@home/components/event/event-filter-panel.component';
@@ -114,6 +115,9 @@ import { EditWidgetComponent } from '@home/components/dashboard-page/edit-widget
 import { DashboardWidgetSelectComponent } from '@home/components/dashboard-page/dashboard-widget-select.component';
 import { AddWidgetDialogComponent } from '@home/components/dashboard-page/add-widget-dialog.component';
 import { ManageDashboardLayoutsDialogComponent } from '@home/components/dashboard-page/layout/manage-dashboard-layouts-dialog.component';
+import {
+  AddNewBreakpointDialogComponent
+} from '@home/components/dashboard-page/layout/add-new-breakpoint-dialog.component';
 import { DashboardSettingsDialogComponent } from '@home/components/dashboard-page/dashboard-settings-dialog.component';
 import { ManageDashboardStatesDialogComponent } from '@home/components/dashboard-page/states/manage-dashboard-states-dialog.component';
 import { DashboardStateDialogComponent } from '@home/components/dashboard-page/states/dashboard-state-dialog.component';
@@ -124,7 +128,10 @@ import { EdgeDownlinkTableHeaderComponent } from '@home/components/edge/edge-dow
 import { DisplayWidgetTypesPanelComponent } from '@home/components/dashboard-page/widget-types-panel.component';
 import { AlarmDurationPredicateValueComponent } from '@home/components/profile/alarm/alarm-duration-predicate-value.component';
 import { DashboardImageDialogComponent } from '@home/components/dashboard-page/dashboard-image-dialog.component';
-import { WidgetContainerComponent } from '@home/components/widget/widget-container.component';
+import {
+  EditWidgetActionsTooltipComponent,
+  WidgetContainerComponent
+} from '@home/components/widget/widget-container.component';
 import { SnmpDeviceProfileTransportModule } from '@home/components/profile/device/snmp/snmp-device-profile-transport.module';
 import { DeviceCredentialsModule } from '@home/components/device/device-credentials.module';
 import { DeviceProfileCommonModule } from '@home/components/profile/device/common/device-profile-common.module';
@@ -171,7 +178,30 @@ import {
 import { WidgetConfigComponentsModule } from '@home/components/widget/config/widget-config-components.module';
 import { BasicWidgetConfigModule } from '@home/components/widget/config/basic/basic-widget-config.module';
 import { DeleteTimeseriesPanelComponent } from '@home/components/attribute/delete-timeseries-panel.component';
-import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/predictive-maintenance.module';
+import { MoveWidgetsDialogComponent } from '@home/components/dashboard-page/layout/move-widgets-dialog.component';
+import {
+  SelectDashboardBreakpointComponent
+} from '@home/components/dashboard-page/layout/select-dashboard-breakpoint.component';
+import { EntityChipsComponent } from '@home/components/entity/entity-chips.component';
+import { DashboardViewComponent } from '@home/components/dashboard-view/dashboard-view.component';
+import {
+  EntityDebugSettingsButtonComponent
+} from '@home/components/entity/debug/entity-debug-settings-button.component';
+import { CheckConnectivityDialogComponent } from '@home/components/ai-model/check-connectivity-dialog.component';
+import { AIModelDialogComponent } from '@home/components/ai-model/ai-model-dialog.component';
+import { ResourcesDialogComponent } from "@home/components/resources/resources-dialog.component";
+import { ResourcesLibraryComponent } from "@home/components/resources/resources-library.component";
+import { CalculatedFieldsTableComponent } from '@home/components/calculated-fields/calculated-fields-table.component';
+import { CalculatedFieldsModule } from '@home/components/calculated-fields/calculated-field.module';
+import { AlarmRuleModule } from "@home/components/alarm-rules/alarm-rule.module";
+import { AlarmRulesTableComponent } from "@home/components/alarm-rules/alarm-rules-table.component";
+import { ApiKeysTableComponent } from '@home/components/api-key/api-keys-table.component';
+import { AddApiKeyDialogComponent } from '@home/components/api-key/add-api-key-dialog.component';
+import { EditApiKeyDescriptionPanelComponent } from '@home/components/api-key/edit-api-key-description-panel.component';
+import { ApiKeyGeneratedDialogComponent } from '@home/components/api-key/api-key-generated-dialog.component';
+import { ApiKeysTableDialogComponent } from '@home/components/api-key/api-keys-table-dialog.component';
+import { AuditLogFilterComponent } from "@home/components/audit-log/audit-log-filter.component";
+import { EventsDialogComponent } from '@home/dialogs/events-dialog.component';
 
 @NgModule({
   declarations:
@@ -184,6 +214,8 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
       EntityDetailsPageComponent,
       AuditLogTableComponent,
       AuditLogDetailsDialogComponent,
+      CalculatedFieldsTableComponent,
+      AlarmRulesTableComponent,
       EventContentDialogComponent,
       EventTableHeaderComponent,
       EventTableComponent,
@@ -208,6 +240,7 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
       EntityAliasDialogComponent,
       DashboardComponent,
       WidgetContainerComponent,
+      EditWidgetActionsTooltipComponent,
       WidgetComponent,
       WidgetConfigComponent,
       WidgetPreviewComponent,
@@ -281,10 +314,13 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
       DashboardPageComponent,
       DashboardStateComponent,
       DashboardLayoutComponent,
+      SelectDashboardBreakpointComponent,
       EditWidgetComponent,
       DashboardWidgetSelectComponent,
       AddWidgetDialogComponent,
+      MoveWidgetsDialogComponent,
       ManageDashboardLayoutsDialogComponent,
+      AddNewBreakpointDialogComponent,
       DashboardSettingsDialogComponent,
       ManageDashboardStatesDialogComponent,
       DashboardStateDialogComponent,
@@ -309,12 +345,28 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
       RateLimitsComponent,
       RateLimitsTextComponent,
       RateLimitsDetailsDialogComponent,
-      SendNotificationButtonComponent
+      SendNotificationButtonComponent,
+      EntityChipsComponent,
+      DashboardViewComponent,
+      CheckConnectivityDialogComponent,
+      AIModelDialogComponent,
+      ResourcesDialogComponent,
+      ResourcesLibraryComponent,
+      ApiKeysTableComponent,
+      ApiKeysTableDialogComponent,
+      AddApiKeyDialogComponent,
+      EditApiKeyDescriptionPanelComponent,
+      ApiKeyGeneratedDialogComponent,
+      AuditLogHeaderComponent,
+      AuditLogFilterComponent,
+      EventsDialogComponent
     ],
   imports: [
     CommonModule,
     SharedModule,
     SharedHomeComponentsModule,
+    CalculatedFieldsModule,
+    AlarmRuleModule,
     WidgetConfigComponentsModule,
     BasicWidgetConfigModule,
     Lwm2mProfileComponentsModule,
@@ -322,7 +374,7 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
     StatesControllerModule,
     DeviceCredentialsModule,
     DeviceProfileCommonModule,
-    PredictiveMaintenanceModule,
+    EntityDebugSettingsButtonComponent
   ],
   exports: [
     RouterTabsComponent,
@@ -332,6 +384,8 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
     EntityDetailsPanelComponent,
     EntityDetailsPageComponent,
     AuditLogTableComponent,
+    CalculatedFieldsTableComponent,
+    AlarmRulesTableComponent,
     EventTableComponent,
     EdgeDownlinkTableHeaderComponent,
     EdgeDownlinkTableComponent,
@@ -347,6 +401,7 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
     EntityAliasDialogComponent,
     DashboardComponent,
     WidgetContainerComponent,
+    EditWidgetActionsTooltipComponent,
     WidgetComponent,
     WidgetConfigComponent,
     WidgetPreviewComponent,
@@ -413,10 +468,13 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
     DashboardPageComponent,
     DashboardStateComponent,
     DashboardLayoutComponent,
+    SelectDashboardBreakpointComponent,
     EditWidgetComponent,
     DashboardWidgetSelectComponent,
     AddWidgetDialogComponent,
+    MoveWidgetsDialogComponent,
     ManageDashboardLayoutsDialogComponent,
+    AddNewBreakpointDialogComponent,
     DashboardSettingsDialogComponent,
     ManageDashboardStatesDialogComponent,
     DashboardStateDialogComponent,
@@ -441,16 +499,25 @@ import { PredictiveMaintenanceModule } from '../pages/predictive-maintenance/pre
     RateLimitsComponent,
     RateLimitsTextComponent,
     RateLimitsDetailsDialogComponent,
-    SendNotificationButtonComponent
+    SendNotificationButtonComponent,
+    EntityChipsComponent,
+    DashboardViewComponent,
+    CheckConnectivityDialogComponent,
+    AIModelDialogComponent,
+    ResourcesDialogComponent,
+    ResourcesLibraryComponent,
+    ApiKeysTableComponent,
+    ApiKeysTableDialogComponent,
+    EventsDialogComponent
   ],
   providers: [
     WidgetComponentService,
     CustomDialogService,
-    { provide: EMBED_DASHBOARD_DIALOG_TOKEN, useValue: EmbedDashboardDialogComponent },
-    { provide: COMPLEX_FILTER_PREDICATE_DIALOG_COMPONENT_TOKEN, useValue: ComplexFilterPredicateDialogComponent },
-    { provide: DASHBOARD_PAGE_COMPONENT_TOKEN, useValue: DashboardPageComponent },
-    { provide: HOME_COMPONENTS_MODULE_TOKEN, useValue: HomeComponentsModule },
-    { provide: MODULES_MAP, useValue: modulesMap }
+    {provide: EMBED_DASHBOARD_DIALOG_TOKEN, useValue: EmbedDashboardDialogComponent},
+    {provide: COMPLEX_FILTER_PREDICATE_DIALOG_COMPONENT_TOKEN, useValue: ComplexFilterPredicateDialogComponent},
+    {provide: DASHBOARD_PAGE_COMPONENT_TOKEN, useValue: DashboardPageComponent},
+    {provide: HOME_COMPONENTS_MODULE_TOKEN, useValue: HomeComponentsModule },
+    {provide: MODULES_MAP, useValue: modulesMap}
   ]
 })
 export class HomeComponentsModule { }

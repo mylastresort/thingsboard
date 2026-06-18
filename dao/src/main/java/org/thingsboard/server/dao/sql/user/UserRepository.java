@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +15,21 @@
  */
 package org.thingsboard.server.dao.sql.user;
 
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.thingsboard.server.common.data.edqs.fields.UserFields;
 import org.thingsboard.server.common.data.security.Authority;
+import org.thingsboard.server.common.data.util.TbPair;
 import org.thingsboard.server.dao.model.sql.UserEntity;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
-/**
- * @author Valerii Sosliuk
- */
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     UserEntity findByEmail(String email);
@@ -70,5 +71,18 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
                                                          Pageable pageable);
 
     Long countByTenantId(UUID tenantId);
+
+    @Query("SELECT new org.thingsboard.server.common.data.edqs.fields.UserFields(u.id, u.createdTime, u.tenantId," +
+            "u.customerId, u.version, u.firstName, u.lastName, u.email, u.phone, u.additionalInfo) " +
+            "FROM UserEntity u WHERE u.id > :id ORDER BY u.id")
+    List<UserFields> findNextBatch(@Param("id") UUID id, Limit limit);
+
+    int countByTenantIdAndAuthority(UUID tenantId, Authority authority);
+
+    @Query("SELECT new org.thingsboard.server.common.data.util.TbPair(u, uc.enabled) " +
+            "FROM UserEntity u JOIN UserCredentialsEntity uc ON u.id = uc.userId WHERE u.id = :userId ")
+    TbPair<UserEntity, Boolean> findUserAuthDetailsByUserId(@Param("userId") UUID userId);
+
+    List<UserEntity> findUsersByTenantIdAndIdIn(UUID tenantId, List<UUID> userIds);
 
 }

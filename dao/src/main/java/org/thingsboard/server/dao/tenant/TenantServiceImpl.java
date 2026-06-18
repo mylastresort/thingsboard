@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package org.thingsboard.server.dao.tenant;
 
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +39,12 @@ import org.thingsboard.server.dao.device.DeviceProfileService;
 import org.thingsboard.server.dao.entity.AbstractCachedEntityService;
 import org.thingsboard.server.dao.eventsourcing.DeleteEntityEvent;
 import org.thingsboard.server.dao.eventsourcing.SaveEntityEvent;
-import org.thingsboard.server.dao.mobile.MobileAppSettingsService;
+import org.thingsboard.server.dao.mobile.QrCodeSettingService;
 import org.thingsboard.server.dao.notification.NotificationSettingsService;
 import org.thingsboard.server.dao.service.PaginatedRemover;
 import org.thingsboard.server.dao.service.Validator;
 import org.thingsboard.server.dao.service.validator.TenantDataValidator;
-import org.thingsboard.server.dao.settings.AdminSettingsService;
+import org.thingsboard.server.dao.trendz.TrendzSettingsService;
 import org.thingsboard.server.dao.usagerecord.ApiUsageStateService;
 import org.thingsboard.server.dao.user.UserService;
 
@@ -51,7 +52,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+import static org.thingsboard.server.dao.DaoUtil.toUUIDs;
 import static org.thingsboard.server.dao.service.Validator.validateId;
+import static org.thingsboard.server.dao.service.Validator.validateIds;
 
 @Service("TenantDaoService")
 @Slf4j
@@ -75,18 +79,19 @@ public class TenantServiceImpl extends AbstractCachedEntityService<TenantId, Ten
     @Autowired
     private ApiUsageStateService apiUsageStateService;
     @Autowired
-    private AdminSettingsService adminSettingsService;
-    @Autowired
+    @Lazy
     private NotificationSettingsService notificationSettingsService;
     @Autowired
-    private MobileAppSettingsService mobileAppSettingsService;
+    private QrCodeSettingService qrCodeSettingService;
+    @Autowired
+    private TrendzSettingsService trendzSettingsService;
     @Autowired
     private TenantDataValidator tenantValidator;
     @Autowired
     protected TbTransactionalCache<TenantId, Boolean> existsTenantCache;
 
-    @TransactionalEventListener(classes = TenantEvictEvent.class)
     @Override
+    @TransactionalEventListener
     public void handleEvictEvent(TenantEvictEvent event) {
         TenantId tenantId = event.getTenantId();
         cache.evict(tenantId);
@@ -163,21 +168,23 @@ public class TenantServiceImpl extends AbstractCachedEntityService<TenantId, Ten
         Validator.validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
 
         userService.deleteAllByTenantId(tenantId);
-        adminSettingsService.deleteAdminSettingsByTenantId(tenantId);
-        mobileAppSettingsService.deleteByTenantId(tenantId);
         notificationSettingsService.deleteNotificationSettings(tenantId);
+        trendzSettingsService.deleteTrendzSettings(tenantId);
+        qrCodeSettingService.deleteByTenantId(tenantId);
 
         tenantDao.removeById(tenantId, tenantId.getId());
         publishEvictEvent(new TenantEvictEvent(tenantId, true));
         eventPublisher.publishEvent(DeleteEntityEvent.builder().tenantId(tenantId).entityId(tenantId).entity(tenant).build());
 
-        cleanUpService.removeTenantEntities(tenantId, // don't forget to implement deleteEntity from EntityDaoService when adding entity type to this list
-                EntityType.ENTITY_VIEW, EntityType.WIDGETS_BUNDLE, EntityType.WIDGET_TYPE,
+        cleanUpService.removeTenantEntities(tenantId, // remember to implement deleteEntity from EntityDaoService when adding an entity type to this list
+                EntityType.ADMIN_SETTINGS, EntityType.JOB, EntityType.ENTITY_VIEW, EntityType.WIDGETS_BUNDLE, EntityType.WIDGET_TYPE,
                 EntityType.ASSET, EntityType.ASSET_PROFILE, EntityType.DEVICE, EntityType.DEVICE_PROFILE,
                 EntityType.DASHBOARD, EntityType.EDGE, EntityType.RULE_CHAIN, EntityType.API_USAGE_STATE,
                 EntityType.TB_RESOURCE, EntityType.OTA_PACKAGE, EntityType.RPC, EntityType.QUEUE,
                 EntityType.NOTIFICATION_REQUEST, EntityType.NOTIFICATION_RULE, EntityType.NOTIFICATION_TEMPLATE,
-                EntityType.NOTIFICATION_TARGET, EntityType.QUEUE_STATS, EntityType.CUSTOMER
+                EntityType.NOTIFICATION_TARGET, EntityType.QUEUE_STATS, EntityType.CUSTOMER,
+                EntityType.DOMAIN, EntityType.MOBILE_APP_BUNDLE, EntityType.MOBILE_APP, EntityType.OAUTH2_CLIENT,
+                EntityType.AI_MODEL
         );
     }
 
@@ -202,6 +209,12 @@ public class TenantServiceImpl extends AbstractCachedEntityService<TenantId, Ten
     }
 
     @Override
+    public Tenant findTenantByName(String name) {
+        log.trace("Executing findTenantByName [{}]", name);
+        return tenantDao.findTenantByName(TenantId.SYS_TENANT_ID, name);
+    }
+
+    @Override
     public void deleteTenants() {
         log.trace("Executing deleteTenants");
         tenantsRemover.removeEntities(TenantId.SYS_TENANT_ID, TenantId.SYS_TENANT_ID);
@@ -215,8 +228,9 @@ public class TenantServiceImpl extends AbstractCachedEntityService<TenantId, Ten
     }
 
     @Override
-    public Optional<TenantId> findTenantByEmail(String email) {
-        return tenantDao.findTenantByEmail(email);
+    public List<Tenant> findTenantsByIds(TenantId callerId, List<TenantId> tenantIds) {
+        log.trace("Executing findTenantsByIds, callerId [{}], tenantIds [{}]", callerId, tenantIds);
+        return tenantDao.findTenantsByIds(callerId.getId(), toUUIDs(tenantIds));
     }
 
     @Override
@@ -224,7 +238,7 @@ public class TenantServiceImpl extends AbstractCachedEntityService<TenantId, Ten
         return existsTenantCache.getAndPutInTransaction(tenantId, () -> tenantDao.existsById(tenantId, tenantId.getId()), false);
     }
 
-    private PaginatedRemover<TenantId, Tenant> tenantsRemover = new PaginatedRemover<>() {
+    private final PaginatedRemover<TenantId, Tenant> tenantsRemover = new PaginatedRemover<>() {
 
         @Override
         protected PageData<Tenant> findEntities(TenantId tenantId, TenantId id, PageLink pageLink) {
@@ -239,7 +253,13 @@ public class TenantServiceImpl extends AbstractCachedEntityService<TenantId, Ten
 
     @Override
     public Optional<HasId<?>> findEntity(TenantId tenantId, EntityId entityId) {
-        return Optional.ofNullable(findTenantById(new TenantId(entityId.getId())));
+        return Optional.ofNullable(findTenantById(TenantId.fromUUID(entityId.getId())));
+    }
+
+    @Override
+    public FluentFuture<Optional<HasId<?>>> findEntityAsync(TenantId tenantId, EntityId entityId) {
+        return FluentFuture.from(findTenantByIdAsync(tenantId, TenantId.fromUUID(entityId.getId())))
+                .transform(Optional::ofNullable, directExecutor());
     }
 
     @Override

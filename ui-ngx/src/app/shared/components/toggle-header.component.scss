@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,9 @@
   grid-template-columns: min-content minmax(auto, 1fr) min-content;
   .tb-toggle-header-pagination-button {
     display: none;
+    &.fill-height {
+      height: 100%;
+    }
   }
   &.tb-toggle-header-pagination-controls-enabled {
     .tb-toggle-header-pagination-button {
@@ -40,9 +43,34 @@
   .tb-toggle-header {
     transition: transform 500ms cubic-bezier(0.35, 0, 0.25, 1);
   }
+
+  .tb-error-icon {
+    width: 12px;
+    height: 12px;
+    font-size: 12px;
+  }
 }
 
 :host ::ng-deep {
+  .tb-toggle-container {
+    &.fill-height {
+      .mat-button-toggle-group.mat-button-toggle-group-appearance-standard.tb-toggle-header {
+        height: 100%;
+        .mat-button-toggle.mat-button-toggle-appearance-standard {
+          .mat-button-toggle-button {
+            height: 100%;
+          }
+        }
+      }
+    }
+    &.extra-padding {
+      .mat-button-toggle.mat-button-toggle-appearance-standard {
+        .mat-button-toggle-label-content {
+          padding: 0 20px;
+        }
+      }
+    }
+  }
   .mat-button-toggle-group.mat-button-toggle-group-appearance-standard.tb-toggle-header {
     overflow: visible;
     width: 100%;
@@ -51,12 +79,24 @@
     padding: 2px;
     border: none;
     background: rgba(0, 0, 0, 0.06);
+    &.tb-primary-fill {
+      background: none;
+      &:before {
+        border-radius: 100px;
+      }
+    }
+    .tb-toggle-button-error {
+      .mat-button-toggle-button {
+        border: 1px solid rgb(221, 44, 0);
+        border-radius: 20px;
+      }
+    }
     .mat-button-toggle + .mat-button-toggle {
       border-left: none;
     }
     .mat-button-toggle.mat-button-toggle-appearance-standard {
       flex: 1;
-      // color: rgba(0, 0, 0, 0.38);
+      color: rgba(0, 0, 0, 0.38);
       background: transparent;
 
       .mat-button-toggle-focus-overlay, .mat-button-toggle-ripple {
@@ -69,12 +109,15 @@
           font-weight: 400;
           font-size: 14px;
           letter-spacing: 0.2px;
+          .mat-pseudo-checkbox {
+            display: none;
+          }
         }
       }
       &.mat-button-toggle-checked {
         .mat-button-toggle-button {
-          background: $tb-primary-color;
-          color: var(--tb-dark-mat-text-A100);
+          background: #F3F6FA;
+          color: $tb-primary-color;
           border: 1px solid $tb-primary-color;
           border-radius: 20px;
 
@@ -90,7 +133,7 @@
         &.mat-button-toggle-checked {
           .mat-button-toggle-button {
             background: $tb-primary-color;
-            color: var(--tb-dark-mat-text-A100);
+            color: #FFFFFF;
           }
         }
       }
@@ -99,8 +142,8 @@
           color: rgba(255, 255, 255, 0.8);
           &.mat-button-toggle-checked {
             .mat-button-toggle-button {
-              background: $tb-primary-color;
-              color: var(--tb-dark-mat-text-A100);
+              background: #FFFFFF;
+              color: $tb-primary-color;
             }
           }
         }
@@ -119,6 +162,10 @@
             color: rgba(0, 0, 0, 0.38);
             border-color: rgba(0, 0, 0, 0.38);
           }
+        }
+
+        .mat-button-toggle-focus-overlay {
+          opacity: 0;
         }
       }
       &.tb-fill {
@@ -161,6 +208,16 @@
     &.mat-mdc-form-field {
       line-height: 16px;
       font-size: 12px;
+      &.fill-height {
+        .mat-mdc-text-field-wrapper {
+          .mat-mdc-form-field-flex {
+            margin: auto;
+          }
+        }
+        .mat-mdc-form-field-subscript-wrapper {
+          display: none;
+        }
+      }
     }
     .mat-mdc-text-field-wrapper.mdc-text-field--outlined .mat-mdc-form-field-infix {
       min-height: 0;

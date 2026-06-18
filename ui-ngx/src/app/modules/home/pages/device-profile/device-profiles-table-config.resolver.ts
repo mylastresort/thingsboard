@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ import {
   AddDeviceProfileDialogData
 } from '@home/components/profile/add-device-profile-dialog.component';
 import { ImportExportService } from '@shared/import-export/import-export.service';
-import { HomeDialogsService } from '@home/dialogs/home-dialogs.service';
+import { CustomTranslatePipe } from '@shared/pipe/custom-translate.pipe';
 
 @Injectable()
 export class DeviceProfilesTableConfigResolver  {
@@ -51,12 +51,12 @@ export class DeviceProfilesTableConfigResolver  {
 
   constructor(private deviceProfileService: DeviceProfileService,
               private importExport: ImportExportService,
-              private homeDialogs: HomeDialogsService,
               private translate: TranslateService,
               private datePipe: DatePipe,
               private dialogService: DialogService,
               private router: Router,
-              private dialog: MatDialog) {
+              private dialog: MatDialog,
+              private customTranslate: CustomTranslatePipe) {
 
     this.config.entityType = EntityType.DEVICE_PROFILE;
     this.config.entityComponent = DeviceProfileComponent;
@@ -77,7 +77,8 @@ export class DeviceProfilesTableConfigResolver  {
       new EntityTableColumn<DeviceProfile>('transportType', 'device-profile.transport-type', '20%', (deviceProfile) => {
         return this.translate.instant(deviceTransportTypeTranslationMap.get(deviceProfile.transportType));
       }),
-      new EntityTableColumn<DeviceProfile>('description', 'device-profile.description', '40%'),
+      new EntityTableColumn<DeviceProfile>('description', 'device-profile.description', '40%',
+          entity => this.customTranslate.transform(entity.description || '')),
       new EntityTableColumn<DeviceProfile>('isDefault', 'device-profile.default', '60px',
         entity => {
           return checkBoxCell(entity.default);

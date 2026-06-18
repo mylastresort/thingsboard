@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,15 +31,9 @@ $mat-md-lg: "screen and (min-width: 960px) and (max-width: 1819px)";
 
 $primary-hue-3: rgb(207, 216, 220) !default;
 
-:root {
-  // #{--tb-dark-primary-color}: #363638;
-  // #{--tb-dark-primary-color}: #4a1a99;
-  #{--tb-dark-primary-color}: #ffffff;
-}
-
-$tb-primary-color: var(--tb-dark-primary-color);
+$tb-primary-color: #305680;
 $tb-secondary-color: #527dad;
 $tb-hue3-color: #a7c1de;
 
-$tb-dark-primary-color: var(--tb-dark-primary-color);
-
+$tb-dark-primary-color: #9fa8da;
+$tb-primary-color-light: #7986cb;

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,9 @@ public enum ResourceType {
     JKS("application/x-java-keystore", false, false),
     PKCS_12("application/x-pkcs12", false, false),
     JS_MODULE("application/javascript", true, true),
-    IMAGE(null, true, true);
+    IMAGE(null, true, true),
+    DASHBOARD("application/json", true, true),
+    GENERAL(null, false, true);
 
     @Getter
     private final String mediaType;

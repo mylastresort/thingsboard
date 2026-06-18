@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, ComponentFactoryResolver, Inject, Injector, OnInit, SkipSelf, ViewChild } from '@angular/core';
+import { Component, Inject, Injector, OnInit, SkipSelf, ViewChild } from '@angular/core';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
@@ -31,10 +31,11 @@ import { DialogComponent } from '@shared/components/dialog.component';
 import { Router } from '@angular/router';
 
 @Component({
-  selector: 'tb-add-entity-dialog',
-  templateUrl: './add-entity-dialog.component.html',
-  providers: [{provide: ErrorStateMatcher, useExisting: AddEntityDialogComponent}],
-  styleUrls: ['./add-entity-dialog.component.scss']
+    selector: 'tb-add-entity-dialog',
+    templateUrl: './add-entity-dialog.component.html',
+    providers: [{ provide: ErrorStateMatcher, useExisting: AddEntityDialogComponent }],
+    styleUrls: ['./add-entity-dialog.component.scss'],
+    standalone: false
 })
 export class AddEntityDialogComponent extends
   DialogComponent<AddEntityDialogComponent, BaseData<HasId>> implements OnInit, ErrorStateMatcher {
@@ -55,7 +56,6 @@ export class AddEntityDialogComponent extends
               protected router: Router,
               @Inject(MAT_DIALOG_DATA) public data: AddEntityDialogData<BaseData<HasId>>,
               public dialogRef: MatDialogRef<AddEntityDialogComponent, BaseData<HasId>>,
-              private componentFactoryResolver: ComponentFactoryResolver,
               private injector: Injector,
               @SkipSelf() private errorStateMatcher: ErrorStateMatcher) {
     super(store, router, dialogRef);
@@ -66,7 +66,6 @@ export class AddEntityDialogComponent extends
     this.translations = this.entitiesTableConfig.entityTranslations;
     this.resources = this.entitiesTableConfig.entityResources;
     this.entity = {};
-    const componentFactory = this.componentFactoryResolver.resolveComponentFactory(this.entitiesTableConfig.entityComponent);
     const viewContainerRef = this.entityDetailsFormAnchor.viewContainerRef;
     viewContainerRef.clear();
     const injector: Injector = Injector.create(
@@ -84,7 +83,7 @@ export class AddEntityDialogComponent extends
         parent: this.injector
       }
     );
-    const componentRef = viewContainerRef.createComponent(componentFactory, 0, injector);
+    const componentRef = viewContainerRef.createComponent(this.entitiesTableConfig.entityComponent, {index: 0, injector});
     this.entityComponent = componentRef.instance;
     this.entityComponent.isEdit = true;
     this.detailsForm = this.entityComponent.entityForm;

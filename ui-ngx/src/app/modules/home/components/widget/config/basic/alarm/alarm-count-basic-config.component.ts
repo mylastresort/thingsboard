@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -33,9 +33,10 @@ import {
 } from '@home/components/widget/lib/count/count-widget.models';
 
 @Component({
-  selector: 'tb-alarm-count-basic-config',
-  templateUrl: './alarm-count-basic-config.component.html',
-  styleUrls: ['../basic-config.scss']
+    selector: 'tb-alarm-count-basic-config',
+    templateUrl: './alarm-count-basic-config.component.html',
+    styleUrls: ['../basic-config.scss'],
+    standalone: false
 })
 export class AlarmCountBasicConfigComponent extends BasicWidgetConfigComponent {
 
@@ -69,6 +70,7 @@ export class AlarmCountBasicConfigComponent extends BasicWidgetConfigComponent {
     const settings: CountWidgetSettings = {...countDefaultSettings(true), ...(configData.config.settings || {})};
     this.alarmCountWidgetConfigForm = this.fb.group({
       alarmFilterConfig: [getAlarmFilterConfig(configData.config.datasources), []],
+      datasources: [configData.config.datasources, []],
 
       settings: [settings, []],
 
@@ -81,6 +83,7 @@ export class AlarmCountBasicConfigComponent extends BasicWidgetConfigComponent {
   }
 
   protected prepareOutputConfig(config: any): WidgetConfigComponentData {
+    this.widgetConfig.config.datasources = config.datasources;
     setAlarmFilterConfig(config.alarmFilterConfig, this.widgetConfig.config.datasources);
 
     this.widgetConfig.config.settings = {...(this.widgetConfig.config.settings || {}), ...config.settings};

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { interval } from 'rxjs';
 import { filter } from 'rxjs/operators';
-import { HistorySelectSettings } from '@app/modules/home/components/widget/lib/maps/map-models';
+import { HistorySelectSettings } from '@app/modules/home/components/widget/lib/maps-legacy/map-models';
 
 @Component({
-  selector: 'tb-history-selector',
-  templateUrl: './history-selector.component.html',
-  styleUrls: ['./history-selector.component.scss']
+    selector: 'tb-history-selector',
+    templateUrl: './history-selector.component.html',
+    styleUrls: ['./history-selector.component.scss'],
+    standalone: false
 })
 export class HistorySelectorComponent implements OnChanges {
 

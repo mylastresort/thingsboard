@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
 import subprocess
-from src.db_connector import SessionLocal
+from src.db_connector import SessionLocal, get_db_connection
 from fastapi import Query, WebSocket, WebSocketDisconnect, Header
 from fastapi.websockets import WebSocketState
 from sqlalchemy import text
@@ -15,11 +15,224 @@ from src.logger import logger  # Global logger
 import requests
 import sys
 import os
+from typing import Optional
+from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/forecast",
     tags=["forecast"],
 )
+
+
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
+
+class ForecastCreate(BaseModel):
+    name: str
+    tenantId: Optional[dict] = None  # {"entityType": "TENANT", "id": "..."}
+    deviceId: Optional[dict] = None  # {"entityType": "DEVICE", "id": "..."}
+    attributes: Optional[list] = []
+    forecastAlgorithm: Optional[str] = "ARIMA"
+    forecastStartDate: Optional[int] = 0
+    forecastEndDate: Optional[int] = 0
+    anomalyAlgorithm: Optional[str] = "THRESHOLD"
+    anomalyStartDate: Optional[int] = 0
+    anomalyEndDate: Optional[int] = 0
+    viewPreferences: Optional[dict] = None
+    additionalData: Optional[dict] = {}
+
+
+# ---------------------------------------------------------------------------
+# CRUD endpoints
+# ---------------------------------------------------------------------------
+
+def _row_to_dict(row) -> dict:
+    """Convert a DB row to a ThingsBoard-style PageData entity dict."""
+    row_id = str(row[0])
+    tenant_id = str(row[1]) if row[1] else None
+    device_id = str(row[2]) if row[2] else None
+    return {
+        "id": {"entityType": "FORECAST", "id": row_id},
+        "tenantId": {"entityType": "TENANT", "id": tenant_id},
+        "deviceId": {"entityType": "DEVICE", "id": device_id},
+        "createdTime": row[3],
+        "name": row[4],
+        "attributes": row[5] if row[5] is not None else [],
+        "forecastAlgorithm": row[6],
+        "forecastStartDate": row[7],
+        "forecastEndDate": row[8],
+        "anomalyAlgorithm": row[9],
+        "anomalyStartDate": row[10],
+        "anomalyEndDate": row[11],
+        "viewPreferences": row[12],
+        "additionalData": row[13] if row[13] is not None else {},
+    }
+
+
+@router.get("", summary="List forecast configs with pagination")
+async def list_forecasts(
+    pageSize: int = Query(10, ge=1, le=1000),
+    page: int = Query(0, ge=0),
+    sortProperty: Optional[str] = Query("createdTime"),
+    sortOrder: Optional[str] = Query("DESC"),
+    textSearch: Optional[str] = Query(None),
+):
+    allowed_sort = {"createdTime", "name", "deviceId"}
+    sort_col = sortProperty if sortProperty in allowed_sort else "created_time"
+    # map camelCase → snake_case column names
+    col_map = {"createdTime": "created_time", "name": "name", "deviceId": "device_id"}
+    sort_col = col_map.get(sortProperty, "created_time")
+    order = "DESC" if (sortOrder or "DESC").upper() == "DESC" else "ASC"
+    offset = page * pageSize
+
+    with get_db_connection() as conn:
+        # total count
+        count_sql = "SELECT COUNT(*) FROM predictive_maintenance_config"
+        params: dict = {}
+        if textSearch:
+            count_sql += " WHERE name ILIKE :search"
+            params["search"] = f"%{textSearch}%"
+        total = conn.execute(text(count_sql), params).scalar()
+
+        # page query
+        select_sql = (
+            "SELECT id, tenant_id, device_id, created_time, name, attributes, "
+            "forecast_algorithm, forecast_start_date, forecast_end_date, "
+            "anomaly_algorithm, anomaly_start_date, anomaly_end_date, "
+            "view_preferences, additional_data "
+            "FROM predictive_maintenance_config"
+        )
+        if textSearch:
+            select_sql += " WHERE name ILIKE :search"
+        select_sql += f" ORDER BY {sort_col} {order} LIMIT :limit OFFSET :offset"
+        params["limit"] = pageSize
+        params["offset"] = offset
+        rows = conn.execute(text(select_sql), params).fetchall()
+
+    data = [_row_to_dict(r) for r in rows]
+    return {
+        "data": data,
+        "totalPages": (total + pageSize - 1) // pageSize,
+        "totalElements": total,
+        "hasNext": (offset + pageSize) < total,
+    }
+
+
+@router.get("/{forecast_id}", summary="Get forecast config by id")
+async def get_forecast(forecast_id: str):
+    with get_db_connection() as conn:
+        row = conn.execute(
+            text(
+                "SELECT id, tenant_id, device_id, created_time, name, attributes, "
+                "forecast_algorithm, forecast_start_date, forecast_end_date, "
+                "anomaly_algorithm, anomaly_start_date, anomaly_end_date, "
+                "view_preferences, additional_data "
+                "FROM predictive_maintenance_config WHERE id = :id"
+            ),
+            {"id": forecast_id},
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Forecast not found")
+    return _row_to_dict(row)
+
+
+@router.post("", summary="Create a forecast config", status_code=201)
+async def create_forecast(body: ForecastCreate):
+    import time as _time
+    now = int(_time.time() * 1000)
+    tenant_id = body.tenantId.get("id") if body.tenantId else None
+    device_id = body.deviceId.get("id") if body.deviceId else None
+    with get_db_connection() as conn:
+        row = conn.execute(
+            text(
+                "INSERT INTO predictive_maintenance_config "
+                "(name, created_time, tenant_id, device_id, attributes, "
+                "forecast_algorithm, forecast_start_date, forecast_end_date, "
+                "anomaly_algorithm, anomaly_start_date, anomaly_end_date, "
+                "view_preferences, additional_data) "
+                "VALUES (:name, :created_time, :tenant_id, :device_id, :attributes::jsonb, "
+                ":forecast_algorithm, :forecast_start_date, :forecast_end_date, "
+                ":anomaly_algorithm, :anomaly_start_date, :anomaly_end_date, "
+                ":view_preferences::jsonb, :additional_data::jsonb) "
+                "RETURNING id, tenant_id, device_id, created_time, name, attributes, "
+                "forecast_algorithm, forecast_start_date, forecast_end_date, "
+                "anomaly_algorithm, anomaly_start_date, anomaly_end_date, "
+                "view_preferences, additional_data"
+            ),
+            {
+                "name": body.name,
+                "created_time": now,
+                "tenant_id": tenant_id,
+                "device_id": device_id,
+                "attributes": json.dumps(body.attributes),
+                "forecast_algorithm": body.forecastAlgorithm or "ARIMA",
+                "forecast_start_date": body.forecastStartDate or 0,
+                "forecast_end_date": body.forecastEndDate or 0,
+                "anomaly_algorithm": body.anomalyAlgorithm or "THRESHOLD",
+                "anomaly_start_date": body.anomalyStartDate or 0,
+                "anomaly_end_date": body.anomalyEndDate or 0,
+                "view_preferences": json.dumps(body.viewPreferences or {"selectedViews": ["forecast", "anomalies"]}),
+                "additional_data": json.dumps(body.additionalData or {}),
+            },
+        ).fetchone()
+        conn.commit()
+    return _row_to_dict(row)
+
+
+@router.post("/{forecast_id}", summary="Update a forecast config")
+async def update_forecast_config(forecast_id: str, body: ForecastCreate):
+    device_id = body.deviceId.get("id") if body.deviceId else None
+    with get_db_connection() as conn:
+        row = conn.execute(
+            text(
+                "UPDATE predictive_maintenance_config SET "
+                "name = :name, device_id = :device_id, attributes = :attributes::jsonb, "
+                "forecast_algorithm = :forecast_algorithm, forecast_start_date = :forecast_start_date, "
+                "forecast_end_date = :forecast_end_date, anomaly_algorithm = :anomaly_algorithm, "
+                "anomaly_start_date = :anomaly_start_date, anomaly_end_date = :anomaly_end_date, "
+                "view_preferences = :view_preferences::jsonb, additional_data = :additional_data::jsonb "
+                "WHERE id = :id "
+                "RETURNING id, tenant_id, device_id, created_time, name, attributes, "
+                "forecast_algorithm, forecast_start_date, forecast_end_date, "
+                "anomaly_algorithm, anomaly_start_date, anomaly_end_date, "
+                "view_preferences, additional_data"
+            ),
+            {
+                "id": forecast_id,
+                "name": body.name,
+                "device_id": device_id,
+                "attributes": json.dumps(body.attributes),
+                "forecast_algorithm": body.forecastAlgorithm or "ARIMA",
+                "forecast_start_date": body.forecastStartDate or 0,
+                "forecast_end_date": body.forecastEndDate or 0,
+                "anomaly_algorithm": body.anomalyAlgorithm or "THRESHOLD",
+                "anomaly_start_date": body.anomalyStartDate or 0,
+                "anomaly_end_date": body.anomalyEndDate or 0,
+                "view_preferences": json.dumps(body.viewPreferences or {}),
+                "additional_data": json.dumps(body.additionalData or {}),
+            },
+        ).fetchone()
+        conn.commit()
+    if not row:
+        raise HTTPException(status_code=404, detail="Forecast not found")
+    return _row_to_dict(row)
+
+
+@router.delete("/{forecast_id}", summary="Delete a forecast config")
+async def delete_forecast(forecast_id: str):
+    with get_db_connection() as conn:
+        result = conn.execute(
+            text("DELETE FROM predictive_maintenance_config WHERE id = :id"),
+            {"id": forecast_id},
+        )
+        conn.commit()
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Forecast not found")
+    return {"deleted": True, "id": forecast_id}
+
+
+# ---------------------------------------------------------------------------
 
 THINGSBOARD_WS_HOST_ADDR = "thingsboard"
 THINGSBOARD_WS_PORT = 8080

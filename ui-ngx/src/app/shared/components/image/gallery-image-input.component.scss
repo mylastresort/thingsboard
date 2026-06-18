@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ $containerHeight: 96px !default;
       flex-direction: column;
       gap: 4px;
       .tb-resource-image-name {
-        // color: rgba(0, 0, 0, 0.54);
+        color: rgba(0, 0, 0, 0.54);
         overflow: hidden;
         text-overflow: ellipsis;
         word-break: break-all;
@@ -112,7 +112,7 @@ $containerHeight: 96px !default;
         display: flex;
         align-items: center;
         gap: 8px;
-        // color: rgba(0, 0, 0, 0.38);
+        color: rgba(0, 0, 0, 0.38);
         font-size: 11px;
         font-style: normal;
         font-weight: 400;

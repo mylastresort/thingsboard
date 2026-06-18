@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 import { Component, Input } from '@angular/core';
 import { UntypedFormGroup } from '@angular/forms';
-import { COUNTRIES } from '@home/models/contact.models';
 
 @Component({
-  selector: 'tb-contact',
-  templateUrl: './contact.component.html'
+    selector: 'tb-contact',
+    templateUrl: './contact.component.html',
+    standalone: false
 })
 export class ContactComponent {
 
@@ -29,6 +29,15 @@ export class ContactComponent {
 
   @Input() isEdit: boolean;
 
-  countries = COUNTRIES;
+  phoneInputDefaultCountry = 'US';
 
+  constructor() {
+  }
+
+  changeCountry(countryCode: string) {
+    this.phoneInputDefaultCountry = countryCode ?? 'US';
+    setTimeout(() => {
+      this.parentForm.get('phone').setValue(this.parentForm.get('phone').value);
+    });
+  }
 }

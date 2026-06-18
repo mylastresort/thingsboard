@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit, ViewEncapsulation } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import {
   WidgetButtonAppearance,
@@ -25,19 +25,22 @@ import {
 } from '@shared/components/button/widget-button.models';
 import { merge } from 'rxjs';
 import { coerceBoolean } from '@shared/decorators/coercion';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { widgetTitleAutocompleteValues } from '@shared/models/widget.models';
 
 @Component({
-  selector: 'tb-widget-button-appearance',
-  templateUrl: './widget-button-appearance.component.html',
-  styleUrls: [],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => WidgetButtonAppearanceComponent),
-      multi: true
-    }
-  ],
-  encapsulation: ViewEncapsulation.None
+    selector: 'tb-widget-button-appearance',
+    templateUrl: './widget-button-appearance.component.html',
+    styleUrls: [],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => WidgetButtonAppearanceComponent),
+            multi: true
+        }
+    ],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class WidgetButtonAppearanceComponent implements OnInit, ControlValueAccessor {
 
@@ -70,9 +73,12 @@ export class WidgetButtonAppearanceComponent implements OnInit, ControlValueAcce
 
   appearanceFormGroup: UntypedFormGroup;
 
+  predefinedValues = widgetTitleAutocompleteValues;
+  
   private propagateChange = (_val: any) => {};
 
-  constructor(private fb: UntypedFormBuilder) {}
+  constructor(private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {}
 
   ngOnInit(): void {
     this.appearanceFormGroup = this.fb.group({
@@ -97,12 +103,16 @@ export class WidgetButtonAppearanceComponent implements OnInit, ControlValueAcce
       customStyle.addControl(state, this.fb.control(null, []));
     }
     this.appearanceFormGroup.addControl('customStyle', customStyle);
-    this.appearanceFormGroup.valueChanges.subscribe(() => {
+    this.appearanceFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
     merge(this.appearanceFormGroup.get('showLabel').valueChanges,
-          this.appearanceFormGroup.get('showIcon').valueChanges)
-    .subscribe(() => {
+          this.appearanceFormGroup.get('showIcon').valueChanges
+    ).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateValidators();
     });
   }

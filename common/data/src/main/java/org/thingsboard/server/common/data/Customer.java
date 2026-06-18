@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,7 +29,7 @@ import org.thingsboard.server.common.data.validation.Length;
 import org.thingsboard.server.common.data.validation.NoXss;
 
 @EqualsAndHashCode(callSuper = true)
-public class Customer extends ContactBased<CustomerId> implements HasTenantId, ExportableEntity<CustomerId>, HasTitle {
+public class Customer extends ContactBased<CustomerId> implements HasTenantId, ExportableEntity<CustomerId>, HasTitle, HasVersion {
 
     private static final long serialVersionUID = -1599722990298929275L;
 
@@ -43,6 +42,8 @@ public class Customer extends ContactBased<CustomerId> implements HasTenantId, E
 
     @Getter @Setter
     private CustomerId externalId;
+    @Getter @Setter
+    private Long version;
 
     public Customer() {
         super();
@@ -57,6 +58,7 @@ public class Customer extends ContactBased<CustomerId> implements HasTenantId, E
         this.tenantId = customer.getTenantId();
         this.title = customer.getTitle();
         this.externalId = customer.getExternalId();
+        this.version = customer.getVersion();
     }
 
     public TenantId getTenantId() {
@@ -132,13 +134,18 @@ public class Customer extends ContactBased<CustomerId> implements HasTenantId, E
         return super.getPhone();
     }
 
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Email", example = "example@company.com")
+    @Schema(description = "Email", example = "example@company.com")
     @Override
     public String getEmail() {
         return super.getEmail();
     }
 
-    @Schema(description = "Additional parameters of the device",implementation = com.fasterxml.jackson.databind.JsonNode.class)
+    @Schema(description = "Additional parameters of the customer. " +
+            "May include: 'description' (string), 'homeDashboardId' (string, UUID of the home dashboard), " +
+            "'homeDashboardHideToolbar' (boolean, whether to hide the dashboard toolbar), " +
+            "'isPublic' (boolean, whether this is a public customer).",
+            implementation = com.fasterxml.jackson.databind.JsonNode.class,
+            example = "{\"description\":\"Regional customer\",\"homeDashboardId\":\"784f394c-42b6-435a-983c-b7beff2784f9\",\"homeDashboardHideToolbar\":false,\"isPublic\":false}")
     @Override
     public JsonNode getAdditionalInfo() {
         return super.getAdditionalInfo();

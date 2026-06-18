@@ -1,6 +1,6 @@
 <!--
 
-    Copyright © 2016-2024 The Thingsboard Authors
+    Copyright © 2016-2026 The Thingsboard Authors
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
     limitations under the License.
 
 -->
-<div class="profile-container" fxLayout="column" fxLayoutGap="8px">
-  <mat-card appearance="outlined" class="profile-card" fxLayout="column">
+<div class="profile-container flex flex-col gap-2">
+  <mat-card appearance="outlined" class="profile-card flex flex-col">
     <mat-card-title style="margin-bottom: 8px;">
       <span class="mat-headline-5 card-title" translate>profile.jwt-token</span>
     </mat-card-title>
-    <div fxLayout="row" fxLayoutAlign="space-between center">
+    <div class="flex flex-row items-center justify-between">
       <div class="token-text">{{ 'profile.token-valid-till' | translate }} <span class="date">{{ jwtTokenExpiration | date: 'yyyy-MM-dd HH:mm:ss' }}</span></div>
       <button mat-raised-button
               color="primary"
@@ -30,54 +30,30 @@
       </button>
     </div>
   </mat-card>
-  <mat-card class="profile-card" appearance="outlined" fxLayout="column" *ngIf="user.phone">
-    <mat-card-title style="margin-bottom: 8px">
-        <span class="mat-headline-5 card-title" translate>Verify Number (Whatsapp)</span>
-    </mat-card-title>
-    <div fxLayout="row" fxLayoutAlign="space-between center" *ngIf="!verifyEdit && userSettings.wt_verified">
-      You have verified your phone number
-    </div>
-    <div *ngIf="!verifyEdit && !userSettings.wt_verified" fxLayout="column" fxLayoutAlign="" style="display: block">
-      You must verify your Whatsapp number to recieve alarms and claims assignement
-        <div fxLayout="row" fxLayoutAlign="end start">
-          <button mat-raised-button
-          color="primary"
-          type="button"
-          (click)="sendVerificationCode()">
-            <span>Send Verification Code</span>
-          </button>
-        </div>
-    </div>
-    <div fxLayout="column" fxLayoutAlign="" *ngIf="verifyEdit" style="display: block">
-      <div style="margin-bottom: 8px;">
-        Enter the verification code
-      </div>
-      <form #wtVerifyCodeForm="ngForm" [formGroup]="wtVerifyCode" (ngSubmit)="onChangeVerifyCode(wtVerifyCodeForm)" >
-        <mat-form-field class="mat-block same-color" appearance="fill" color="primary">
-          <mat-label>Code</mat-label>
-          <input matInput name="whatsapp-verfication-code" formControlName="code" required/>
-        </mat-form-field>
-        <button mat-button color="primary" translate>Resend code</button>
-        <div fxLayout="row" fxLayoutAlign="end start">
-          <button mat-raised-button
-          color="primary"
-          type="submit">
-            <span>Verify</span>
-          </button>
-        </div>
-      </form>
+  <mat-card appearance="outlined" class="profile-card flex flex-col">
+    <div class="flex flex-row items-center justify-between">
+      <mat-card-title>
+        <span class="mat-headline-5 card-title" translate>api-key.api-keys</span>
+      </mat-card-title>
+      <button mat-raised-button
+              color="primary"
+              type="button"
+              (click)="openApiKeysTable()">
+        <mat-icon>key</mat-icon>
+        <span>{{ 'api-key.manage' | translate }}</span>
+      </button>
     </div>
   </mat-card>
-  <mat-card appearance="outlined" class="profile-card" fxLayout="column">
+  <mat-card appearance="outlined" class="profile-card flex flex-col">
     <div class="change-password" tb-toast toastTarget="changePassword">
       <form #changePasswordForm="ngForm" [formGroup]="changePassword" (ngSubmit)="onChangePassword(changePasswordForm)">
-        <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="25px" fxLayoutGap.xs="0">
-          <div fxFlex="290px" fxFlex.sm="250px"  fxFlex.xs="100">
+        <div class="flex flex-row gap-6.25 xs:flex-col xs:gap-0">
+          <div class="min-w-72.5 max-w-72.5 flex-1 basis-72.5 xs:min-w-0 xs:max-w-full xs:basis-full sm:min-w-62.5 sm:max-w-62.5 sm:basis-62.5">
             <h3 class="card-title" translate>profile.change-password</h3>
             <mat-form-field class="mat-block same-color" appearance="fill" color="primary">
               <mat-label translate>profile.current-password</mat-label>
               <input matInput type="password" name="current-password" formControlName="currentPassword" autocomplete="current-password"/>
-              <tb-toggle-password [fxShow]="changePassword.get('currentPassword').dirty || changePassword.get('currentPassword').touched" matSuffix></tb-toggle-password>
+              <tb-toggle-password [class.!hidden]="!changePassword.get('currentPassword').dirty && !changePassword.get('currentPassword').touched" matSuffix></tb-toggle-password>
               <mat-error *ngIf="changePassword.get('currentPassword').hasError('differencePassword')">
                 {{ 'security.password-requirement.incorrect-password-try-again' | translate }}
               </mat-error>
@@ -85,38 +61,38 @@
             <mat-form-field class="mat-block same-color" hideRequiredMarker appearance="fill" color="primary" subscriptSizing="dynamic">
               <mat-label translate>login.new-password</mat-label>
               <input matInput type="password" name="new-password" formControlName="newPassword" autocomplete="new-password" required/>
-              <tb-toggle-password [fxShow]="changePassword.get('newPassword').dirty || changePassword.get('newPassword').touched" matSuffix></tb-toggle-password>
+              <tb-toggle-password [class.!hidden]="!changePassword.get('newPassword').dirty && !changePassword.get('newPassword').touched" matSuffix></tb-toggle-password>
               <mat-hint></mat-hint>
               <mat-error *ngIf="changePassword.get('newPassword').errors
                               && !changePassword.get('newPassword').hasError('alreadyUsed')
                               && !changePassword.get('newPassword').hasError('hasWhitespaces')
-                              && !changePassword.get('newPassword').hasError('samePassword')">
+                              && !changePassword.get('newPassword').hasError('passwordSameAsOld')">
                 {{ 'security.password-requirement.password-not-meet-requirements' | translate }}
               </mat-error>
               <mat-error *ngIf="changePassword.get('newPassword').hasError('alreadyUsed')">
                 {{ changePassword.get('newPassword').getError('alreadyUsed') }}
               </mat-error>
-              <mat-error *ngIf="changePassword.get('newPassword').hasError('samePassword')">
+              <mat-error *ngIf="changePassword.get('newPassword').hasError('passwordSameAsOld')">
                 {{ 'security.password-requirement.password-should-difference' | translate }}
               </mat-error>
               <mat-error *ngIf="changePassword.get('newPassword').hasError('hasWhitespaces')">
                 {{ 'security.password-requirement.password-should-not-contain-spaces' | translate }}
               </mat-error>
             </mat-form-field>
-            <div fxFlex fxHide fxShow.xs fxLayoutAlign="start center">
+            <div class="flex flex-1 items-center justify-start gt-xs:!hidden">
               <ng-container *ngTemplateOutlet="passwordRequirements"></ng-container>
             </div>
             <mat-form-field class="mat-block same-color" hideRequiredMarker appearance="fill" color="primary">
               <mat-label translate>login.new-password-again</mat-label>
               <input matInput type="password" name="new-password" formControlName="newPassword2" autocomplete="new-password" required/>
-              <tb-toggle-password [fxShow]="changePassword.get('newPassword2').dirty || changePassword.get('newPassword2').touched" matSuffix></tb-toggle-password>
-              <mat-error *ngIf="changePassword.get('newPassword2').hasError('differencePassword')">
+              <tb-toggle-password [class.!hidden]="!changePassword.get('newPassword2').dirty && !changePassword.get('newPassword2').touched" matSuffix></tb-toggle-password>
+              <mat-error *ngIf="changePassword.get('newPassword2').hasError('passwordsNotMatch')">
                 {{ 'security.password-requirement.new-passwords-not-match' | translate }}
               </mat-error>
             </mat-form-field>
           </div>
           <mat-divider [vertical]="true"></mat-divider>
-          <div fxFlex fxHide.xs fxLayoutAlign="start start">
+          <div class="flex flex-1 items-start justify-start xs:!hidden">
             <ng-container *ngTemplateOutlet="passwordRequirements"></ng-container>
           </div>
         </div>
@@ -163,7 +139,7 @@
             </div>
           </div>
         </ng-template>
-        <div fxLayout="row" fxLayoutGap="8px" style="margin-top: 18px;" [fxShow]="changePassword.dirty || changePassword.touched">
+        <div class="flex flex-row gap-2" style="margin-top: 18px;" [class.!hidden]="!changePassword.dirty && !changePassword.touched">
           <button mat-button color="primary"
                   type="button"
                   (click)="discardChanges(changePasswordForm, $event)"
@@ -172,7 +148,7 @@
           </button>
           <button mat-raised-button color="primary"
                   type="submit"
-                  [disabled]="(isLoading$ | async)">
+                  [disabled]="(isLoading$ | async) || (!changePassword.valid && changePassword.touched)">
             {{ 'profile.change-password' | translate }}
           </button>
         </div>
@@ -191,7 +167,7 @@
       <ng-container *ngFor="let provider of allowTwoFactorProviders; let $last = last; trackBy: trackByProvider">
         <div class="provider">
           <h4 class="provider-title">{{ providersData.get(provider).name | translate }}</h4>
-          <div fxLayout="row" fxLayoutAlign="space-between start">
+          <div class="flex flex-row items-start justify-between">
             <div class="mat-body-2 description" *ngIf="!twoFactorAuth.get(provider).value; else providerInfo">
               {{ providersData.get(provider).description | translate }}
             </div>

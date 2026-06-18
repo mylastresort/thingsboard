@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { ChangeDetectorRef, Component, forwardRef, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, forwardRef, Input, OnDestroy, OnInit } from '@angular/core';
 import { PageComponent } from '@shared/components/page.component';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
@@ -26,11 +26,16 @@ import {
   isBase64DataImageUrl,
   isImageResourceUrl,
   prependTbImagePrefix,
-  removeTbImagePrefix
+  removeTbImagePrefix,
+  ResourceSubType
 } from '@shared/models/resource.models';
 import { ImageService } from '@core/http/image.service';
 import { MatDialog } from '@angular/material/dialog';
-import { ImageGalleryDialogComponent } from '@shared/components/image/image-gallery-dialog.component';
+import {
+  ImageGalleryDialogComponent,
+  ImageGalleryDialogData
+} from '@shared/components/image/image-gallery-dialog.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export enum ImageLinkType {
   none = 'none',
@@ -40,16 +45,17 @@ export enum ImageLinkType {
 }
 
 @Component({
-  selector: 'tb-gallery-image-input',
-  templateUrl: './gallery-image-input.component.html',
-  styleUrls: ['./gallery-image-input.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => GalleryImageInputComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-gallery-image-input',
+    templateUrl: './gallery-image-input.component.html',
+    styleUrls: ['./gallery-image-input.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => GalleryImageInputComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class GalleryImageInputComponent extends PageComponent implements OnInit, OnDestroy, ControlValueAccessor {
 
@@ -80,12 +86,15 @@ export class GalleryImageInputComponent extends PageComponent implements OnInit,
   constructor(protected store: Store<AppState>,
               private imageService: ImageService,
               private dialog: MatDialog,
-              private cd: ChangeDetectorRef) {
+              private cd: ChangeDetectorRef,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
   ngOnInit() {
-    this.externalLinkControl.valueChanges.subscribe((value) => {
+    this.externalLinkControl.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((value) => {
       if (this.linkType === ImageLinkType.external) {
         this.updateModel(value);
       }
@@ -120,21 +129,26 @@ export class GalleryImageInputComponent extends PageComponent implements OnInit,
       this.detectLinkType();
       if (this.linkType === ImageLinkType.resource) {
         const params = extractParamsFromImageResourceUrl(this.imageUrl);
-        this.loadingImageResource = true;
-        this.imageService.getImageInfo(params.type, params.key, {ignoreLoading: true, ignoreErrors: true}).subscribe(
-          {
-            next: (res) => {
-              this.imageResource = res;
-              this.loadingImageResource = false;
-              this.cd.markForCheck();
-            },
-            error: () => {
-              this.reset();
-              this.loadingImageResource = false;
-              this.cd.markForCheck();
+        if (params) {
+          this.loadingImageResource = true;
+          this.imageService.getImageInfo(params.type, params.key, {ignoreLoading: true, ignoreErrors: true}).subscribe(
+            {
+              next: (res) => {
+                this.imageResource = res;
+                this.loadingImageResource = false;
+                this.cd.markForCheck();
+              },
+              error: () => {
+                this.reset();
+                this.loadingImageResource = false;
+                this.cd.markForCheck();
+              }
             }
-          }
-        );
+          );
+        } else {
+          this.reset();
+          this.cd.markForCheck();
+        }
       } else if (this.linkType === ImageLinkType.base64) {
         this.cd.markForCheck();
       } else if (this.linkType === ImageLinkType.external) {
@@ -158,9 +172,9 @@ export class GalleryImageInputComponent extends PageComponent implements OnInit,
     }
   }
 
-  private updateModel(value: string) {
+  private updateModel(value: string, forcedToUpdate = false): void {
     this.cd.markForCheck();
-    if (this.imageUrl !== value) {
+    if (this.imageUrl !== value || forcedToUpdate) {
       this.imageUrl = value;
       this.propagateChange(prependTbImagePrefix(this.imageUrl));
     }
@@ -188,16 +202,20 @@ export class GalleryImageInputComponent extends PageComponent implements OnInit,
     if ($event) {
       $event.stopPropagation();
     }
-    this.dialog.open<ImageGalleryDialogComponent, any,
+    this.dialog.open<ImageGalleryDialogComponent, ImageGalleryDialogData,
       ImageResourceInfo>(ImageGalleryDialogComponent, {
         autoFocus: false,
         disableClose: false,
-        panelClass: ['tb-dialog', 'tb-fullscreen-dialog']
+        panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
+        data: {
+          imageSubType: ResourceSubType.IMAGE
+        }
     }).afterClosed().subscribe((image) => {
       if (image) {
+        const forcedToUpdate =  this.imageUrl === image.link && this.imageResource?.descriptor?.etag !== image.descriptor.etag;
         this.linkType = ImageLinkType.resource;
         this.imageResource = image;
-        this.updateModel(image.link);
+        this.updateModel(image.link, forcedToUpdate);
       }
     });
   }

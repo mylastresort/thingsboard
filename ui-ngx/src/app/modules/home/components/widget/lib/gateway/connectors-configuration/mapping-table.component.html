@@ -16,13 +16,13 @@
 
 -->
 <div class="tb-mapping-table tb-absolute-fill">
-  <div fxFlex fxLayout="column" class="tb-mapping-table-content">
-    <mat-toolbar class="mat-mdc-table-toolbar" [fxShow]="!textSearchMode">
+  <div class="flex-1 flex flex-col tb-mapping-table-content flex-1">
+    <mat-toolbar class="mat-mdc-table-toolbar" [class.hidden]="textSearchMode">
       <div class="mat-toolbar-tools">
-        <div fxLayout="row" fxLayoutAlign="start center" fxLayout.xs="column" fxLayoutAlign.xs="center start" class="title-container">
+        <div class="flex flex-row justify-start items-center gap-1 title-container">
           <span class="tb-mapping-table-title">{{mappingTypeTranslationsMap.get(mappingType) | translate}}</span>
         </div>
-        <span fxFlex></span>
+        <span class="flex-1"></span>
         <button mat-icon-button
                 (click)="manageMapping($event)"
                 matTooltip="{{ 'action.add' | translate }}"
@@ -37,14 +37,14 @@
         </button>
       </div>
     </mat-toolbar>
-    <mat-toolbar class="mat-mdc-table-toolbar" [fxShow]="textSearchMode">
+    <mat-toolbar class="mat-mdc-table-toolbar" [class.hidden]="!textSearchMode">
       <div class="mat-toolbar-tools">
         <button mat-icon-button
                 matTooltip="{{ 'action.search' | translate }}"
                 matTooltipPosition="above">
           <mat-icon>search</mat-icon>
         </button>
-        <mat-form-field fxFlex>
+        <mat-form-field class="flex-1">
           <mat-label>&nbsp;</mat-label>
           <input #searchInput matInput
                  [formControl]="textSearch"
@@ -73,7 +73,7 @@
           </mat-header-cell>
           <mat-cell *matCellDef="let mapping; let i = index"
                     [ngStyle.gt-md]="{ minWidth: '96px', maxWidth: '96px', width: '96px'}">
-            <div fxHide fxShow.gt-md fxFlex fxLayout="row" fxLayoutAlign="end">
+            <div class="hidden lg:flex flex-1 flex flex-row justify-end">
               <button mat-icon-button
                       (click)="manageMapping($event, i)">
                 <tb-icon>edit</tb-icon>
@@ -83,7 +83,7 @@
                 <tb-icon>delete</tb-icon>
               </button>
             </div>
-            <div fxHide fxShow.lt-lg fxFlex fxLayout="row" fxLayoutAlign="end">
+            <div class="flex lg:hidden flex-1 flex-row justify-end">
               <button mat-icon-button
                       (click)="$event.stopPropagation()"
                       [matMenuTriggerFor]="cellActionsMenu">
@@ -105,8 +105,7 @@
         <mat-header-row [ngClass]="{'mat-row-select': true}" *matHeaderRowDef="displayedColumns; sticky: true"></mat-header-row>
         <mat-row *matRowDef="let mapping; columns: displayedColumns;"></mat-row>
       </table>
-      <section [fxShow]="!textSearchMode && (dataSource.isEmpty() | async)" fxLayoutAlign="center center"
-               class="mat-headline-5 tb-absolute-fill tb-add-new">
+      <section [class.hidden]="!textSearchMode && (dataSource.isEmpty() | async)" class="mat-headline-5 tb-absolute-fill tb-add-new">
         <button mat-button class="connector"
                 (click)="manageMapping($event)">
           <mat-icon class="tb-mat-96">add</mat-icon>
@@ -114,8 +113,7 @@
         </button>
       </section>
     </div>
-    <span [fxShow]="textSearchMode && (dataSource.isEmpty() | async)"
-          fxLayoutAlign="center center"
+    <span [class.hidden]="!(textSearchMode && (dataSource.isEmpty() | async))"
           class="no-data-found" translate>
       widget.no-data-found
     </span>

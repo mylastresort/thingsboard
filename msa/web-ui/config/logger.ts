@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,15 +14,14 @@
 /// limitations under the License.
 ///
 
-
 import config from 'config';
 import path from 'path';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { createLogger, format, transports }  from 'winston';
-import * as Transport from 'winston-transport';
+import { createLogger, transports, format } from 'winston';
+
 const { combine, timestamp, label, printf, splat } = format;
 
-const loggerTransports: Array<Transport> = [];
+const loggerTransports: any[] = [];
 
 if (process.env.NODE_ENV !== 'production' || process.env.DOCKER_MODE === 'true') {
     loggerTransports.push(new transports.Console({
@@ -30,7 +29,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.DOCKER_MODE === 'true')
     }));
 } else {
     const filename = path.join(config.get('logger.path'), config.get('logger.filename'));
-    const transport = new (DailyRotateFile)({
+    const transport = new DailyRotateFile({
         filename: filename,
         datePattern: 'YYYY-MM-DD-HH',
         zippedArchive: true,
@@ -41,7 +40,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.DOCKER_MODE === 'true')
     loggerTransports.push(transport);
 }
 
-const tbFormat = printf(info => {
+const tbFormat = printf((info: any) => {
     let logMessage = `${info.timestamp} [${info.label}] ${info.level.toUpperCase()}: ${info.message}`;
     if (info.stack) {
         logMessage += ':\n' + info.stack;
@@ -52,10 +51,10 @@ const tbFormat = printf(info => {
 export function _logger(moduleLabel: string) {
     return createLogger({
         level: config.get('logger.level'),
-        format:combine(
+        format: combine(
             splat(),
             label({ label: moduleLabel }),
-            timestamp({format: 'YYYY-MM-DD HH:mm:ss,SSS'}),
+            timestamp({ format: 'YYYY-MM-DD HH:mm:ss,SSS' }),
             tbFormat
         ),
         transports: loggerTransports

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -19,13 +19,17 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { DeviceInfo } from '@shared/models/device.models';
 import { EntityTabsComponent } from '../../components/entity/entity-tabs.component';
+import { EntityId } from "@shared/models/id/entity-id";
 
 @Component({
-  selector: 'tb-device-tabs',
-  templateUrl: './device-tabs.component.html',
-  styleUrls: []
+    selector: 'tb-device-tabs',
+    templateUrl: './device-tabs.component.html',
+    styleUrls: [],
+    standalone: false
 })
 export class DeviceTabsComponent extends EntityTabsComponent<DeviceInfo> {
+
+  ownerId: EntityId;
 
   constructor(protected store: Store<AppState>) {
     super(store);
@@ -33,6 +37,11 @@ export class DeviceTabsComponent extends EntityTabsComponent<DeviceInfo> {
 
   ngOnInit() {
     super.ngOnInit();
+  }
+
+  protected setEntity(entity: DeviceInfo) {
+    this.ownerId = entity.customerId.id !== this.nullUid ? entity.customerId : entity.tenantId;
+    super.setEntity(entity);
   }
 
 }

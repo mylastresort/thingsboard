@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,22 +15,23 @@
  */
 package org.thingsboard.server.service.security.auth.jwt;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class SkipPathRequestMatcher implements RequestMatcher {
-    private OrRequestMatcher matchers;
-    private RequestMatcher processingMatcher;
+
+    private final OrRequestMatcher matchers;
+    private final RequestMatcher processingMatcher;
 
     public SkipPathRequestMatcher(List<String> pathsToSkip, String processingPath) {
         Assert.notNull(pathsToSkip, "List of paths to skip is required.");
-        List<RequestMatcher> m = pathsToSkip.stream().map(path -> new AntPathRequestMatcher(path)).collect(Collectors.toList());
+        List<RequestMatcher> m = pathsToSkip.stream().map(AntPathRequestMatcher::new).collect(Collectors.toList());
         matchers = new OrRequestMatcher(m);
         processingMatcher = new AntPathRequestMatcher(processingPath);
     }
@@ -40,6 +41,7 @@ public class SkipPathRequestMatcher implements RequestMatcher {
         if (matchers.matches(request)) {
             return false;
         }
-        return processingMatcher.matches(request) ? true : false;
+        return processingMatcher.matches(request);
     }
+
 }

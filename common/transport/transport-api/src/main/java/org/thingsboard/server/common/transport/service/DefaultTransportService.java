@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -127,9 +127,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-/**
- * Created by ashvayka on 17.10.18.
- */
 @Slf4j
 @Service
 @TbTransportComponent
@@ -735,7 +732,11 @@ public class DefaultTransportService extends TransportActivityManager implements
     }
 
     private void recordActivityInternal(TransportProtos.SessionInfoProto sessionInfo) {
-        onActivity(toSessionId(sessionInfo), sessionInfo, getCurrentTimeMillis());
+        if (sessionInfo != null) {
+            onActivity(toSessionId(sessionInfo), sessionInfo, getCurrentTimeMillis());
+        } else {
+            log.warn("Session info is missing, unable to record activity");
+        }
     }
 
     @Override
@@ -785,7 +786,7 @@ public class DefaultTransportService extends TransportActivityManager implements
 
         TransportProtos.SessionCloseNotificationProto notification = TransportProtos.SessionCloseNotificationProto.newBuilder().setMessage("session timeout!").build();
 
-        ScheduledFuture executorFuture = scheduler.schedule(() -> {
+        ScheduledFuture<?> executorFuture = scheduler.schedule(() -> {
             listener.onRemoteSessionCloseCommand(sessionId, notification);
             deregisterSession(sessionInfo);
         }, timeout, TimeUnit.MILLISECONDS);
@@ -948,7 +949,7 @@ public class DefaultTransportService extends TransportActivityManager implements
                 String resourceId = msg.getResourceKey();
                 transportResourceCache.evict(tenantId, resourceType, resourceId);
                 sessions.forEach((id, mdRez) -> {
-                    log.warn("ResourceDelete - [{}] [{}]", id, mdRez);
+                    log.trace("ResourceDelete - [{}] [{}]", id, mdRez);
                     transportCallbackExecutor.submit(() -> mdRez.getListener().onResourceDelete(msg));
                 });
             } else if (toSessionMsg.getQueueUpdateMsgsCount() > 0) {
@@ -1100,11 +1101,19 @@ public class DefaultTransportService extends TransportActivityManager implements
     }
 
     private void sendToCore(TenantId tenantId, EntityId entityId, ToCoreMsg msg, UUID routingKey, TransportServiceCallback<Void> callback) {
-        TopicPartitionInfo tpi = partitionService.resolve(ServiceType.TB_CORE, tenantId, entityId);
+        TopicPartitionInfo tpi;
+        try {
+            tpi = partitionService.resolve(ServiceType.TB_CORE, tenantId, entityId);
+        } catch (Exception e) {
+            log.warn("Failed to send message to core. Tenant with ID [{}], routingKey [{}], msg [{}]. Message delivery aborted.", tenantId, routingKey, msg, e);
+            if (callback != null) {
+                callback.onError(e);
+            }
+            return;
+        }
         if (log.isTraceEnabled()) {
             log.trace("[{}][{}] Pushing to topic {} message {}", tenantId, entityId, tpi.getFullTopicName(), msg);
         }
-
         TransportTbQueueCallback transportTbQueueCallback = callback != null ?
                 new TransportTbQueueCallback(callback) : null;
         tbCoreProducerStats.incrementTotal();
@@ -1128,7 +1137,15 @@ public class DefaultTransportService extends TransportActivityManager implements
             queueName = deviceProfile.getDefaultQueueName();
         }
 
-        TbMsg tbMsg = TbMsg.newMsg(queueName, tbMsgType, deviceId, customerId, metaData, gson.toJson(json), ruleChainId, null);
+        TbMsg tbMsg = TbMsg.newMsg()
+                .queueName(queueName)
+                .type(tbMsgType)
+                .originator(deviceId)
+                .customerId(customerId)
+                .copyMetaData(metaData)
+                .data(gson.toJson(json))
+                .ruleChainId(ruleChainId)
+                .build();
         ruleEngineProducerService.sendToRuleEngine(ruleEngineMsgProducer, tenantId, tbMsg, new StatsCallback(callback, ruleEngineProducerStats));
         ruleEngineProducerStats.incrementTotal();
     }
@@ -1149,6 +1166,7 @@ public class DefaultTransportService extends TransportActivityManager implements
         public void onFailure(Throwable t) {
             DefaultTransportService.this.transportCallbackExecutor.submit(() -> callback.onError(t));
         }
+
     }
 
     private static class StatsCallback implements TbQueueCallback {
@@ -1163,16 +1181,19 @@ public class DefaultTransportService extends TransportActivityManager implements
         @Override
         public void onSuccess(TbQueueMsgMetadata metadata) {
             stats.incrementSuccessful();
-            if (callback != null)
+            if (callback != null) {
                 callback.onSuccess(metadata);
+            }
         }
 
         @Override
         public void onFailure(Throwable t) {
             stats.incrementFailed();
-            if (callback != null)
+            if (callback != null) {
                 callback.onFailure(t);
+            }
         }
+
     }
 
     private class MsgPackCallback implements TbQueueCallback {
@@ -1195,6 +1216,7 @@ public class DefaultTransportService extends TransportActivityManager implements
         public void onFailure(Throwable t) {
             DefaultTransportService.this.transportCallbackExecutor.submit(() -> callback.onError(t));
         }
+
     }
 
     private class ApiStatsProxyCallback<T> implements TransportServiceCallback<T> {
@@ -1224,6 +1246,7 @@ public class DefaultTransportService extends TransportActivityManager implements
         public void onError(Throwable e) {
             callback.onError(e);
         }
+
     }
 
     @Override
@@ -1237,9 +1260,21 @@ public class DefaultTransportService extends TransportActivityManager implements
     }
 
     @Override
-    public void createGaugeStats(String statsName, AtomicInteger number) {
-        statsFactory.createGauge(StatsType.TRANSPORT + "." + statsName, number);
-        statsMap.put(statsName, number);
+    public void createGaugeStats(String statsName, AtomicInteger number, String... tags) {
+        String key = "thingsboard" + "." + StatsType.TRANSPORT.getName() + "." + statsName;
+        statsFactory.createGauge(key, number, tags);
+        statsMap.put(statsName + tagsKey(tags), number);
+    }
+
+    private String tagsKey(String... tags) {
+        if (tags == null || tags.length < 2) return "";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < tags.length; i += 2) {
+            if (i > 0) sb.append(',');
+            sb.append(tags[i]).append('=').append(i + 1 < tags.length ? tags[i + 1] : "");
+        }
+        sb.append(']');
+        return sb.toString();
     }
 
     @Scheduled(fixedDelayString = "${transport.stats.print-interval-ms:60000}")
@@ -1250,4 +1285,5 @@ public class DefaultTransportService extends TransportActivityManager implements
             log.info("Transport Stats: {}", values);
         }
     }
+
 }

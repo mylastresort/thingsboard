@@ -18,7 +18,7 @@
 <div [formGroup]="mappingForm" class="key-mapping">
   <mat-toolbar color="primary">
     <h2>{{ MappingTypeTranslationsMap.get(this.data?.mappingType) | translate}}</h2>
-    <span fxFlex></span>
+    <span class="flex-1"></span>
     <div [tb-help]="helpLinkId()"></div>
     <button mat-icon-button
             (click)="cancel()"
@@ -27,13 +27,13 @@
     </button>
   </mat-toolbar>
   <div mat-dialog-content>
-    <div class="tb-form-panel no-border no-padding" fxLayout="column">
+    <div class="tb-form-panel no-border no-padding flex flex-col justify-between items-center">
       <div class="tb-form-hint tb-primary-fill">
         {{ MappingHintTranslationsMap.get(this.data?.mappingType) | translate }}
       </div>
       <ng-container [ngSwitch]="data.mappingType">
         <ng-template [ngSwitchCase]="MappingType.DATA">
-          <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+          <div class="tb-form-row column-xs justify-between items-center">
             <div class="fixed-title-width tb-required" translate>gateway.topic-filter</div>
             <div class="tb-flex no-gap">
               <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -56,7 +56,7 @@
               </mat-form-field>
             </div>
           </div>
-          <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+          <div class="tb-form-row column-xs justify-between items-center">
             <div class="fixed-title-width" tb-hint-tooltip-icon="{{ 'gateway.response-topic-Qos-hint' | translate }}" translate>
               gateway.mqtt-qos
             </div>
@@ -138,7 +138,7 @@
                   </div>
                 </div>
                 <div class="tb-form-panel no-border no-padding" *ngIf="converterType === ConvertorTypeEnum.CUSTOM">
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required"
                          tb-hint-tooltip-icon="{{ 'gateway.extension-hint' | translate }}" translate>
                       gateway.extension
@@ -188,7 +188,7 @@
           </ng-container>
         </ng-template>
         <ng-template [ngSwitchCase]="MappingType.REQUESTS">
-            <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+            <div class="tb-form-row column-xs justify-between items-center">
               <div class="fixed-title-width" translate>gateway.request-type</div>
               <div class="tb-flex no-gap">
                 <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -202,7 +202,7 @@
             </div>
             <ng-container formGroupName="requestValue">
               <ng-container [formGroup]="mappingForm.get('requestValue').get(requestMappingType)" [ngSwitch]="requestMappingType">
-                <div class="tb-form-row column-xs" fxLayoutAlign="space-between center"
+                <div class="tb-form-row column-xs justify-between items-center"
                      *ngIf="requestMappingType === RequestTypeEnum.ATTRIBUTE_REQUEST ||
                             requestMappingType === RequestTypeEnum.CONNECT_REQUEST ||
                             requestMappingType === RequestTypeEnum.DISCONNECT_REQUEST">
@@ -243,7 +243,7 @@
                     <div class="tb-form-hint tb-primary-fill" translate>
                       gateway.from-device-request-settings-hint
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center" formGroupName="deviceInfo">
+                    <div class="tb-form-row column-xs justify-between items-center" formGroupName="deviceInfo">
                       <div class="fixed-title-width tb-flex no-flex align-center" translate>
                         <div class="tb-required" translate>gateway.device-info.device-name-expression</div>
                       </div>
@@ -275,7 +275,7 @@
                         </mat-form-field>
                       </div>
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width tb-required" translate>gateway.attribute-name-expression</div>
                       <div class="tb-flex">
                         <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -311,7 +311,7 @@
                     <div class="tb-form-hint tb-primary-fill" translate>
                       gateway.to-device-response-settings-hint
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width tb-required" translate>gateway.response-value-expression</div>
                       <div class="tb-flex no-gap">
                         <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -334,7 +334,7 @@
                         </mat-form-field>
                       </div>
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width tb-required" translate>gateway.response-topic-expression</div>
                       <div class="tb-flex no-gap">
                         <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -357,7 +357,7 @@
                         </mat-form-field>
                       </div>
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <mat-slide-toggle class="mat-slide" formControlName="retain">
                         <mat-label tb-hint-tooltip-icon="{{ 'gateway.retain-hint' | translate }}">
                           {{ 'gateway.retain' | translate }}
@@ -367,7 +367,7 @@
                   </div>
                 </ng-template>
                 <ng-template [ngSwitchCase]="RequestTypeEnum.ATTRIBUTE_UPDATE">
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required"
                          tb-hint-tooltip-icon="{{ 'gateway.device-name-filter-hint' | translate }}" translate>
                       gateway.device-name-filter
@@ -387,7 +387,7 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" tb-hint-tooltip-icon="{{ 'gateway.attribute-filter-hint' | translate }}" translate>
                       gateway.attribute-filter
                     </div>
@@ -406,7 +406,7 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" translate>gateway.response-value-expression</div>
                     <div class="tb-flex no-gap">
                       <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -429,7 +429,7 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" translate>gateway.response-topic-expression</div>
                     <div class="tb-flex no-gap">
                       <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -452,7 +452,7 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <mat-slide-toggle class="mat-slide fixed-title-width" formControlName="retain">
                       <mat-label tb-hint-tooltip-icon="{{ 'gateway.retain-hint' | translate }}">
                         {{ 'gateway.retain' | translate }}
@@ -471,7 +471,7 @@
                       </tb-toggle-option>
                     </tb-toggle-select>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" tb-hint-tooltip-icon="{{ 'gateway.device-name-filter-hint' | translate }}" translate>
                       gateway.device-name-filter
                     </div>
@@ -490,7 +490,7 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" tb-hint-tooltip-icon="{{ 'gateway.method-filter-hint' | translate }}" translate>
                       gateway.method-filter
                     </div>
@@ -509,7 +509,7 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" translate>gateway.request-topic-expression</div>
                     <div class="tb-flex no-gap">
                       <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -532,7 +532,7 @@
                       </mat-form-field>
                     </div>
                   </div>
-                  <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                  <div class="tb-form-row column-xs justify-between items-center">
                     <div class="fixed-title-width tb-required" translate>gateway.value-expression</div>
                     <div class="tb-flex no-gap">
                       <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -556,7 +556,7 @@
                     </div>
                   </div>
                   <ng-container *ngIf="mappingForm.get('requestValue.serverSideRpc.type').value === ServerSideRPCType.TWO_WAY">
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width tb-required" translate>gateway.response-topic-expression</div>
                       <div class="tb-flex no-gap">
                         <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -579,7 +579,7 @@
                         </mat-form-field>
                       </div>
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width" tb-hint-tooltip-icon="{{ 'gateway.response-topic-Qos-hint' | translate }}" translate>
                         gateway.response-topic-Qos
                       </div>
@@ -591,7 +591,7 @@
                         </mat-select>
                       </mat-form-field>
                     </div>
-                    <div class="tb-form-row column-xs" fxLayoutAlign="space-between center">
+                    <div class="tb-form-row column-xs justify-between items-center">
                       <div class="fixed-title-width tb-required" translate>gateway.response-timeout</div>
                       <div class="tb-flex no-gap">
                         <mat-form-field class="tb-flex no-gap" appearance="outline" subscriptSizing="dynamic">
@@ -618,7 +618,7 @@
       </ng-container>
     </div>
   </div>
-  <div mat-dialog-actions fxLayoutAlign="end center">
+  <div mat-dialog-actions class="justify-end items-center">
     <button mat-button color="primary"
             type="button"
             cdkFocusInitial

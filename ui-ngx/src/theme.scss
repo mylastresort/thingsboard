@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,23 +15,24 @@
  */
 @use '@angular/material' as mat;
 @use 'theme-overwrites' as overwrites;
+@use '@angular/material/core/tokens/m2-utils';
 @import '../theme/datepicker-theme';
 @import './scss/constants';
 
 @include mat.all-component-typographies();
-@include mat.core();
+@include mat.elevation-classes();
+@include mat.app-background();
 
 $tb-mat-indigo: (
   50: #e8eaf6,
   100: #c5cae9,
   200: #9fa8da,
-  300: #7986cb,
+  300: $tb-primary-color-light,
   400: #5c6bc0,
   500: $tb-primary-color,
   600: $tb-secondary-color,
   700: #303f9f,
-  // 800: #283593,
-  800: #1d263c,
+  800: #283593,
   900: #1a237e,
   A100: $tb-hue3-color,
   A200: #536dfe,
@@ -55,209 +56,74 @@ $tb-mat-indigo: (
   )
 );
 
-$tb-primary: mat.define-palette($tb-mat-indigo);
-$tb-accent: mat.define-palette(mat.$deep-orange-palette);
+$tb-primary: mat.m2-define-palette($tb-mat-indigo);
+$tb-accent: mat.m2-define-palette(mat.$m2-deep-orange-palette);
 
-$background: (background: map_get(mat.$grey-palette, 200));
-
-$tb-theme-background: map_merge(mat.$light-theme-background-palette, $background);
-
-$tb-mat-theme: mat.define-light-theme((
+$tb-mat-theme: mat.m2-define-light-theme((
   color: (
     primary: $tb-primary,
     accent: $tb-accent
   ),
-  typography: mat.define-typography-config(
-    $button: mat.define-typography-level(14px, 36px, 500, $letter-spacing: 0.03125em)
+  typography: mat.m2-define-typography-config(
+    $button: mat.m2-define-typography-level(14px, 36px, 500, $letter-spacing: 0.03125em)
   ),
   density: 0
 ));
 
-$color: map_get($tb-mat-theme, color);
-$color: map_merge($color, (background: $tb-theme-background));
-$tb-mat-theme: map_merge($tb-mat-theme, (color: $color));
-$tb-theme: map_merge($tb-mat-theme, $color);
+$tb-theme-system: m2-utils.get-system($tb-mat-theme);
+$tb-theme-system: map_merge($tb-theme-system, ( background: map_get(mat.$m2-grey-palette, 200) ));
+$tb-theme: map_merge($tb-mat-theme, (_mat-system: $tb-theme-system));
 
-$primary: mat.get-color-from-palette($tb-primary);
-$accent: mat.get-color-from-palette($tb-accent);
-
-:root {
-  #{--tb-dark-mat-50}: #00000070;
-  #{--tb-dark-mat-100}: black;
-  #{--tb-dark-mat-200}: black;
-  #{--tb-dark-mat-300}: black;
-  #{--tb-dark-mat-400}: black;
-  #{--tb-dark-mat-500}: black;
-  #{--tb-dark-mat-600}: black;
-  #{--tb-dark-mat-700}: black;
-  #{--tb-dark-mat-800}: #444446;
-  #{--tb-dark-mat-900}: black;
-  #{--tb-dark-mat-A100}: white;
-  #{--tb-dark-mat-A200}: white;
-  #{--tb-dark-mat-A400}: white;
-  #{--tb-dark-mat-A700}: white;
-  #{--tb-dark-mat-text-50}: white;
-  #{--tb-dark-mat-text-100}: white;
-  #{--tb-dark-mat-text-200}: white;
-  #{--tb-dark-mat-text-300}: #ffffff94;
-  #{--tb-dark-mat-text-400}: white;
-  #{--tb-dark-mat-text-500}: white;
-  #{--tb-dark-mat-text-600}: white;
-  #{--tb-dark-mat-text-700}: white;
-  #{--tb-dark-mat-text-800}: white;
-  #{--tb-dark-mat-text-900}: white;
-  #{--tb-dark-mat-text-A100}: black;
-  #{--tb-dark-mat-text-A200}: black;
-  #{--tb-dark-mat-text-A400}: black;
-  #{--tb-dark-mat-text-A700}: black;
-
-  #{--tb-dark-status-bar}: #1c1c1c;
-  // #{--tb-dark-app-bar}: map_get($tb-dark-mat-indigo, 500);
-  #{--tb-dark-app-bar}: #1c1c1c;
-  #{--tb-dark-widget}: #1c1c1c;
-  #{--tb-dark-background}: #222527;
-  #{--tb-dark-hover}: var(--tb-dark-mat-800);
-
-  // #{--tb-dark-dialog}:     map_get($tb-dark-mat-indigo, 800);
-    #{--tb-dark-dialog}:    #1c1c1c;
-  #{--tb-dark-disabled-button}: rgba(white, 0.12);
-  // #{--tb-dark-raised-button}: map-get($tb-dark-mat-indigo, 50);
-  #{--tb-dark-raised-button}: var(--tb-dark-mat-50);
-  #{--tb-dark-focused-button}: rgba(white, 0.12);
-  // #{--tb-dark-selected-button}: map_get($tb-dark-mat-indigo, 500);
-  #{--tb-dark-selected-button}: var(--tb-dark-mat-500);
-  // #{--tb-dark-selected-disabled-button}: map_get($tb-dark-mat-indigo, 800);
-  #{--tb-dark-selected-disabled-button}: var(--tb-dark-mat-800);
-  #{--tb-dark-disabled-button-toggle}: black;
-  // #{--tb-dark-unselected-chip}: map_get($tb-dark-mat-indigo, 700);
-  #{--tb-dark-unselected-chip}: var(--tb-dark-mat-700);
-  #{--tb-dark-disabled-list-option}: black;
-  // #{--tb-dark-tooltip}: map_get(mat.$grey-palette, 700);
-  #{--tb-dark-tooltip}: grey;
-}
+$primary: mat.m2-get-color-from-palette($tb-primary);
+$accent: mat.m2-get-color-from-palette($tb-accent);
 
 $tb-dark-mat-indigo: (
-  50: var(--tb-dark-mat-50),
-  100: var(--tb-dark-mat-100),
-  200: var(--tb-dark-mat-200),
-
-  300: var(--tb-dark-mat-300),
-
-  400: var(--tb-dark-mat-400),
-
-  500: var(--tb-dark-primary-color),
-
-  600: var(--tb-dark-mat-600),
-
-  700: var(--tb-dark-mat-700),
-  800: var(--tb-dark-mat-800),
-
-  900: var(--tb-dark-mat-900),
-  card: #1c1c1c,
-
-  A100: var(--tb-dark-mat-A100),
-
-  A200: var(--tb-dark-mat-A200),
-
-  A400: var(--tb-dark-mat-A400),
-
-  A700: var(--tb-dark-mat-A700),
+  50: #e8eaf6,
+  100: #c5cae9,
+  200: #9fa8da,
+  300: #7986cb,
+  400: #5c6bc0,
+  500: $tb-dark-primary-color,
+  600: $tb-secondary-color,
+  700: #303f9f,
+  800: $tb-primary-color,
+  900: #1a237e,
+  A100: $tb-hue3-color,
+  A200: #536dfe,
+  A400: #3d5afe,
+  A700: #304ffe,
   contrast: (
-  50: var(--tb-dark-mat-text-50),
-
-  100: var(--tb-dark-mat-text-100),
-  200: var(--tb-dark-mat-text-200),
-  300: var(--tb-dark-mat-text-300),
-
-  400: var(--tb-dark-mat-text-400),
-  500: var(--tb-dark-mat-text-500),
-
-  600: var(--tb-dark-mat-text-600),
-  700: var(--tb-dark-mat-text-700),
-
-  800: var(--tb-dark-mat-text-800),
-  900: var(--tb-dark-mat-text-900),
-
-  A100: var(--tb-dark-mat-text-A100),
-  A200: var(--tb-dark-mat-text-A200),
-
-  A400: var(--tb-dark-mat-text-A400),
-  A700: var(--tb-dark-mat-text-A700),
-
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: map_get($tb-mat-indigo, 900),
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+    A100: rgba(black, 0.87),
+    A200: rgba(black, 0.87),
+    A400: rgba(black, 0.87),
+    A700: rgba(black, 0.87),
   )
 );
 
-$tb-dark-primary: mat.define-palette($tb-dark-mat-indigo);
+$tb-dark-primary: mat.m2-define-palette($tb-dark-mat-indigo);
 
-:root {
-  // #{--tb-dark-status-bar}: black;
-  // #{--tb-dark-app-bar}: map_get($tb-dark-mat-indigo, 500);
-  // #{--tb-dark-background}: #1d263c;
-  // #{--tb-dark-hover}: rbga(white, 0.04);
-  // #{--tb-dark-card}: black;
-  // #{--tb-dark-dialog}:     map_get($tb-dark-mat-indigo, 800);
-  // #{--tb-dark-disabled-button}: rgba(white, 0.12);
-  // #{--tb-dark-raised-button}: map-get($tb-dark-mat-indigo, 50);
-  // #{--tb-dark-focused-button}: rgba(white, 0.12);
-  // #{--tb-dark-selected-button}: map_get($tb-dark-mat-indigo, 500);
-  // #{--tb-dark-selected-disabled-button}: map_get($tb-dark-mat-indigo, 800);
-  // #{--tb-dark-disabled-button-toggle}: black;
-  // #{--tb-dark-unselected-chip}: map_get($tb-dark-mat-indigo, 700);
-  // #{--tb-dark-disabled-list-option}: black;
-  // #{--tb-dark-tooltip}: map_get(mat.$grey-palette, 700);
-}
-
-$tb-dark-theme-background: (
-  status-bar: var(--tb-dark-status-bar),
-  app-bar:  var(--tb-dark-app-bar),
-  // background: map_get($tb-dark-mat-indigo, 800),
-  background: var(--tb-dark-background),
-  hover:     var(--tb-dark-hover),
-  // card:       map_get($tb-dark-mat-indigo, 800),
-  // card: map_get($tb-dark-mat-indigo, card),
-  card: #1c1c1c,
-  dialog:     var(--tb-dark-dialog),
-  disabled-button: var(--tb-dark-disabled-button),
-  raised-button: var(--tb-dark-raised-button),
-  focused-button: var(--tb-dark-focused-button),
-  selected-button: var(--tb-dark-selected-button),
-  selected-disabled-button: var(--tb-dark-selected-disabled-button),
-  disabled-button-toggle: var(--tb-dark-disabled-button-toggle),
-  unselected-chip: var(--tb-dark-unselected-chip),
-  disabled-list-option: var(--tb-dark-disabled-list-option),
-  tooltip: var(--tb-dark-tooltip),
-);
-
-// .tb-entity-table-content {
-//
-//   border-color: #ffffff2e !important;
-//   .table-container {
-//     background: mat.get-color-from-palette($tb-dark-theme-background, card);
-//      mat-row {
-//       &:hover {
-//         // background: #2e2e30 !important;
-//       }
-//     }
-//   }
-// }
-
-$tb-dark-theme: mat.define-dark-theme((
+$tb-dark-theme: mat.m2-define-dark-theme((
   color: (
     primary: $tb-dark-primary,
-    // primary: $tb-dark-primary-color,
     accent: $tb-accent
   ),
-  typography: mat.define-typography-config(
-    $button: mat.define-typography-level(14px, 36px, 500, $letter-spacing: 0.03125em)
-  ),
+  typography: mat.m2-define-typography-config(),
   density: 0
-
 ));
 
-$color: map_get($tb-dark-theme, color);
-$color: map_merge($color, (background: $tb-dark-theme-background));
-$tb-dark-theme: map_merge($tb-dark-theme, (color: $color));
-$tb-dark-theme: map_merge($tb-dark-theme, $color);
+$tb-dark-theme-system: m2-utils.get-system($tb-dark-theme);
+$tb-dark-theme-system: map_merge($tb-dark-theme-system, ( surface: map_get($tb-dark-mat-indigo, 800) ));
+$tb-dark-theme: map_merge($tb-dark-theme, (_mat-system: $tb-dark-theme-system));
 
 @mixin mat-fab-toolbar-theme($theme) {
   $primary: map-get($theme, primary);
@@ -268,35 +134,32 @@ $tb-dark-theme: map_merge($tb-dark-theme, $color);
 
   mat-fab-toolbar {
     .mat-fab-toolbar-background {
-      // background: mat.get-color-from-palette($background, app-bar);
-      // background: green;
-      color: mat.get-color-from-palette($foreground, text);
+      background: mat.m2-get-color-from-palette($background, app-bar);
+      color: mat.m2-get-color-from-palette($foreground, text);
     }
     &.mat-primary {
       .mat-fab-toolbar-background {
-        background: mat.get-color-from-palette($primary);
-        // background: green;
-        color: mat.get-color-from-palette($primary, default-contrast);
+        background: mat.m2-get-color-from-palette($primary);
+        color: mat.m2-get-color-from-palette($primary, default-contrast);
       }
     }
     &.mat-accent {
       .mat-fab-toolbar-background {
-        background: mat.get-color-from-palette($accent);
-        // background: green;
-        color: mat.get-color-from-palette($accent, default-contrast);
+        background: mat.m2-get-color-from-palette($accent);
+        color: mat.m2-get-color-from-palette($accent, default-contrast);
       }
     }
     &.mat-warn {
       .mat-fab-toolbar-background {
-        background: mat.get-color-from-palette($warn);
-        color: mat.get-color-from-palette($warn, default-contrast);
+        background: mat.m2-get-color-from-palette($warn);
+        color: mat.m2-get-color-from-palette($warn, default-contrast);
       }
     }
   }
 }
 
 @mixin _mat-toolbar-inverse-color($palette) {
-  background: mat.get-color-from-palette($palette, default-contrast);
+  background: mat.m2-get-color-from-palette($palette, default-contrast);
   color: rgba(black, 0.87);
 }
 
@@ -309,9 +172,8 @@ $tb-dark-theme: map_merge($tb-dark-theme, $color);
 
   mat-fab-toolbar {
     .mat-fab-toolbar-background {
-      background: mat.get-color-from-palette($background, app-bar);
-      // background: green;
-      color: mat.get-color-from-palette($foreground, text);
+      background: mat.m2-get-color-from-palette($background, app-bar);
+      color: mat.m2-get-color-from-palette($foreground, text);
     }
     &.mat-primary {
       .mat-fab-toolbar-background {
@@ -323,15 +185,15 @@ $tb-dark-theme: map_merge($tb-dark-theme, $color);
         @include _mat-toolbar-inverse-color($primary);
         button.mat-mdc-icon-button {
           .mat-icon {
-            color: mat.get-color-from-palette($primary);
+            color: mat.m2-get-color-from-palette($primary);
           }
         }
       }
     }
     .mat-mdc-fab {
       &.mat-primary {
-        // background: mat.get-color-from-palette($primary, default-contrast);
-        color: mat.get-color-from-palette($primary);
+        background: mat.m2-get-color-from-palette($primary, default-contrast);
+        color: mat.m2-get-color-from-palette($primary);
       }
     }
   }
@@ -344,7 +206,7 @@ $tb-dark-theme: map_merge($tb-dark-theme, $color);
 
   mat-toolbar{
     &.mat-hue-3 {
-      background-color: mat.get-color-from-palette($primary, 'A100');
+      background-color: mat.m2-get-color-from-palette($primary, 'A100');
     }
   }
 
@@ -371,16 +233,6 @@ $tb-dark-theme: map_merge($tb-dark-theme, $color);
   }
 }
 
-// mat-drawer-container {
-//   background: unset !important;
-//
-//   mat-drawer-content {
-//     .table-container {
-//       background: var(--tb-dark-primary-color);
-//     }
-//   }
-// }
-
 .tb-default {
   @include mat.all-component-themes($tb-theme);
   @include mat-datetimepicker-theme($tb-theme);
@@ -390,10 +242,5 @@ $tb-dark-theme: map_merge($tb-dark-theme, $color);
 }
 
 .tb-dark {
-  // @include mat.all-component-colors($tb-dark-theme);
-  @include mat.all-component-themes($tb-dark-theme);
-  @include mat-datetimepicker-theme($tb-dark-theme);
-  @include tb-components-theme($tb-dark-theme);
-  @include overwrites.theme-overwrites($tb-primary, $tb-dark-theme);
-  @include mat.typography-hierarchy($tb-dark-theme);
+  @include mat.all-component-colors($tb-dark-theme);
 }

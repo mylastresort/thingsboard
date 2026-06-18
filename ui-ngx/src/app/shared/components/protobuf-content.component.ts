@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import {
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Ace } from 'ace-builds';
 import { CancelAnimationFrame, RafService } from '@core/services/raf.service';
-import { ResizeObserver } from '@juggle/resize-observer';
 import { guid } from '@core/utils';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
 import { Store } from '@ngrx/store';
@@ -35,16 +34,17 @@ import { getAce } from '@shared/models/ace/ace.models';
 import { beautifyJs } from '@shared/models/beautify.models';
 
 @Component({
-  selector: 'tb-protobuf-content',
-  templateUrl: './protobuf-content.component.html',
-  styleUrls: ['./protobuf-content.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => ProtobufContentComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-protobuf-content',
+    templateUrl: './protobuf-content.component.html',
+    styleUrls: ['./protobuf-content.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => ProtobufContentComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class ProtobufContentComponent implements OnInit, ControlValueAccessor, OnDestroy {
 

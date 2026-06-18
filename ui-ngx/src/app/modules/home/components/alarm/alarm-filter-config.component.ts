@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 import {
   Component,
+  DestroyRef,
   ElementRef,
   forwardRef,
   Inject,
@@ -46,6 +47,7 @@ import { EntityType } from '@shared/models/entity-type.models';
 import { fromEvent, Subscription } from 'rxjs';
 import { POSITION_MAP } from '@shared/models/overlay.models';
 import { UtilsService } from '@core/services/utils.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 export const ALARM_FILTER_CONFIG_DATA = new InjectionToken<any>('AlarmFilterConfigData');
 
@@ -58,16 +60,17 @@ export interface AlarmFilterConfigData {
 
 // @dynamic
 @Component({
-  selector: 'tb-alarm-filter-config',
-  templateUrl: './alarm-filter-config.component.html',
-  styleUrls: ['./alarm-filter-config.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => AlarmFilterConfigComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-alarm-filter-config',
+    templateUrl: './alarm-filter-config.component.html',
+    styleUrls: ['./alarm-filter-config.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => AlarmFilterConfigComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class AlarmFilterConfigComponent implements OnInit, OnDestroy, ControlValueAccessor {
 
@@ -105,7 +108,7 @@ export class AlarmFilterConfigComponent implements OnInit, OnDestroy, ControlVal
 
   alarmSeverityTranslationMap = alarmSeverityTranslations;
 
-  buttonDisplayValue = this.translate.instant('alarm.alarm-filter');
+  buttonDisplayValue = this.translate.instant('alarm.alarm-filter-title');
 
   alarmFilterConfigForm: UntypedFormGroup;
 
@@ -129,7 +132,8 @@ export class AlarmFilterConfigComponent implements OnInit, OnDestroy, ControlVal
               private overlay: Overlay,
               private nativeElement: ElementRef,
               private viewContainerRef: ViewContainerRef,
-              private utils: UtilsService) {
+              private utils: UtilsService,
+              private destroyRef: DestroyRef) {
   }
 
   ngOnInit(): void {
@@ -149,7 +153,9 @@ export class AlarmFilterConfigComponent implements OnInit, OnDestroy, ControlVal
       searchPropagatedAlarms: [false, []],
       assigneeId: [AlarmAssigneeOption.noAssignee, []]
     });
-    this.alarmFilterConfigForm.valueChanges.subscribe(
+    this.alarmFilterConfigForm.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(
       () => {
         if (!this.buttonMode) {
           this.alarmConfigUpdated(this.alarmFilterConfigForm.value);
@@ -219,6 +225,7 @@ export class AlarmFilterConfigComponent implements OnInit, OnDestroy, ControlVal
 
   cancel() {
     this.updateAlarmConfigForm(this.alarmFilterConfig);
+    this.alarmFilterConfigForm.markAsPristine();
     if (this.overlayRef) {
       this.overlayRef.dispose();
     } else {

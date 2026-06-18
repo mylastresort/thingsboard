@@ -327,13 +327,9 @@
     <div class="global-date-section">
       <mat-label>Forecast Date Range:</mat-label>
       <div
-        class="date-time-range"
-        fxLayout="row"
-        fxLayoutGap="16px"
-        fxLayout.xs="column"
-        fxLayoutGap.xs="8px"
+        class="date-time-range flex flex-col gap-2 sm:flex-row sm:gap-4"
       >
-        <mat-form-field appearance="outline" fxFlex>
+        <mat-form-field appearance="outline" class="flex-1">
           <mat-label>Forecast Start Date & Time</mat-label>
           <mat-datetimepicker-toggle
             [for]="forecastStartPicker"
@@ -352,7 +348,7 @@
             [attr.aria-label]="'Forecast start date and time'"
           />
         </mat-form-field>
-        <mat-form-field appearance="outline" fxFlex>
+        <mat-form-field appearance="outline" class="flex-1">
           <mat-label>Forecast End Date & Time</mat-label>
           <mat-datetimepicker-toggle
             [for]="forecastEndPicker"
@@ -383,12 +379,9 @@
 
     <!-- Forecast Algorithm Selection -->
     <div
-      class="algorithm-section"
-      fxLayout="row"
-      fxLayoutGap="16px"
-      fxLayout.xs="column"
+      class="algorithm-section flex flex-row gap-2 max-sm:gap-0"
     >
-      <div fxFlex>
+      <div class="flex-1">
         <mat-label>Select Algorithm for Forecast:</mat-label>
         <mat-form-field appearance="outline" class="full-width">
           <mat-select
@@ -419,13 +412,9 @@
     <div class="anomalies-date-section">
       <mat-label>Date Range for Anomalies:</mat-label>
       <div
-        class="date-time-range"
-        fxLayout="row"
-        fxLayoutGap="16px"
-        fxLayout.xs="column"
-        fxLayoutGap.xs="8px"
+        class="date-time-range flex flex-row gap-2 max-sm:gap-0"
       >
-        <mat-form-field appearance="outline" fxFlex>
+        <mat-form-field appearance="outline" class="flex-1">
           <mat-label>Anomalies Start Date & Time</mat-label>
           <mat-datetimepicker-toggle
             [for]="anomaliesStartPicker"
@@ -444,7 +433,7 @@
             [attr.aria-label]="'Anomalies start date and time'"
           />
         </mat-form-field>
-        <mat-form-field appearance="outline" fxFlex>
+        <mat-form-field appearance="outline" class="flex-1">
           <mat-label>Anomalies End Date & Time</mat-label>
           <mat-datetimepicker-toggle
             [for]="anomaliesEndPicker"

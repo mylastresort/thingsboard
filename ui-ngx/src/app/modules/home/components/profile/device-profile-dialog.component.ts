@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,20 +14,12 @@
 /// limitations under the License.
 ///
 
-import {
-  AfterViewInit,
-  Component,
-  ComponentFactoryResolver,
-  Inject,
-  Injector,
-  SkipSelf,
-  ViewChild
-} from '@angular/core';
+import { AfterViewInit, Component, Inject, SkipSelf, ViewChild } from '@angular/core';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
-import { UntypedFormControl, FormGroupDirective, NgForm } from '@angular/forms';
+import { FormGroupDirective, NgForm, UntypedFormControl } from '@angular/forms';
 import { DialogComponent } from '@shared/components/dialog.component';
 import { Router } from '@angular/router';
 import { DeviceProfile } from '@shared/models/device.models';
@@ -40,10 +32,11 @@ export interface DeviceProfileDialogData {
 }
 
 @Component({
-  selector: 'tb-device-profile-dialog',
-  templateUrl: './device-profile-dialog.component.html',
-  providers: [{provide: ErrorStateMatcher, useExisting: DeviceProfileDialogComponent}],
-  styleUrls: []
+    selector: 'tb-device-profile-dialog',
+    templateUrl: './device-profile-dialog.component.html',
+    providers: [{ provide: ErrorStateMatcher, useExisting: DeviceProfileDialogComponent }],
+    styleUrls: [],
+    standalone: false
 })
 export class DeviceProfileDialogComponent extends
   DialogComponent<DeviceProfileDialogComponent, DeviceProfile> implements ErrorStateMatcher, AfterViewInit {
@@ -59,8 +52,6 @@ export class DeviceProfileDialogComponent extends
               protected router: Router,
               @Inject(MAT_DIALOG_DATA) public data: DeviceProfileDialogData,
               public dialogRef: MatDialogRef<DeviceProfileDialogComponent, DeviceProfile>,
-              private componentFactoryResolver: ComponentFactoryResolver,
-              private injector: Injector,
               @SkipSelf() private errorStateMatcher: ErrorStateMatcher,
               private deviceProfileService: DeviceProfileService) {
     super(store, router, dialogRef);

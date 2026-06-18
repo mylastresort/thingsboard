@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -25,15 +25,12 @@ import {
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
-import { formatValue, mergeDeep } from '@core/utils';
-import {
-  rangeChartDefaultSettings,
-  RangeChartWidgetSettings
-} from '@home/components/widget/lib/chart/range-chart-widget.models';
+import { formatValue } from '@core/utils';
+import { rangeChartDefaultSettings } from '@home/components/widget/lib/chart/range-chart-widget.models';
 import { DateFormatProcessor, DateFormatSettings } from '@shared/models/widget-settings.models';
 import {
   lineSeriesStepTypes,
-  lineSeriesStepTypeTranslations
+  lineSeriesStepTypeTranslations, updateLatestDataKeys
 } from '@home/components/widget/lib/chart/time-series-chart.models';
 import {
   chartLabelPositions,
@@ -43,11 +40,13 @@ import {
   chartShapes,
   chartShapeTranslations
 } from '@home/components/widget/lib/chart/chart.models';
+import { getSourceTbUnitSymbol } from '@shared/models/unit.models';
 
 @Component({
-  selector: 'tb-range-chart-widget-settings',
-  templateUrl: './range-chart-widget-settings.component.html',
-  styleUrls: []
+    selector: 'tb-range-chart-widget-settings',
+    templateUrl: './range-chart-widget-settings.component.html',
+    styleUrls: [],
+    standalone: false
 })
 export class RangeChartWidgetSettingsComponent extends WidgetSettingsComponent {
 
@@ -99,7 +98,7 @@ export class RangeChartWidgetSettingsComponent extends WidgetSettingsComponent {
   }
 
   protected defaultSettings(): WidgetSettings {
-    return mergeDeep<RangeChartWidgetSettings>({} as RangeChartWidgetSettings, rangeChartDefaultSettings);
+    return rangeChartDefaultSettings;
   }
 
   protected onSettingsSet(settings: WidgetSettings) {
@@ -270,14 +269,19 @@ export class RangeChartWidgetSettingsComponent extends WidgetSettingsComponent {
     }
   }
 
+  protected onSettingsChanged(updated: WidgetSettings) {
+    updateLatestDataKeys([updated.yAxis], this.datasource, this.dataKeyCallbacks);
+    super.onSettingsChanged(updated);
+  }
+
   private _pointLabelPreviewFn(): string {
-    const units: string = this.widgetConfig.config.units;
+    const units = getSourceTbUnitSymbol(this.widgetConfig.config.units);
     const decimals: number = this.widgetConfig.config.decimals;
     return formatValue(22, decimals, units, false);
   }
 
   private _tooltipValuePreviewFn(): string {
-    const units: string = this.widgetConfig.config.units;
+    const units = getSourceTbUnitSymbol(this.widgetConfig.config.units);
     const decimals: number = this.widgetConfig.config.decimals;
     return formatValue(22, decimals, units, false);
   }

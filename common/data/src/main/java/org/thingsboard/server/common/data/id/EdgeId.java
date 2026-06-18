@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,10 +23,13 @@ import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.ConcurrentReferenceHashMap.ReferenceType;
 import org.thingsboard.server.common.data.EntityType;
 
+import java.io.Serial;
 import java.util.UUID;
 
+@Schema(allOf = EntityId.class)
 public class EdgeId extends UUIDBased implements EntityId {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @JsonIgnore
@@ -41,7 +44,7 @@ public class EdgeId extends UUIDBased implements EntityId {
         return new EdgeId(UUID.fromString(edgeId));
     }
 
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "string", example = "EDGE", allowableValues = "EDGE")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, accessMode = Schema.AccessMode.READ_ONLY, description = "string", example = "EDGE", allowableValues = "EDGE")
     @Override
     public EntityType getEntityType() {
         return EntityType.EDGE;
@@ -51,4 +54,5 @@ public class EdgeId extends UUIDBased implements EntityId {
     public static EdgeId fromUUID(@JsonProperty("id") UUID id) {
         return edges.computeIfAbsent(id, EdgeId::new);
     }
+
 }

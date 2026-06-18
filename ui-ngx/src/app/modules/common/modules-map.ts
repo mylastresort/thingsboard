@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,16 +14,11 @@
 /// limitations under the License.
 ///
 
-/* eslint-disable max-len */
-
 import * as AngularAnimations from '@angular/animations';
 import * as AngularCore from '@angular/core';
+import * as AngularCoreRxjsInterop from '@angular/core/rxjs-interop';
 import * as AngularCommon from '@angular/common';
 import * as AngularForms from '@angular/forms';
-import * as AngularFlexLayout from '@angular/flex-layout';
-import * as AngularFlexLayoutFlex from '@angular/flex-layout/flex';
-import * as AngularFlexLayoutGrid from '@angular/flex-layout/grid';
-import * as AngularFlexLayoutExtended from '@angular/flex-layout/extended';
 import * as AngularPlatformBrowser from '@angular/platform-browser';
 import * as AngularPlatformBrowserAnimations from '@angular/platform-browser/animations';
 import * as AngularRouter from '@angular/router';
@@ -78,8 +73,12 @@ import * as RxJs from 'rxjs';
 import * as RxJsOperators from 'rxjs/operators';
 import * as TranslateCore from '@ngx-translate/core';
 import * as MatDateTimePicker from '@mat-datetimepicker/core';
-import * as _moment from 'moment';
+import _moment from 'moment';
+import * as momentTz from 'moment-timezone';
 import * as tslib from 'tslib';
+
+import * as CanvasGauges from 'canvas-gauges';
+import * as NgxHmCarousel from 'ngx-hm-carousel';
 
 import * as TbCore from '@core/public-api';
 import * as TbShared from '@shared/public-api';
@@ -99,9 +98,11 @@ import * as TbJsonPipe from '@shared/pipe/tbJson.pipe';
 import * as TruncatePipe from '@shared/pipe/truncate.pipe';
 import * as ImagePipe from '@shared/pipe/image.pipe';
 
+import * as EllipsisChipListDirective from '@shared/directives/ellipsis-chip-list.directive';
+import * as TruncateWithTooltipDirective from '@shared/directives/truncate-with-tooltip.directive';
+
 import * as coercion from '@shared/decorators/coercion';
 import * as enumerable from '@shared/decorators/enumerable';
-import * as TbInject from '@shared/decorators/tb-inject';
 
 import * as FooterComponent from '@shared/components/footer.component';
 import * as LogoComponent from '@shared/components/logo.component';
@@ -123,6 +124,7 @@ import * as TbErrorComponent from '@shared/components/tb-error.component';
 import * as TbCheatSheetComponent from '@shared/components/cheatsheet.component';
 import * as BreadcrumbComponent from '@shared/components/breadcrumb.component';
 import * as UserMenuComponent from '@shared/components/user-menu.component';
+import * as TimeUnitInputComponent from '@shared/components/time-unit-input.component';
 import * as TimewindowComponent from '@shared/components/time/timewindow.component';
 import * as TimewindowPanelComponent from '@shared/components/time/timewindow-panel.component';
 import * as TimeintervalComponent from '@shared/components/time/timeinterval.component';
@@ -162,7 +164,6 @@ import * as MaterialIconsDialogComponent from '@shared/components/dialog/materia
 import * as ColorInputComponent from '@shared/components/color-input.component';
 import * as MaterialIconSelectComponent from '@shared/components/material-icon-select.component';
 import * as NodeScriptTestDialogComponent from '@shared/components/dialog/node-script-test-dialog.component';
-import * as JsonFormComponent from '@shared/components/json-form/json-form.component';
 import * as NotificationComponent from '@shared/components/notification/notification.component';
 import * as TemplateAutocompleteComponent from '@shared/components/notification/template-autocomplete.component';
 import * as ImageInputComponent from '@shared/components/image-input.component';
@@ -181,6 +182,10 @@ import * as OtaPackageAutocompleteComponent from '@shared/components/ota-package
 import * as WidgetsBundleSearchComponent from '@shared/components/widgets-bundle-search.component';
 import * as CopyButtonComponent from '@shared/components/button/copy-button.component';
 import * as TogglePasswordComponent from '@shared/components/button/toggle-password.component';
+import * as WidgetButtonComponent from '@shared/components/button/widget-button.component';
+import * as WidgetButtonToggleComponent from '@shared/components/button/widget-button-toggle.component';
+import * as PhoneInputComponent from '@shared/components/phone-input.component';
+import * as TbPopoverService from '@shared/components/popover.service';
 import * as ProtobufContentComponent from '@shared/components/protobuf-content.component';
 import * as SlackConversationAutocompleteComponent from '@shared/components/slack-conversation-autocomplete.component';
 import * as StringItemsListComponent from '@shared/components/string-items-list.component';
@@ -232,10 +237,10 @@ import * as EntityFilterViewComponent from '@home/components/entity/entity-filte
 import * as EntityAliasDialogComponent from '@home/components/alias/entity-alias-dialog.component';
 import * as EntityFilterComponent from '@home/components/entity/entity-filter.component';
 import * as RelationFiltersComponent from '@home/components/relation/relation-filters.component';
-import * as EntityAliasSelectComponent from '@home/components/alias/entity-alias-select.component';
-import * as DataKeysComponent from '@home/components/widget/config/data-keys.component';
-import * as DataKeyConfigDialogComponent from '@home/components/widget/config/data-key-config-dialog.component';
-import * as DataKeyConfigComponent from '@home/components/widget/config/data-key-config.component';
+import * as EntityAliasSelectComponent from '@home/components/widget/lib/settings/common/alias/entity-alias-select.component';
+import * as DataKeysComponent from '@home/components/widget/lib/settings/common/key/data-keys.component';
+import * as DataKeyConfigDialogComponent from '@home/components/widget/lib/settings/common/key/data-key-config-dialog.component';
+import * as DataKeyConfigComponent from '@home/components/widget/lib/settings/common/key/data-key-config.component';
 import * as LegendConfigComponent from '@home/components/widget/lib/settings/common/legend-config.component';
 import * as ManageWidgetActionsComponent from '@home/components/widget/action/manage-widget-actions.component';
 import * as WidgetActionDialogComponent from '@home/components/widget/action/widget-action-dialog.component';
@@ -244,6 +249,7 @@ import * as CustomActionPrettyEditorComponent from '@home/components/widget/lib/
 import * as MobileActionEditorComponent from '@home/components/widget/lib/settings/common/action/mobile-action-editor.component';
 import * as CustomDialogService from '@home/components/widget/dialog/custom-dialog.service';
 import * as CustomDialogContainerComponent from '@home/components/widget/dialog/custom-dialog-container.component';
+import * as ImportExportService from '@shared/import-export/import-export.service';
 import * as ImportDialogComponent from '@shared/import-export/import-dialog.component';
 import * as AddWidgetToDashboardDialogComponent from '@home/components/attribute/add-widget-to-dashboard-dialog.component';
 import * as ImportDialogCsvComponent from '@shared/import-export/import-dialog-csv.component';
@@ -268,7 +274,7 @@ import * as ComplexFilterPredicateDialogComponent from '@home/components/filter/
 import * as KeyFilterDialogComponent from '@home/components/filter/key-filter-dialog.component';
 import * as FiltersDialogComponent from '@home/components/filter/filters-dialog.component';
 import * as FilterDialogComponent from '@home/components/filter/filter-dialog.component';
-import * as FilterSelectComponent from '@home/components/filter/filter-select.component';
+import * as FilterSelectComponent from '@home/components/widget/lib/settings/common/filter/filter-select.component';
 import * as FiltersEditComponent from '@home/components/filter/filters-edit.component';
 import * as FiltersEditPanelComponent from '@home/components/filter/filters-edit-panel.component';
 import * as UserFilterDialogComponent from '@home/components/filter/user-filter-dialog.component';
@@ -330,10 +336,18 @@ import * as AssetProfileComponent from '@home/components/profile/asset-profile.c
 import * as AssetProfileDialogComponent from '@home/components/profile/asset-profile-dialog.component';
 import * as AssetProfileAutocompleteComponent from '@home/components/profile/asset-profile-autocomplete.component';
 import * as RuleChainSelectComponent from '@shared/components/rule-chain/rule-chain-select.component';
+import * as TimezoneComponent from '@shared/components/time/timezone.component';
+import * as TimezonePanelComponent from '@shared/components/time/timezone-panel.component';
+import * as DatapointsLimitComponent from '@shared/components/time/datapoints-limit.component';
+import * as AggregationTypeSelectComponent from '@shared/components/time/aggregation/aggregation-type-select.component';
+import * as AggregationOptionsConfigComponent from '@shared/components/time/aggregation/aggregation-options-config-panel.component';
+import * as IntervalOptionsConfigPanelComponent from '@shared/components/time/interval-options-config-panel.component';
+import * as AIModelDialogComponent from '@home/components/ai-model/ai-model-dialog.component';
 
 import { IModulesMap } from '@modules/common/modules-map.models';
-
-declare const System;
+import { Observable, of } from 'rxjs';
+import { isJSResourceUrl } from '@shared/public-api';
+import { ɵɵinterpolate, ɵɵinterpolate2 } from '@angular/core';
 
 class ModulesMap implements IModulesMap {
 
@@ -341,14 +355,11 @@ class ModulesMap implements IModulesMap {
 
   private modulesMap: {[key: string]: any} = {
     '@angular/animations': AngularAnimations,
-    '@angular/core': AngularCore,
+    '@angular/core': this.angularCoreModule20to18Patch(AngularCore),
+    '@angular/core/rxjs-interop': AngularCoreRxjsInterop,
     '@angular/common': AngularCommon,
     '@angular/common/http': HttpClientModule,
     '@angular/forms': AngularForms,
-    '@angular/flex-layout': AngularFlexLayout,
-    '@angular/flex-layout/flex': AngularFlexLayoutFlex,
-    '@angular/flex-layout/grid': AngularFlexLayoutGrid,
-    '@angular/flex-layout/extended': AngularFlexLayoutExtended,
     '@angular/platform-browser': AngularPlatformBrowser,
     '@angular/platform-browser/animations': AngularPlatformBrowserAnimations,
     '@angular/router': AngularRouter,
@@ -399,10 +410,14 @@ class ModulesMap implements IModulesMap {
     '@ngrx/store': NgrxStore,
     rxjs: RxJs,
     'rxjs/operators': RxJsOperators,
-    '@ngx-translate/core': TranslateCore,
+    '@ngx-translate/core': this.translateModule20to18Patch(TranslateCore),
     '@mat-datetimepicker/core': MatDateTimePicker,
     moment: _moment,
+    'moment-timezone': momentTz,
     tslib,
+
+    'canvas-gauges': CanvasGauges,
+    'ngx-hm-carousel': NgxHmCarousel,
 
     '@core/public-api': TbCore,
     '@shared/public-api': TbShared,
@@ -422,10 +437,13 @@ class ModulesMap implements IModulesMap {
     '@shared/pipe/truncate.pipe': TruncatePipe,
     '@shared/pipe/image.pipe': ImagePipe,
 
+    '@shared/directives/ellipsis-chip-list.directive': EllipsisChipListDirective,
+    '@shared/directives/truncate-with-tooltip.directive': TruncateWithTooltipDirective,
+
     '@shared/decorators/coercion': coercion,
     '@shared/decorators/enumerable': enumerable,
-    '@shared/decorators/tb-inject': TbInject,
 
+    '@shared/import-export/import-export.service': ImportExportService,
     '@shared/import-export/import-dialog.component': ImportDialogComponent,
     '@shared/import-export/import-dialog-csv.component': ImportDialogCsvComponent,
     '@shared/import-export/table-columns-assignment.component': TableColumnsAssignmentComponent,
@@ -450,6 +468,7 @@ class ModulesMap implements IModulesMap {
     '@shared/components/cheatsheet.component': TbCheatSheetComponent,
     '@shared/components/breadcrumb.component': BreadcrumbComponent,
     '@shared/components/user-menu.component': UserMenuComponent,
+    '@shared/components/time-unit-input.component': TimeUnitInputComponent,
     '@shared/components/time/timewindow.component': TimewindowComponent,
     '@shared/components/time/timewindow-panel.component': TimewindowPanelComponent,
     '@shared/components/time/timeinterval.component': TimeintervalComponent,
@@ -460,6 +479,12 @@ class ModulesMap implements IModulesMap {
     '@shared/components/time/datetime-period.component': DatetimePeriodComponent,
     '@shared/components/time/datetime.component': DatetimeComponent,
     '@shared/components/time/timezone-select.component': TimezoneSelectComponent,
+    '@shared/components/time/timezone.component': TimezoneComponent,
+    '@shared/components/time/timezone-panel.component': TimezonePanelComponent,
+    '@shared/components/time/datapoints-limit.component': DatapointsLimitComponent,
+    '@shared/components/time/aggregation/aggregation-type-select.component': AggregationTypeSelectComponent,
+    '@shared/components/time/aggregation/aggregation-options-config-panel.component': AggregationOptionsConfigComponent,
+    '@shared/components/time/interval-options-config-panel.component': IntervalOptionsConfigPanelComponent,
     '@shared/components/value-input.component': ValueInputComponent,
     '@shared/components/dashboard-autocomplete.component': DashboardAutocompleteComponent,
     '@shared/components/entity/entity-subtype-autocomplete.component': EntitySubTypeAutocompleteComponent,
@@ -490,7 +515,6 @@ class ModulesMap implements IModulesMap {
     '@shared/components/color-input.component': ColorInputComponent,
     '@shared/components/material-icon-select.component': MaterialIconSelectComponent,
     '@shared/components/dialog/node-script-test-dialog.component': NodeScriptTestDialogComponent,
-    '@shared/components/json-form/json-form.component': JsonFormComponent,
     '@shared/components/notification/notification.component': NotificationComponent,
     '@shared/components/notification/template-autocomplete.component': TemplateAutocompleteComponent,
     '@shared/components/image-input.component': ImageInputComponent,
@@ -509,6 +533,10 @@ class ModulesMap implements IModulesMap {
     '@shared/components/widgets-bundle-search.component': WidgetsBundleSearchComponent,
     '@shared/components/button/copy-button.component': CopyButtonComponent,
     '@shared/components/button/toggle-password.component': TogglePasswordComponent,
+    '@shared/components/button/widget-button.component': WidgetButtonComponent,
+    '@shared/components/button/widget-button-toggle.component': WidgetButtonToggleComponent,
+    '@shared/components/popover.service': TbPopoverService,
+    '@shared/components/phone-input.component': PhoneInputComponent,
     '@shared/components/protobuf-content.component': ProtobufContentComponent,
     '@shared/components/slack-conversation-autocomplete.component': SlackConversationAutocompleteComponent,
     '@shared/components/string-items-list.component': StringItemsListComponent,
@@ -560,10 +588,10 @@ class ModulesMap implements IModulesMap {
     '@home/components/alias/entity-alias-dialog.component': EntityAliasDialogComponent,
     '@home/components/entity/entity-filter.component': EntityFilterComponent,
     '@home/components/relation/relation-filters.component': RelationFiltersComponent,
-    '@home/components/alias/entity-alias-select.component': EntityAliasSelectComponent,
-    '@home/components/widget/config/data-keys.component': DataKeysComponent,
-    '@home/components/widget/config/data-key-config-dialog.component': DataKeyConfigDialogComponent,
-    '@home/components/widget/config/data-key-config.component': DataKeyConfigComponent,
+    '@home/components/widget/lib/settings/common/alias/entity-alias-select.component': EntityAliasSelectComponent,
+    '@home/components/widget/lib/settings/common/key/data-keys.component': DataKeysComponent,
+    '@home/components/widget/lib/settings/common/key/data-key-config-dialog.component': DataKeyConfigDialogComponent,
+    '@home/components/widget/lib/settings/common/key/data-key-config.component': DataKeyConfigComponent,
     '@home/components/widget/lib/settings/common/legend-config.component': LegendConfigComponent,
     '@home/components/widget/action/manage-widget-actions.component': ManageWidgetActionsComponent,
     '@home/components/widget/action/widget-action-dialog.component': WidgetActionDialogComponent,
@@ -593,7 +621,7 @@ class ModulesMap implements IModulesMap {
     '@home/components/filter/key-filter-dialog.component': KeyFilterDialogComponent,
     '@home/components/filter/filters-dialog.component': FiltersDialogComponent,
     '@home/components/filter/filter-dialog.component': FilterDialogComponent,
-    '@home/components/filter/filter-select.component': FilterSelectComponent,
+    '@home/components/widget/lib/settings/common/filter/filter-select.component': FilterSelectComponent,
     '@home/components/filter/filters-edit.component': FiltersEditComponent,
     '@home/components/filter/filters-edit-panel.component': FiltersEditPanelComponent,
     '@home/components/filter/user-filter-dialog.component': UserFilterDialogComponent,
@@ -656,12 +684,13 @@ class ModulesMap implements IModulesMap {
     '@home/components/dashboard-page/dashboard-image-dialog.component': DashboardImageDialogComponent,
     '@home/components/widget/widget-container.component': WidgetContainerComponent,
     '@home/components/profile/queue/tenant-profile-queues.component': TenantProfileQueuesComponent,
-    '@home/components/queue/queue-form.component': QueueFormComponent
+    '@home/components/queue/queue-form.component': QueueFormComponent,
+    '@home/components/ai-model/ai-model-dialog.component': AIModelDialogComponent,
   };
 
-  init() {
+  init(): Observable<any> {
     if (!this.initialized) {
-      System.constructor.prototype.resolve = (id) => {
+      System.constructor.prototype.resolve = (id: string) => {
         try {
           if (this.modulesMap[id]) {
             return 'app:' + id;
@@ -675,8 +704,8 @@ class ModulesMap implements IModulesMap {
       for (const moduleId of Object.keys(this.modulesMap)) {
         System.set('app:' + moduleId, this.modulesMap[moduleId]);
       }
-      System.constructor.prototype.shouldFetch = (url: string) => url.endsWith('/download');
-      System.constructor.prototype.fetch = (url, options: RequestInit & {meta?: any}) => {
+      System.constructor.prototype.shouldFetch = (url: string) => url.endsWith('/download') || isJSResourceUrl(url);
+      System.constructor.prototype.fetch = (url: string, options: RequestInit & {meta?: any}) => {
         if (options?.meta?.additionalHeaders) {
           options.headers = { ...options.headers, ...options.meta.additionalHeaders };
         }
@@ -684,6 +713,56 @@ class ModulesMap implements IModulesMap {
       };
       this.initialized = true;
     }
+    return of(null);
+  }
+
+  private angularCoreModule20to18Patch(module: typeof AngularCore): typeof AngularCore {
+    const result = {...module};
+    (result as any).ɵɵStandaloneFeature = () => {};
+    (result as any).ɵɵInputTransformsFeature = () => {};
+    (result as any).ɵɵpropertyInterpolate = (propName: string, v0: any, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate(v0), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate1 = (propName: string, prefix: string, v0: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate1(prefix, v0, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate2 = (propName: string, prefix: string, v0: any, i0: string, v1: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate2(prefix, v0, i0, v1, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate3 = (propName: string, prefix: string, v0: any, i0: string, v1: any, i1: string, v2: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate3(prefix, v0, i0, v1, i1, v2, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate4 = (propName: string, prefix: string, v0: any, i0: string, v1: any, i1: string, v2: any, i2: string, v3: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate4(prefix, v0, i0, v1, i1, v2, i2, v3, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate5 = (propName: string, prefix: string, v0: any, i0: string, v1: any, i1: string, v2: any, i2: string, v3: any, i3: string, v4: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate5(prefix, v0, i0, v1, i1, v2, i2, v3, i3, v4, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate6 = (propName: string, prefix: string, v0: any, i0: string, v1: any, i1: string, v2: any, i2: string, v3: any, i3: string, v4: any, i4: string, v5: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate6(prefix, v0, i0, v1, i1, v2, i2, v3, i3, v4, i4, v5, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate7 = (propName: string, prefix: string, v0: any, i0: string, v1: any, i1: string, v2: any, i2: string, v3: any, i3: string, v4: any, i4: string, v5: any, i5: string, v6: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate7(prefix, v0, i0, v1, i1, v2, i2, v3, i3, v4, i4, v5, i5, v6, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolate8 = (propName: string, prefix: string, v0: any, i0: string, v1: any, i1: string, v2: any, i2: string, v3: any, i3: string, v4: any, i4: string, v5: any, i5: string, v6: any, i6: string, v7: any, suffix: string, sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolate8(prefix, v0, i0, v1, i1, v2, i2, v3, i3, v4, i4, v5, i5, v6, i6, v7, suffix), sanitizer);
+    };
+    (result as any).ɵɵpropertyInterpolateV = (propName: string, values: any[], sanitizer?: any) => {
+      return result.ɵɵproperty(propName, result.ɵɵinterpolateV(values), sanitizer);
+    };
+    return result;
+  }
+
+  private translateModule20to18Patch(module: typeof TranslateCore): typeof TranslateCore {
+    const translateServiceCls = module.TranslateService;
+    Object.defineProperty(translateServiceCls.prototype, 'translations', {
+      get: function() {
+        return this.store.translations;
+      },
+      enumerable: true,
+      configurable: true
+    });
+    return module;
   }
 }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,26 @@ package org.thingsboard.server.dao.settings;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.util.concurrent.FluentFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.thingsboard.server.common.data.AdminSettings;
+import org.thingsboard.server.common.data.EntityType;
 import org.thingsboard.server.common.data.id.AdminSettingsId;
+import org.thingsboard.server.common.data.id.EntityId;
+import org.thingsboard.server.common.data.id.HasId;
 import org.thingsboard.server.common.data.id.TenantId;
+import org.thingsboard.server.common.data.page.PageData;
+import org.thingsboard.server.common.data.page.PageLink;
+import org.thingsboard.server.dao.eventsourcing.SaveEntityEvent;
 import org.thingsboard.server.dao.service.DataValidator;
 import org.thingsboard.server.dao.service.Validator;
+
+import java.util.Optional;
+
+import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 @Service
 @Slf4j
@@ -35,6 +47,9 @@ public class AdminSettingsServiceImpl implements AdminSettingsService {
 
     @Autowired
     private DataValidator<AdminSettings> adminSettingsValidator;
+
+    @Autowired
+    protected ApplicationEventPublisher eventPublisher;
 
     @Override
     public AdminSettings findAdminSettingsById(TenantId tenantId, AdminSettingsId adminSettingsId) {
@@ -56,9 +71,14 @@ public class AdminSettingsServiceImpl implements AdminSettingsService {
     }
 
     @Override
+    public PageData<AdminSettings> findAllByTenantId(TenantId tenantId, PageLink pageLink) {
+        return adminSettingsDao.findAllByTenantId(tenantId, pageLink);
+    }
+
+    @Override
     public AdminSettings saveAdminSettings(TenantId tenantId, AdminSettings adminSettings) {
         log.trace("Executing saveAdminSettings [{}]", adminSettings);
-        adminSettingsValidator.validate(adminSettings, data -> tenantId);
+        AdminSettings oldAdminSettings = adminSettingsValidator.validate(adminSettings, data -> tenantId);
         if (adminSettings.getKey().equals("mail")) {
             AdminSettings mailSettings = findAdminSettingsByKey(tenantId, "mail");
             if (mailSettings != null) {
@@ -76,7 +96,10 @@ public class AdminSettingsServiceImpl implements AdminSettingsService {
         if (adminSettings.getTenantId() == null) {
             adminSettings.setTenantId(TenantId.SYS_TENANT_ID);
         }
-        return adminSettingsDao.save(tenantId, adminSettings);
+        AdminSettings savedAdminSettings = adminSettingsDao.save(tenantId, adminSettings);
+        eventPublisher.publishEvent(SaveEntityEvent.builder().tenantId(savedAdminSettings.getTenantId()).entityId(savedAdminSettings.getId())
+                .entity(savedAdminSettings).oldEntity(oldAdminSettings).created(adminSettings.getId() == null).build());
+        return savedAdminSettings;
     }
 
     @Override
@@ -87,8 +110,29 @@ public class AdminSettingsServiceImpl implements AdminSettingsService {
     }
 
     @Override
-    public void deleteAdminSettingsByTenantId(TenantId tenantId) {
+    public void deleteByTenantId(TenantId tenantId) {
         adminSettingsDao.removeByTenantId(tenantId.getId());
+    }
+
+    @Override
+    public void deleteEntity(TenantId tenantId, EntityId id, boolean force) {
+        adminSettingsDao.removeById(tenantId, id.getId());
+    }
+
+    @Override
+    public Optional<HasId<?>> findEntity(TenantId tenantId, EntityId entityId) {
+        return Optional.ofNullable(adminSettingsDao.findById(tenantId, entityId.getId()));
+    }
+
+    @Override
+    public FluentFuture<Optional<HasId<?>>> findEntityAsync(TenantId tenantId, EntityId entityId) {
+        return FluentFuture.from(adminSettingsDao.findByIdAsync(tenantId, entityId.getId()))
+                .transform(Optional::ofNullable, directExecutor());
+    }
+
+    @Override
+    public EntityType getEntityType() {
+        return EntityType.ADMIN_SETTINGS;
     }
 
     private void dropTokenIfProviderInfoChanged(JsonNode newJsonValue, JsonNode oldJsonValue) {

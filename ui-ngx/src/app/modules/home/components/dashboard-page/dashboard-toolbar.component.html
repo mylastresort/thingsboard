@@ -1,6 +1,6 @@
 <!--
 
-    Copyright © 2016-2024 The Thingsboard Authors
+    Copyright © 2016-2026 The Thingsboard Authors
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -15,8 +15,9 @@
     limitations under the License.
 
 -->
-<mat-fab-toolbar [isOpen]="toolbarOpened" direction="left"
-                 [ngClass]="{'is-fullscreen': forceFullscreen, 'mat-elevation-z1': forceFullscreen && toolbarOpened }">
+<mat-fab-toolbar [isOpen]="toolbarOpened" color="primary" direction="left"
+                 [class.is-fullscreen]="forceFullscreen"
+                 [class.mat-elevation-z1]="forceFullscreen && toolbarOpened">
   <mat-fab-trigger>
     <button mat-fab color="primary"
             [matTooltip]="!toolbarOpened ? ('dashboard.open-toolbar' | translate) : ''"
@@ -25,7 +26,7 @@
       <mat-icon>more_horiz</mat-icon>
     </button>
   </mat-fab-trigger>
-  <mat-toolbar>
+  <mat-toolbar color="primary">
     <mat-fab-actions class="mat-toolbar-tools">
       <ng-content></ng-content>
     </mat-fab-actions>

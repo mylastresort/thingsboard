@@ -19,11 +19,14 @@ from src.logger import logger  # Global logger
 DB_NAME = os.getenv("POSTGRES_DB", "thingsboard")
 DB_USER = os.getenv("POSTGRES_USER", "postgres")
 DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
-DB_HOST = os.getenv("POSTGRES_HOST", "database")
+DB_HOST = os.getenv("POSTGRES_HOST", "postgres")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
-# Set up the database URL and connection (READ-ONLY)
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Use DATABASE_URL env var if provided, otherwise build from individual parts
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+)
 
 # Create the engine with connection pooling disabled for read-only operations
 engine = create_engine(

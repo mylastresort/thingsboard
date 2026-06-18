@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package org.thingsboard.server.dao.sqlts.timescale;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -38,7 +39,6 @@ import org.thingsboard.server.dao.DaoUtil;
 import org.thingsboard.server.dao.dictionary.KeyDictionaryDao;
 import org.thingsboard.server.dao.model.sql.AbstractTsKvEntity;
 import org.thingsboard.server.dao.model.sqlts.timescale.ts.TimescaleTsKvEntity;
-import org.thingsboard.server.dao.model.sqlts.ts.TsKvEntity;
 import org.thingsboard.server.dao.sql.TbSqlBlockingQueueParams;
 import org.thingsboard.server.dao.sql.TbSqlBlockingQueueWrapper;
 import org.thingsboard.server.dao.sqlts.AbstractSqlTimeseriesDao;
@@ -47,8 +47,6 @@ import org.thingsboard.server.dao.timeseries.TimeseriesDao;
 import org.thingsboard.server.dao.util.TimeUtils;
 import org.thingsboard.server.dao.util.TimescaleDBTsDao;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -77,7 +75,7 @@ public class TimescaleTimeseriesDao extends AbstractSqlTimeseriesDao implements 
     @Autowired
     protected KeyDictionaryDao keyDictionaryDao;
 
-    protected TbSqlBlockingQueueWrapper<TimescaleTsKvEntity> tsQueue;
+    protected TbSqlBlockingQueueWrapper<TimescaleTsKvEntity, Void> tsQueue;
 
     @PostConstruct
     protected void init() {
@@ -154,7 +152,7 @@ public class TimescaleTimeseriesDao extends AbstractSqlTimeseriesDao implements 
         var aggParams = query.getAggParameters();
         var intervalType = aggParams.getIntervalType();
         if (query.getAggregation() == Aggregation.NONE) {
-            return Futures.immediateFuture(findAllAsyncWithLimit(entityId, query));
+            return service.submit(() -> findAllWithLimit(entityId, query));
         } else if (IntervalType.MILLISECONDS.equals(intervalType)) {
             long startTs = query.getStartTs();
             long endTs = Math.max(query.getStartTs() + 1, query.getEndTs());
@@ -181,7 +179,7 @@ public class TimescaleTimeseriesDao extends AbstractSqlTimeseriesDao implements 
         super.cleanup(systemTtl);
     }
 
-    private ReadTsKvQueryResult findAllAsyncWithLimit(EntityId entityId, ReadTsKvQuery query) {
+    private ReadTsKvQueryResult findAllWithLimit(EntityId entityId, ReadTsKvQuery query) {
         String strKey = query.getKey();
         Integer keyId = keyDictionaryDao.getOrSaveKeyId(strKey);
         List<TimescaleTsKvEntity> timescaleTsKvEntities = tsKvRepository.findAllWithLimit(

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,10 +31,12 @@ public class ControllerConstants {
     protected static final String ASSIGNEE_ID = "assigneeId";
     protected static final String PAGE_DATA_PARAMETERS = "You can specify parameters to filter the results. " +
             "The result is wrapped with PageData object that allows you to iterate over result set using pagination. " +
-            "See the 'Model' tab of the Response Class for more details. ";
+            "See response schema for more details. ";
 
     protected static final String INLINE_IMAGES = "inlineImages";
     protected static final String INLINE_IMAGES_DESCRIPTION = "Inline images as a data URL (Base64)";
+    protected static final String INCLUDE_RESOURCES = "includeResources";
+    protected static final String INCLUDE_RESOURCES_DESCRIPTION = "Export used resources and replace resource links with resource metadata";
     protected static final String DASHBOARD_ID_PARAM_DESCRIPTION = "A string value representing the dashboard id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
     protected static final String RPC_ID_PARAM_DESCRIPTION = "A string value representing the rpc id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
     protected static final String DEVICE_ID_PARAM_DESCRIPTION = "A string value representing the device id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
@@ -62,6 +64,7 @@ public class ControllerConstants {
     protected static final String WIDGET_TYPE_ID_PARAM_DESCRIPTION = "A string value representing the widget type id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
     protected static final String VC_REQUEST_ID_PARAM_DESCRIPTION = "A string value representing the version control request id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
     protected static final String RESOURCE_ID_PARAM_DESCRIPTION = "A string value representing the resource id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
+    protected static final String API_KEY_ID_PARAM_DESCRIPTION = "A string value representing the api key id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
     protected static final String SYSTEM_AUTHORITY_PARAGRAPH = "\n\nAvailable for users with 'SYS_ADMIN' authority.";
     protected static final String SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH = "\n\nAvailable for users with 'SYS_ADMIN' or 'TENANT_ADMIN' authority.";
     protected static final String TENANT_AUTHORITY_PARAGRAPH = "\n\nAvailable for users with 'TENANT_ADMIN' authority.";
@@ -88,12 +91,15 @@ public class ControllerConstants {
     protected static final String TENANT_PROFILE_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the tenant profile name.";
     protected static final String RULE_CHAIN_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the rule chain name.";
     protected static final String DEVICE_PROFILE_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the device profile name.";
+    protected static final String AI_MODEL_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the AI model name, provider and model ID.";
+    protected static final String API_KEY_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the description.";
 
     protected static final String ASSET_PROFILE_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the asset profile name.";
     protected static final String CUSTOMER_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the customer title.";
     protected static final String EDGE_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the edge name.";
     protected static final String EVENT_TEXT_SEARCH_DESCRIPTION = "The value is not used in searching.";
     protected static final String AUDIT_LOG_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on one of the next properties: entityType, entityName, userName, actionType, actionStatus.";
+    protected static final String CF_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the calculated field name.";
     protected static final String SORT_PROPERTY_DESCRIPTION = "Property of entity to sort by";
 
     protected static final String SORT_ORDER_DESCRIPTION = "Sort order. ASC (ASCENDING) or DESC (DESCENDING)";
@@ -117,10 +123,13 @@ public class ControllerConstants {
     protected static final String RESOURCE_INFO_DESCRIPTION = "Resource Info is a lightweight object that includes main information about the Resource excluding the heavyweight data. ";
     protected static final String RESOURCE_DESCRIPTION = "Resource is a heavyweight object that includes main information about the Resource and also data. ";
 
+    protected static final String RESOURCE_IMAGE_SUB_TYPE_DESCRIPTION = "A string value representing resource sub-type.";
+
     protected static final String RESOURCE_INCLUDE_SYSTEM_IMAGES_DESCRIPTION = "Use 'true' to include system images. Disabled by default. Ignored for requests by users with system administrator authority.";
 
     protected static final String RESOURCE_TEXT_SEARCH_DESCRIPTION = "The case insensitive 'substring' filter based on the resource title.";
     protected static final String RESOURCE_TYPE = "A string value representing the resource type.";
+    protected static final String RESOURCE_SUB_TYPE = "A string value representing the resource sub-type.";
 
     protected static final String LWM2M_OBJECT_DESCRIPTION = "LwM2M Object is a object that includes information about the LwM2M model which can be used in transport configuration for the LwM2M device profile. ";
 
@@ -182,6 +191,29 @@ public class ControllerConstants {
             "   \"eventType\":\"DEBUG_RULE_NODE\",\n" + DEBUG_FILTER_OBJ + MARKDOWN_CODE_BLOCK_END;
     protected static final String EVENT_DEBUG_RULE_CHAIN_FILTER_OBJ = MARKDOWN_CODE_BLOCK_START + "{\n" +
             "   \"eventType\":\"DEBUG_RULE_CHAIN\",\n" + DEBUG_FILTER_OBJ + MARKDOWN_CODE_BLOCK_END;
+
+    protected static final String EVENT_DEBUG_CALCULATED_FIELD_FILTER_OBJ = MARKDOWN_CODE_BLOCK_START + "{\n" +
+            "   \"eventType\":\"DEBUG_CALCULATED_FIELD\",\n" +
+            "   \"server\":\"ip-172-31-24-152\",\n" +
+            "   \"isError\":\"false\",\n" +
+            "   \"errorStr\":\"Error Message\"\n" +
+            "   \"entityId\":\"cf4b8741-f618-471f-ae08-d881ca7f9fe9\",\n" +
+            "   \"msgId\":\"5cf7d3a0-aee7-40dd-a737-ade05528e7eb\",\n" +
+            "   \"msgType\":\"POST_TELEMETRY_REQUEST\",\n" +
+            "   \"arguments\":\"{\n" +
+            "    \"x\": {\n" +
+            "      \"ts\": 1739432016629,\n" +
+            "      \"value\": 20\n" +
+            "    },\n" +
+            "    \"y\": {\n" +
+            "      \"ts\": 1739429717656,\n" +
+            "      \"value\": 12\n" +
+            "    }\n" +
+            "  }\",\n" +
+            "   \"result\":\"{\n" +
+            "    \"x + y\": 32\n" +
+            "  }\",\n" +
+            "}" + MARKDOWN_CODE_BLOCK_END;
 
     protected static final String IS_BOOTSTRAP_SERVER_PARAM_DESCRIPTION = "A Boolean value representing the Server SecurityInfo for future Bootstrap client mode settings. Values: 'true' for Bootstrap Server; 'false' for Lwm2m Server. ";
 
@@ -411,106 +443,6 @@ public class ControllerConstants {
             " * 'NUMERIC' - used for 'Long' and 'Double' values. Operations: EQUAL, NOT_EQUAL, GREATER, LESS, GREATER_OR_EQUAL, LESS_OR_EQUAL; \n" +
             " * 'BOOLEAN' - used for boolean values. Operations: EQUAL, NOT_EQUAL;\n" +
             " * 'DATE_TIME' - similar to numeric, transforms value to milliseconds since epoch. Operations: EQUAL, NOT_EQUAL, GREATER, LESS, GREATER_OR_EQUAL, LESS_OR_EQUAL; \n";
-
-   protected static final String DEVICE_PROFILE_ALARM_SCHEDULE_SPECIFIC_TIME_EXAMPLE = MARKDOWN_CODE_BLOCK_START +
-            "{\n" +
-            "   \"schedule\":{\n" +
-            "      \"type\":\"SPECIFIC_TIME\",\n" +
-            "      \"endsOn\":64800000,\n" +
-            "      \"startsOn\":43200000,\n" +
-            "      \"timezone\":\"Europe/Kiev\",\n" +
-            "      \"daysOfWeek\":[\n" +
-            "         1,\n" +
-            "         3,\n" +
-            "         5\n" +
-            "      ]\n" +
-            "   }\n" +
-            "}" +
-            MARKDOWN_CODE_BLOCK_END;
-   protected static final String DEVICE_PROFILE_ALARM_SCHEDULE_CUSTOM_EXAMPLE = MARKDOWN_CODE_BLOCK_START +
-            "{\n" +
-            "   \"schedule\":{\n" +
-            "      \"type\":\"CUSTOM\",\n" +
-            "      \"items\":[\n" +
-            "         {\n" +
-            "            \"endsOn\":0,\n" +
-            "            \"enabled\":false,\n" +
-            "            \"startsOn\":0,\n" +
-            "            \"dayOfWeek\":1\n" +
-            "         },\n" +
-            "         {\n" +
-            "            \"endsOn\":64800000,\n" +
-            "            \"enabled\":true,\n" +
-            "            \"startsOn\":43200000,\n" +
-            "            \"dayOfWeek\":2\n" +
-            "         },\n" +
-            "         {\n" +
-            "            \"endsOn\":0,\n" +
-            "            \"enabled\":false,\n" +
-            "            \"startsOn\":0,\n" +
-            "            \"dayOfWeek\":3\n" +
-            "         },\n" +
-            "         {\n" +
-            "            \"endsOn\":57600000,\n" +
-            "            \"enabled\":true,\n" +
-            "            \"startsOn\":36000000,\n" +
-            "            \"dayOfWeek\":4\n" +
-            "         },\n" +
-            "         {\n" +
-            "            \"endsOn\":0,\n" +
-            "            \"enabled\":false,\n" +
-            "            \"startsOn\":0,\n" +
-            "            \"dayOfWeek\":5\n" +
-            "         },\n" +
-            "         {\n" +
-            "            \"endsOn\":0,\n" +
-            "            \"enabled\":false,\n" +
-            "            \"startsOn\":0,\n" +
-            "            \"dayOfWeek\":6\n" +
-            "         },\n" +
-            "         {\n" +
-            "            \"endsOn\":0,\n" +
-            "            \"enabled\":false,\n" +
-            "            \"startsOn\":0,\n" +
-            "            \"dayOfWeek\":7\n" +
-            "         }\n" +
-            "      ],\n" +
-            "      \"timezone\":\"Europe/Kiev\"\n" +
-            "   }\n" +
-            "}" +
-            MARKDOWN_CODE_BLOCK_END;
-   protected static final String DEVICE_PROFILE_ALARM_SCHEDULE_ALWAYS_EXAMPLE = MARKDOWN_CODE_BLOCK_START + "\"schedule\": null" + MARKDOWN_CODE_BLOCK_END;
-
-   protected static final String DEVICE_PROFILE_ALARM_CONDITION_REPEATING_EXAMPLE = MARKDOWN_CODE_BLOCK_START +
-            "{\n" +
-            "   \"spec\":{\n" +
-            "      \"type\":\"REPEATING\",\n" +
-            "      \"predicate\":{\n" +
-            "         \"userValue\":null,\n" +
-            "         \"defaultValue\":5,\n" +
-            "         \"dynamicValue\":{\n" +
-            "            \"inherit\":true,\n" +
-            "            \"sourceType\":\"CURRENT_DEVICE\",\n" +
-            "            \"sourceAttribute\":\"tempAttr\"\n" +
-            "         }\n" +
-            "      }\n" +
-            "   }\n" +
-            "}" +
-            MARKDOWN_CODE_BLOCK_END;
-
-   protected static final String DEVICE_PROFILE_ALARM_CONDITION_DURATION_EXAMPLE = MARKDOWN_CODE_BLOCK_START +
-            "{\n" +
-            "   \"spec\":{\n" +
-            "      \"type\":\"DURATION\",\n" +
-            "      \"unit\":\"MINUTES\",\n" +
-            "      \"predicate\":{\n" +
-            "         \"userValue\":null,\n" +
-            "         \"defaultValue\":30,\n" +
-            "         \"dynamicValue\":null\n" +
-            "      }\n" +
-            "   }\n" +
-            "}" +
-            MARKDOWN_CODE_BLOCK_END;
 
     protected static final String RELATION_TYPE_PARAM_DESCRIPTION = "A string value representing relation type between entities. For example, 'Contains', 'Manages'. It can be any string value.";
     protected static final String RELATION_TYPE_GROUP_PARAM_DESCRIPTION = "A string value representing relation type group. For example, 'COMMON'";
@@ -791,7 +723,7 @@ public class ControllerConstants {
             " * 'SHARED_ATTRIBUTE' - used for shared attributes; \n" +
             " * 'SERVER_ATTRIBUTE' - used for server attributes; \n" +
             " * 'ATTRIBUTE' - used for any of the above; \n" +
-            " * 'TIME_SERIES' - used for time-series values; \n" +
+            " * 'TIME_SERIES' - used for time series values; \n" +
             " * 'ENTITY_FIELD' - used for accessing entity fields like 'name', 'label', etc. The list of available fields depends on the entity type; \n" +
             " * 'ALARM_FIELD' - similar to entity field, but is used in alarm queries only; \n" +
             "\n\n Let's review the example:\n\n" +
@@ -902,7 +834,7 @@ public class ControllerConstants {
 
     protected static final String KEY_FILTERS =
             "\n\n # Key Filters" +
-                    "\nKey Filter allows you to define complex logical expressions over entity field, attribute or latest time-series value. The filter is defined using 'key', 'valueType' and 'predicate' objects. " +
+                    "\nKey Filter allows you to define complex logical expressions over entity field, attribute or latest time series value. The filter is defined using 'key', 'valueType' and 'predicate' objects. " +
                     "Single Entity Query may have zero, one or multiple predicates. If multiple filters are defined, they are evaluated using logical 'AND'. " +
                     "The example below checks that temperature of the entity is above 20 degrees:" +
                     "\n\n" + MARKDOWN_CODE_BLOCK_START +
@@ -933,7 +865,7 @@ public class ControllerConstants {
                     "For example, \"find all devices with profile 'Moisture Sensor'\" or \"Find all devices related to asset 'Building A'\"" +
                     "\n\nOptional **key filters** allow to filter results of the entity filter by complex criteria against " +
                     "main entity fields (name, label, type, etc), attributes and telemetry. " +
-                    "For example, \"temperature > 20 or temperature< 10\" or \"name starts with 'T', and attribute 'model' is 'T1000', and timeseries field 'batteryLevel' > 40\"." +
+                    "For example, \"temperature > 20 or temperature< 10\" or \"name starts with 'T', and attribute 'model' is 'T1000', and time series field 'batteryLevel' > 40\"." +
                     "\n\nLet's review the example:" +
                     "\n\n" + MARKDOWN_CODE_BLOCK_START +
                     "{\n" +
@@ -968,13 +900,13 @@ public class ControllerConstants {
     protected static final String ENTITY_DATA_QUERY_DESCRIPTION =
             "Allows to run complex queries over platform entities (devices, assets, customers, etc) " +
                     "based on the combination of main entity filter and multiple key filters. " +
-                    "Returns the paginated result of the query that contains requested entity fields and latest values of requested attributes and time-series data.\n\n" +
+                    "Returns the paginated result of the query that contains requested entity fields and latest values of requested attributes and time series data.\n\n" +
                     "# Query Definition\n\n" +
                     "\n\nMain **entity filter** is mandatory and defines generic search criteria. " +
                     "For example, \"find all devices with profile 'Moisture Sensor'\" or \"Find all devices related to asset 'Building A'\"" +
                     "\n\nOptional **key filters** allow to filter results of the **entity filter** by complex criteria against " +
                     "main entity fields (name, label, type, etc), attributes and telemetry. " +
-                    "For example, \"temperature > 20 or temperature< 10\" or \"name starts with 'T', and attribute 'model' is 'T1000', and timeseries field 'batteryLevel' > 40\"." +
+                    "For example, \"temperature > 20 or temperature< 10\" or \"name starts with 'T', and attribute 'model' is 'T1000', and time series field 'batteryLevel' > 40\"." +
                     "\n\nThe **entity fields** and **latest values** contains list of entity fields and latest attribute/telemetry fields to fetch for each entity." +
                     "\n\nThe **page link** contains information about the page to fetch and the sort ordering." +
                     "\n\nLet's review the example:" +
@@ -1052,7 +984,7 @@ public class ControllerConstants {
     protected static final String ALARM_DATA_QUERY_DESCRIPTION = "This method description defines how Alarm Data Query extends the Entity Data Query. " +
             "See method 'Find Entity Data by Query' first to get the info about 'Entity Data Query'." +
             "\n\n The platform will first search the entities that match the entity and key filters. Then, the platform will use 'Alarm Page Link' to filter the alarms related to those entities. " +
-            "Finally, platform fetch the properties of alarm that are defined in the **'alarmFields'** and combine them with the other entity, attribute and latest time-series fields to return the result. " +
+            "Finally, platform fetch the properties of alarm that are defined in the **'alarmFields'** and combine them with the other entity, attribute and latest time series fields to return the result. " +
             "\n\n See example of the alarm query below. The query will search first 100 active alarms with type 'Temperature Alarm' or 'Fire Alarm' for any device with current temperature > 0. " +
             "The query will return combination of the entity fields: name of the device, device model and latest temperature reading and alarms fields: createdTime, type, severity and status: " +
             "\n\n" + MARKDOWN_CODE_BLOCK_START +
@@ -1173,7 +1105,7 @@ public class ControllerConstants {
     protected static final String ALARM_FILTER_KEY = "## Alarm Filter Key" + NEW_LINE +
             "Filter Key defines either entity field, attribute, telemetry or constant. It is a JSON object that consists the key name and type. The following filter key types are supported:\n" +
             " * 'ATTRIBUTE' - used for attributes values;\n" +
-            " * 'TIME_SERIES' - used for time-series values;\n" +
+            " * 'TIME_SERIES' - used for time series values;\n" +
             " * 'ENTITY_FIELD' - used for accessing entity fields like 'name', 'label', etc. The list of available fields depends on the entity type;\n" +
             " * 'CONSTANT' - constant value specified." + NEW_LINE + "Let's review the example:" + NEW_LINE +
             MARKDOWN_CODE_BLOCK_START +
@@ -1291,13 +1223,11 @@ public class ControllerConstants {
 
     protected static final String KEY_FILTERS_DESCRIPTION = "# Key Filters" + NEW_LINE +
             "Key filter objects are created under the **'condition'** array. They allow you to define complex logical expressions over entity field, " +
-            "attribute, latest time-series value or constant. The filter is defined using 'key', 'valueType', " +
+            "attribute, latest time series value or constant. The filter is defined using 'key', 'valueType', " +
             "'value' (refers to the value of the 'CONSTANT' alarm filter key type) and 'predicate' objects. Let's review each object:" + NEW_LINE +
             ALARM_FILTER_KEY + FILTER_VALUE_TYPE + NEW_LINE + DEVICE_PROFILE_FILTER_PREDICATE + NEW_LINE;
 
     protected static final String DEFAULT_DEVICE_PROFILE_DATA_EXAMPLE = MARKDOWN_CODE_BLOCK_START + "{\n" +
-            "   \"alarms\":[\n" +
-            "   ],\n" +
             "   \"configuration\":{\n" +
             "      \"type\":\"DEFAULT\"\n" +
             "   },\n" +
@@ -1311,219 +1241,6 @@ public class ControllerConstants {
             "}" + MARKDOWN_CODE_BLOCK_END;
 
     protected static final String CUSTOM_DEVICE_PROFILE_DATA_EXAMPLE = MARKDOWN_CODE_BLOCK_START + "{\n" +
-            "   \"alarms\":[\n" +
-            "      {\n" +
-            "         \"id\":\"2492b935-1226-59e9-8615-17d8978a4f93\",\n" +
-            "         \"alarmType\":\"Temperature Alarm\",\n" +
-            "         \"clearRule\":{\n" +
-            "            \"schedule\":null,\n" +
-            "            \"condition\":{\n" +
-            "               \"spec\":{\n" +
-            "                  \"type\":\"SIMPLE\"\n" +
-            "               },\n" +
-            "               \"condition\":[\n" +
-            "                  {\n" +
-            "                     \"key\":{\n" +
-            "                        \"key\":\"temperature\",\n" +
-            "                        \"type\":\"TIME_SERIES\"\n" +
-            "                     },\n" +
-            "                     \"value\":null,\n" +
-            "                     \"predicate\":{\n" +
-            "                        \"type\":\"NUMERIC\",\n" +
-            "                        \"value\":{\n" +
-            "                           \"userValue\":null,\n" +
-            "                           \"defaultValue\":30.0,\n" +
-            "                           \"dynamicValue\":null\n" +
-            "                        },\n" +
-            "                        \"operation\":\"LESS\"\n" +
-            "                     },\n" +
-            "                     \"valueType\":\"NUMERIC\"\n" +
-            "                  }\n" +
-            "               ]\n" +
-            "            },\n" +
-            "            \"dashboardId\":null,\n" +
-            "            \"alarmDetails\":null\n" +
-            "         },\n" +
-            "         \"propagate\":false,\n" +
-            "         \"createRules\":{\n" +
-            "            \"MAJOR\":{\n" +
-            "               \"schedule\":{\n" +
-            "                  \"type\":\"SPECIFIC_TIME\",\n" +
-            "                  \"endsOn\":64800000,\n" +
-            "                  \"startsOn\":43200000,\n" +
-            "                  \"timezone\":\"Europe/Kiev\",\n" +
-            "                  \"daysOfWeek\":[\n" +
-            "                     1,\n" +
-            "                     3,\n" +
-            "                     5\n" +
-            "                  ]\n" +
-            "               },\n" +
-            "               \"condition\":{\n" +
-            "                  \"spec\":{\n" +
-            "                     \"type\":\"DURATION\",\n" +
-            "                     \"unit\":\"MINUTES\",\n" +
-            "                     \"predicate\":{\n" +
-            "                        \"userValue\":null,\n" +
-            "                        \"defaultValue\":30,\n" +
-            "                        \"dynamicValue\":null\n" +
-            "                     }\n" +
-            "                  },\n" +
-            "                  \"condition\":[\n" +
-            "                     {\n" +
-            "                        \"key\":{\n" +
-            "                           \"key\":\"temperature\",\n" +
-            "                           \"type\":\"TIME_SERIES\"\n" +
-            "                        },\n" +
-            "                        \"value\":null,\n" +
-            "                        \"predicate\":{\n" +
-            "                           \"type\":\"COMPLEX\",\n" +
-            "                           \"operation\":\"OR\",\n" +
-            "                           \"predicates\":[\n" +
-            "                              {\n" +
-            "                                 \"type\":\"NUMERIC\",\n" +
-            "                                 \"value\":{\n" +
-            "                                    \"userValue\":null,\n" +
-            "                                    \"defaultValue\":50.0,\n" +
-            "                                    \"dynamicValue\":null\n" +
-            "                                 },\n" +
-            "                                 \"operation\":\"LESS_OR_EQUAL\"\n" +
-            "                              },\n" +
-            "                              {\n" +
-            "                                 \"type\":\"NUMERIC\",\n" +
-            "                                 \"value\":{\n" +
-            "                                    \"userValue\":null,\n" +
-            "                                    \"defaultValue\":30.0,\n" +
-            "                                    \"dynamicValue\":null\n" +
-            "                                 },\n" +
-            "                                 \"operation\":\"GREATER\"\n" +
-            "                              }\n" +
-            "                           ]\n" +
-            "                        },\n" +
-            "                        \"valueType\":\"NUMERIC\"\n" +
-            "                     }\n" +
-            "                  ]\n" +
-            "               },\n" +
-            "               \"dashboardId\":null,\n" +
-            "               \"alarmDetails\":null\n" +
-            "            },\n" +
-            "            \"WARNING\":{\n" +
-            "               \"schedule\":{\n" +
-            "                  \"type\":\"CUSTOM\",\n" +
-            "                  \"items\":[\n" +
-            "                     {\n" +
-            "                        \"endsOn\":0,\n" +
-            "                        \"enabled\":false,\n" +
-            "                        \"startsOn\":0,\n" +
-            "                        \"dayOfWeek\":1\n" +
-            "                     },\n" +
-            "                     {\n" +
-            "                        \"endsOn\":64800000,\n" +
-            "                        \"enabled\":true,\n" +
-            "                        \"startsOn\":43200000,\n" +
-            "                        \"dayOfWeek\":2\n" +
-            "                     },\n" +
-            "                     {\n" +
-            "                        \"endsOn\":0,\n" +
-            "                        \"enabled\":false,\n" +
-            "                        \"startsOn\":0,\n" +
-            "                        \"dayOfWeek\":3\n" +
-            "                     },\n" +
-            "                     {\n" +
-            "                        \"endsOn\":57600000,\n" +
-            "                        \"enabled\":true,\n" +
-            "                        \"startsOn\":36000000,\n" +
-            "                        \"dayOfWeek\":4\n" +
-            "                     },\n" +
-            "                     {\n" +
-            "                        \"endsOn\":0,\n" +
-            "                        \"enabled\":false,\n" +
-            "                        \"startsOn\":0,\n" +
-            "                        \"dayOfWeek\":5\n" +
-            "                     },\n" +
-            "                     {\n" +
-            "                        \"endsOn\":0,\n" +
-            "                        \"enabled\":false,\n" +
-            "                        \"startsOn\":0,\n" +
-            "                        \"dayOfWeek\":6\n" +
-            "                     },\n" +
-            "                     {\n" +
-            "                        \"endsOn\":0,\n" +
-            "                        \"enabled\":false,\n" +
-            "                        \"startsOn\":0,\n" +
-            "                        \"dayOfWeek\":7\n" +
-            "                     }\n" +
-            "                  ],\n" +
-            "                  \"timezone\":\"Europe/Kiev\"\n" +
-            "               },\n" +
-            "               \"condition\":{\n" +
-            "                  \"spec\":{\n" +
-            "                     \"type\":\"REPEATING\",\n" +
-            "                     \"predicate\":{\n" +
-            "                        \"userValue\":null,\n" +
-            "                        \"defaultValue\":5,\n" +
-            "                        \"dynamicValue\":null\n" +
-            "                     }\n" +
-            "                  },\n" +
-            "                  \"condition\":[\n" +
-            "                     {\n" +
-            "                        \"key\":{\n" +
-            "                           \"key\":\"tempConstant\",\n" +
-            "                           \"type\":\"CONSTANT\"\n" +
-            "                        },\n" +
-            "                        \"value\":30,\n" +
-            "                        \"predicate\":{\n" +
-            "                           \"type\":\"NUMERIC\",\n" +
-            "                           \"value\":{\n" +
-            "                              \"userValue\":null,\n" +
-            "                              \"defaultValue\":0.0,\n" +
-            "                              \"dynamicValue\":{\n" +
-            "                                 \"inherit\":false,\n" +
-            "                                 \"sourceType\":\"CURRENT_DEVICE\",\n" +
-            "                                 \"sourceAttribute\":\"tempThreshold\"\n" +
-            "                              }\n" +
-            "                           },\n" +
-            "                           \"operation\":\"EQUAL\"\n" +
-            "                        },\n" +
-            "                        \"valueType\":\"NUMERIC\"\n" +
-            "                     }\n" +
-            "                  ]\n" +
-            "               },\n" +
-            "               \"dashboardId\":null,\n" +
-            "               \"alarmDetails\":null\n" +
-            "            },\n" +
-            "            \"CRITICAL\":{\n" +
-            "               \"schedule\":null,\n" +
-            "               \"condition\":{\n" +
-            "                  \"spec\":{\n" +
-            "                     \"type\":\"SIMPLE\"\n" +
-            "                  },\n" +
-            "                  \"condition\":[\n" +
-            "                     {\n" +
-            "                        \"key\":{\n" +
-            "                           \"key\":\"temperature\",\n" +
-            "                           \"type\":\"TIME_SERIES\"\n" +
-            "                        },\n" +
-            "                        \"value\":null,\n" +
-            "                        \"predicate\":{\n" +
-            "                           \"type\":\"NUMERIC\",\n" +
-            "                           \"value\":{\n" +
-            "                              \"userValue\":null,\n" +
-            "                              \"defaultValue\":50.0,\n" +
-            "                              \"dynamicValue\":null\n" +
-            "                           },\n" +
-            "                           \"operation\":\"GREATER\"\n" +
-            "                        },\n" +
-            "                        \"valueType\":\"NUMERIC\"\n" +
-            "                     }\n" +
-            "                  ]\n" +
-            "               },\n" +
-            "               \"dashboardId\":null,\n" +
-            "               \"alarmDetails\":null\n" +
-            "            }\n" +
-            "         },\n" +
-            "         \"propagateRelationTypes\":null\n" +
-            "      }\n" +
-            "   ],\n" +
             "   \"configuration\":{\n" +
             "      \"type\":\"DEFAULT\"\n" +
             "   },\n" +
@@ -1545,39 +1262,10 @@ public class ControllerConstants {
             "   }\n" +
             "}" + MARKDOWN_CODE_BLOCK_END;
     protected static final String DEVICE_PROFILE_DATA_DEFINITION = NEW_LINE + "# Device profile data definition" + NEW_LINE +
-            "Device profile data object contains alarm rules configuration, device provision strategy and transport type configuration for device connectivity. Let's review some examples. " +
+            "Device profile data object contains device provision strategy and transport type configuration for device connectivity. Let's review some examples. " +
             "First one is the default device profile data configuration and second one - the custom one. " +
             NEW_LINE + DEFAULT_DEVICE_PROFILE_DATA_EXAMPLE + NEW_LINE + CUSTOM_DEVICE_PROFILE_DATA_EXAMPLE +
             NEW_LINE + "Let's review some specific objects examples related to the device profile configuration:";
-
-    protected static final String ALARM_SCHEDULE = NEW_LINE + "# Alarm Schedule" + NEW_LINE +
-            "Alarm Schedule JSON object represents the time interval during which the alarm rule is active. Note, " +
-            NEW_LINE + DEVICE_PROFILE_ALARM_SCHEDULE_ALWAYS_EXAMPLE + NEW_LINE + "means alarm rule is active all the time. " +
-            "**'daysOfWeek'** field represents Monday as 1, Tuesday as 2 and so on. **'startsOn'** and **'endsOn'** fields represent hours in millis (e.g. 64800000 = 18:00 or 6pm). " +
-            "**'enabled'** flag specifies if item in a custom rule is active for specific day of the week:" + NEW_LINE +
-            "## Specific Time Schedule" + NEW_LINE +
-            DEVICE_PROFILE_ALARM_SCHEDULE_SPECIFIC_TIME_EXAMPLE + NEW_LINE +
-            "## Custom Schedule" +
-            NEW_LINE + DEVICE_PROFILE_ALARM_SCHEDULE_CUSTOM_EXAMPLE + NEW_LINE;
-
-    protected static final String ALARM_CONDITION_TYPE = "# Alarm condition type (**'spec'**)" + NEW_LINE +
-            "Alarm condition type can be either simple, duration, or repeating. For example, 5 times in a row or during 5 minutes." + NEW_LINE +
-            "Note, **'userValue'** field is not used and reserved for future usage, **'dynamicValue'** is used for condition appliance by using the value of the **'sourceAttribute'** " +
-            "or else **'defaultValue'** is used (if **'sourceAttribute'** is absent).\n" +
-            "\n**'sourceType'** of the **'sourceAttribute'** can be: \n" +
-            " * 'CURRENT_DEVICE';\n" +
-            " * 'CURRENT_CUSTOMER';\n" +
-            " * 'CURRENT_TENANT'." + NEW_LINE +
-            "**'sourceAttribute'** can be inherited from the owner if **'inherit'** is set to true (for CURRENT_DEVICE and CURRENT_CUSTOMER)." + NEW_LINE +
-            "## Repeating alarm condition" + NEW_LINE +
-            DEVICE_PROFILE_ALARM_CONDITION_REPEATING_EXAMPLE + NEW_LINE +
-            "## Duration alarm condition" + NEW_LINE +
-            DEVICE_PROFILE_ALARM_CONDITION_DURATION_EXAMPLE + NEW_LINE +
-            "**'unit'** can be: \n" +
-            " * 'SECONDS';\n" +
-            " * 'MINUTES';\n" +
-            " * 'HOURS';\n" +
-            " * 'DAYS'." + NEW_LINE;
 
     protected static final String PROVISION_CONFIGURATION = "# Provision Configuration" + NEW_LINE +
             "There are 3 types of device provision configuration for the device profile: \n" +
@@ -1586,8 +1274,8 @@ public class ControllerConstants {
             " * 'CHECK_PRE_PROVISIONED_DEVICES'." + NEW_LINE +
             "Please refer to the [docs](https://thingsboard.io/docs/user-guide/device-provisioning/) for more details." + NEW_LINE;
 
-    protected static final String DEVICE_PROFILE_DATA = DEVICE_PROFILE_DATA_DEFINITION + ALARM_SCHEDULE + ALARM_CONDITION_TYPE +
-            KEY_FILTERS_DESCRIPTION + PROVISION_CONFIGURATION + TRANSPORT_CONFIGURATION;
+    protected static final String DEVICE_PROFILE_DATA = DEVICE_PROFILE_DATA_DEFINITION +
+            PROVISION_CONFIGURATION + TRANSPORT_CONFIGURATION;
 
     protected static final String DEVICE_PROFILE_ID = "deviceProfileId";
 
@@ -1600,11 +1288,13 @@ public class ControllerConstants {
     protected static final String ENTITY_VIEW_INFO_DESCRIPTION = "Entity Views Info extends the Entity View with customer title and 'is public' flag. " + ENTITY_VIEW_DESCRIPTION;
 
     protected static final String ATTRIBUTES_SCOPE_DESCRIPTION = "A string value representing the attributes scope. For example, 'SERVER_SCOPE'.";
-    protected static final String ATTRIBUTES_KEYS_DESCRIPTION = "A string value representing the comma-separated list of attributes keys. For example, 'active,inactivityAlarmTime'.";
+    protected static final String ATTRIBUTES_KEYS_DESCRIPTION = "A string value representing the comma-separated list of attributes keys. For example, 'active,inactivityAlarmTime'. " +
+            "If attribute keys contain comma, duplicate 'key' parameter for each key, for example '?key=my,key&key=my,second,key";
     protected static final String ATTRIBUTES_JSON_REQUEST_DESCRIPTION = "A string value representing the json object. For example, '{\"key\":\"value\"}'. See API call description for more details.";
 
     protected static final String TELEMETRY_KEYS_BASE_DESCRIPTION = "A string value representing the comma-separated list of telemetry keys.";
-    protected static final String TELEMETRY_KEYS_DESCRIPTION = TELEMETRY_KEYS_BASE_DESCRIPTION + " If keys are not selected, the result will return all latest timeseries. For example, 'temperature,humidity'.";
+    protected static final String TELEMETRY_KEYS_DESCRIPTION = TELEMETRY_KEYS_BASE_DESCRIPTION + " If keys are not selected, the result will return all latest time series. For example, 'temperature,humidity'. " +
+            "If telemetry keys contain comma, duplicate 'key' parameter for each key, for example '?key=my,key&key=my,second,key";
     protected static final String TELEMETRY_SCOPE_DESCRIPTION = "Value is deprecated, reserved for backward compatibility and not used in the API call implementation. Specify any scope for compatibility";
     protected static final String TELEMETRY_JSON_REQUEST_DESCRIPTION = "A JSON with the telemetry values. See API call description for more details.";
 
@@ -1620,11 +1310,11 @@ public class ControllerConstants {
     protected static final String SAVE_ENTITY_ATTRIBUTES_STATUS_UNAUTHORIZED = "User is not authorized to save entity attributes for selected entity. Most likely, User belongs to different Customer or Tenant.";
     protected static final String SAVE_ENTITY_ATTRIBUTES_STATUS_INTERNAL_SERVER_ERROR = "The exception was thrown during processing the request. " +
             "Platform creates an audit log event about entity attributes updates with action type 'ATTRIBUTES_UPDATED' that includes an error stacktrace.";
-    protected static final String SAVE_ENTITY_TIMESERIES_STATUS_OK = "Timeseries from the request was created or updated. " +
-            "Platform creates an audit log event about entity timeseries updates with action type 'TIMESERIES_UPDATED'.";
-    protected static final String SAVE_ENTITY_TIMESERIES_STATUS_UNAUTHORIZED = "User is not authorized to save entity timeseries for selected entity. Most likely, User belongs to different Customer or Tenant.";
+    protected static final String SAVE_ENTITY_TIMESERIES_STATUS_OK = "Time series from the request was created or updated. " +
+            "Platform creates an audit log event about entity time series updates with action type 'TIMESERIES_UPDATED'.";
+    protected static final String SAVE_ENTITY_TIMESERIES_STATUS_UNAUTHORIZED = "User is not authorized to save entity time series for selected entity. Most likely, User belongs to different Customer or Tenant.";
     protected static final String SAVE_ENTITY_TIMESERIES_STATUS_INTERNAL_SERVER_ERROR = "The exception was thrown during processing the request. " +
-            "Platform creates an audit log event about entity timeseries updates with action type 'TIMESERIES_UPDATED' that includes an error stacktrace.";
+            "Platform creates an audit log event about entity time series updates with action type 'TIMESERIES_UPDATED' that includes an error stacktrace.";
 
     protected static final String ENTITY_ATTRIBUTE_SCOPES_TEMPLATE = " List of possible attribute scopes depends on the entity type: " +
             "\n\n * SERVER_SCOPE - supported for all entity types;" +
@@ -1712,4 +1402,20 @@ public class ControllerConstants {
             MARKDOWN_CODE_BLOCK_START +
             "[{\"ts\":1634712287000,\"values\":{\"temperature\":26, \"humidity\":87}}, {\"ts\":1634712588000,\"values\":{\"temperature\":25, \"humidity\":88}}]" +
             MARKDOWN_CODE_BLOCK_END ;
+
+    protected static final String SECURITY_WRITE_CHECK = " Security check is performed to verify that the user has 'WRITE' permission for the entity (entities).";
+
+    public static final String NAME_CONFLICT_POLICY_DESC = "Optional value of name conflict policy. Possible values: FAIL or UNIQUIFY. " +
+            " If omitted, FAIL policy is applied. FAIL policy implies exception will be thrown if an entity with the same name already exists. " +
+            " UNIQUIFY policy appends a suffix to the entity name, if a name conflict occurs.";
+
+    public static final String UNIQUIFY_SEPARATOR_DESC = "Optional value of name suffix separator used by UNIQUIFY policy. By default, underscore separator is used. " +
+            "For example, strategy is UNIQUIFY, separator is '-'; if a name conflict occurs for entity name 'test-name', " +
+            "created entity will have name like 'test-name-7fsh4f'.";
+
+    public static final String UNIQUIFY_STRATEGY_DESC = "Optional value of uniquify strategy used by UNIQUIFY policy. Possible values: RANDOM or INCREMENTAL. " +
+            "By default, RANDOM strategy is used, which means random alphanumeric string will be added as a suffix to entity name. " +
+            "INCREMENTAL implies the first possible number starting from 1 will be added as a name suffix. " +
+            "For example, strategy is UNIQUIFY, uniquify strategy is INCREMENTAL; if a name conflict occurs for entity name 'test-name', " +
+            "created entity will have name like 'test-name-1.";
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.thingsboard.server.common.data;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -23,14 +24,17 @@ import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 import org.thingsboard.server.common.data.id.TbResourceId;
 
+import java.io.Serial;
 import java.util.Base64;
 import java.util.Optional;
 
+@Schema
 @Slf4j
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class TbResource extends TbResourceInfo {
 
+    @Serial
     private static final long serialVersionUID = 7379609705527272306L;
 
     private byte[] data;
@@ -84,8 +88,14 @@ public class TbResource extends TbResourceInfo {
                 .orElse(null);
     }
 
+    @JsonIgnore
+    public TbResourceDataInfo toResourceDataInfo() {
+        return new TbResourceDataInfo(data, getDescriptor());
+    }
+
     @Override
     public String toString() {
         return super.toString();
     }
+
 }

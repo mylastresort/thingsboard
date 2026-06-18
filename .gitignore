@@ -37,12 +37,4 @@ rebuild-docker.sh
 */.run/**
 .run/**
 .run
-predictive-maintenance/.venv
-predictive-maintenance/**/__pycache__
-predictive-maintenance/src/forecast/.jupyter
-
-
-./scripts/backup-logs/
-./scripts/logs/
-
-.venv/
+**/__pycache__

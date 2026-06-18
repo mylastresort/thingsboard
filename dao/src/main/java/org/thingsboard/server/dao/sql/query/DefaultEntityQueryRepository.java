@@ -1,5 +1,5 @@
 /**
- * Copyright © 2016-2024 The Thingsboard Authors
+ * Copyright © 2016-2026 The Thingsboard Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package org.thingsboard.server.dao.sql.query;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +28,7 @@ import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.EntityId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.page.PageData;
+import org.thingsboard.server.common.data.permission.QueryContext;
 import org.thingsboard.server.common.data.query.ApiUsageStateFilter;
 import org.thingsboard.server.common.data.query.AssetSearchQueryFilter;
 import org.thingsboard.server.common.data.query.AssetTypeFilter;
@@ -59,6 +61,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -317,9 +320,18 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
             .replace("$in", "from").replace("$out", "to")
             .replace("$rootIdCondition", "in (:relation_root_ids)");
 
+    private static final String NULLS_ORDER_DEFAULT = "default";
+    private static final String NULLS_ORDER_FIRST = "nulls_first";
+    private static final String NULLS_ORDER_LAST = "nulls_last";
+    private static final Set<String> ACCEPTED_NULLS_ORDER_STRATEGIES = Set.of(NULLS_ORDER_DEFAULT, NULLS_ORDER_FIRST, NULLS_ORDER_LAST);
+
     @Getter
     @Value("${sql.relations.max_level:50}")
     int maxLevelAllowed; //This value has to be reasonable small to prevent infinite recursion as early as possible
+
+    @Getter
+    @Value("${sql.entity_data_query_nulls_order_strategy:default}")
+    String nullsOrderStrategy;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final TransactionTemplate transactionTemplate;
@@ -331,10 +343,19 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         this.queryLog = queryLog;
     }
 
+    @PostConstruct
+    void validateNullsOrderStrategy() {
+        if (!ACCEPTED_NULLS_ORDER_STRATEGIES.contains(nullsOrderStrategy)) {
+            log.error("Invalid value '{}' for sql.entity_data_query_nulls_order_strategy. Accepted values are: {}. Falling back to '{}'.",
+                    nullsOrderStrategy, ACCEPTED_NULLS_ORDER_STRATEGIES, NULLS_ORDER_DEFAULT);
+            nullsOrderStrategy = NULLS_ORDER_DEFAULT;
+        }
+    }
+
     @Override
     public long countEntitiesByQuery(TenantId tenantId, CustomerId customerId, EntityCountQuery query) {
         EntityType entityType = resolveEntityType(query.getEntityFilter());
-        QueryContext ctx = new QueryContext(new QuerySecurityContext(tenantId, customerId, entityType, TenantId.SYS_TENANT_ID.equals(tenantId)));
+        SqlQueryContext ctx = new SqlQueryContext(new QueryContext(tenantId, customerId, entityType, TenantId.SYS_TENANT_ID.equals(tenantId)));
         if (query.getKeyFilters() == null || query.getKeyFilters().isEmpty()) {
             ctx.append("select count(e.id) from ");
             ctx.append(addEntityTableQuery(ctx, query.getEntityFilter()));
@@ -416,7 +437,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
     public PageData<EntityData> findEntityDataByQuery(TenantId tenantId, CustomerId customerId, EntityDataQuery query, boolean ignorePermissionCheck) {
         return transactionTemplate.execute(status -> {
             EntityType entityType = resolveEntityType(query.getEntityFilter());
-            QueryContext ctx = new QueryContext(new QuerySecurityContext(tenantId, customerId, entityType, ignorePermissionCheck));
+            SqlQueryContext ctx = new SqlQueryContext(new QueryContext(tenantId, customerId, entityType, ignorePermissionCheck));
             EntityDataPageLink pageLink = query.getPageLink();
 
             List<EntityKeyMapping> mappings = EntityKeyMapping.prepareKeyMapping(entityType, query);
@@ -501,11 +522,12 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
                 if (sortOrderMappingOpt.isPresent()) {
                     EntityKeyMapping sortOrderMapping = sortOrderMappingOpt.get();
                     String direction = sortOrder.getDirection() == EntityDataSortOrder.Direction.ASC ? "asc" : "desc";
+                    String nullsOrder = resolveNullsOrder();
                     if (sortOrderMapping.getEntityKey().getType() == EntityKeyType.ENTITY_FIELD) {
-                        dataQuery = String.format("%s order by %s %s, result.id %s", dataQuery, sortOrderMapping.getValueAlias(), direction, direction);
+                        dataQuery = String.format("%s order by %s %s%s, result.id %s", dataQuery, sortOrderMapping.getValueAlias(), direction, nullsOrder, direction);
                     } else {
-                        dataQuery = String.format("%s order by %s %s, %s %s, result.id %s", dataQuery,
-                                sortOrderMapping.getSortOrderNumAlias(), direction, sortOrderMapping.getSortOrderStrAlias(), direction, direction);
+                        dataQuery = String.format("%s order by %s %s%s, %s %s, result.id %s", dataQuery,
+                                sortOrderMapping.getSortOrderNumAlias(), direction, nullsOrder, sortOrderMapping.getSortOrderStrAlias(), direction, direction);
                     }
                 }
             }
@@ -524,7 +546,15 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         });
     }
 
-    private String buildEntityWhere(QueryContext ctx, EntityFilter entityFilter, List<EntityKeyMapping> entityFieldsFilters) {
+    private String resolveNullsOrder() {
+        return switch (nullsOrderStrategy) {
+            case NULLS_ORDER_FIRST -> " NULLS FIRST";
+            case NULLS_ORDER_LAST -> " NULLS LAST";
+            default -> "";
+        };
+    }
+
+    private String buildEntityWhere(SqlQueryContext ctx, EntityFilter entityFilter, List<EntityKeyMapping> entityFieldsFilters) {
         String permissionQuery = this.buildPermissionQuery(ctx, entityFilter);
         String entityFilterQuery = this.buildEntityFilterQuery(ctx, entityFilter);
         String entityFieldsQuery = EntityKeyMapping.buildQuery(ctx, entityFieldsFilters, entityFilter.getType());
@@ -538,8 +568,9 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         return result;
     }
 
-    private String buildPermissionQuery(QueryContext ctx, EntityFilter entityFilter) {
-        if (ctx.isIgnorePermissionCheck()) {
+    private String buildPermissionQuery(SqlQueryContext ctx, EntityFilter entityFilter) {
+        if (ctx.isIgnorePermissionCheck() || (ctx.getTenantId().isSysTenantId() &&
+                (ctx.getEntityType() == EntityType.TENANT || ctx.getEntityType() == EntityType.TENANT_PROFILE))) {
             return "1=1";
         }
         switch (entityFilter.getType()) {
@@ -575,7 +606,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         }
     }
 
-    private String defaultPermissionQuery(QueryContext ctx) {
+    private String defaultPermissionQuery(SqlQueryContext ctx) {
         ctx.addUuidParameter("permissions_tenant_id", ctx.getTenantId().getId());
         if (ctx.getCustomerId() != null && !ctx.getCustomerId().isNullUid()) {
             ctx.addUuidParameter("permissions_customer_id", ctx.getCustomerId().getId());
@@ -593,7 +624,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         }
     }
 
-    private String buildEntityFilterQuery(QueryContext ctx, EntityFilter entityFilter) {
+    private String buildEntityFilterQuery(SqlQueryContext ctx, EntityFilter entityFilter) {
         switch (entityFilter.getType()) {
             case SINGLE_ENTITY:
                 return this.singleEntityQuery(ctx, (SingleEntityFilter) entityFilter);
@@ -619,7 +650,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         }
     }
 
-    private String addEntityTableQuery(QueryContext ctx, EntityFilter entityFilter) {
+    private String addEntityTableQuery(SqlQueryContext ctx, EntityFilter entityFilter) {
         switch (entityFilter.getType()) {
             case RELATIONS_QUERY:
                 return relationQuery(ctx, (RelationsQueryFilter) entityFilter);
@@ -640,7 +671,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         }
     }
 
-    private String entitySearchQuery(QueryContext ctx, EntitySearchQueryFilter entityFilter, EntityType entityType, List<String> types) {
+    private String entitySearchQuery(SqlQueryContext ctx, EntitySearchQueryFilter entityFilter, EntityType entityType, List<String> types) {
         EntityId rootId = entityFilter.getRootEntity();
         String lvlFilter = getLvlFilter(entityFilter.getMaxLevel());
         String selectFields = "SELECT tenant_id, customer_id, id, created_time, type, name, additional_info "
@@ -663,7 +694,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
                     .append("nr.").append(fromOrTo).append("_id").append(" = re.").append(toOrFrom).append("_id")
                     .append(" and ")
                     .append("nr.").append(fromOrTo).append("_type").append(" = re.").append(toOrFrom).append("_type");
-
+            notExistsPart.append(" and nr.relation_type_group = 'COMMON'"); // hit the index, the same condition are on the recursive query
             notExistsPart.append(")");
             whereFilter += " and ( r_int.lvl = " + entityFilter.getMaxLevel() + " OR " + notExistsPart.toString() + ")";
         }
@@ -680,7 +711,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         return query;
     }
 
-    private String relationQuery(QueryContext ctx, RelationsQueryFilter entityFilter) {
+    private String relationQuery(SqlQueryContext ctx, RelationsQueryFilter entityFilter) {
         EntityId rootId = entityFilter.getRootEntity();
         String lvlFilter = getLvlFilter(entityFilter.getMaxLevel());
         String selectFields = SELECT_TENANT_ID + ", " + SELECT_CUSTOMER_ID
@@ -692,6 +723,10 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
                 SELECT_ADDRESS + ", " + SELECT_ADDRESS_2 + ", " + SELECT_ZIP + ", " + SELECT_PHONE + ", " +
                 SELECT_ADDITIONAL_INFO + (entityFilter.isMultiRoot() ? (", " + SELECT_RELATED_PARENT_ID) : "") +
                 ", entity.entity_type as entity_type";
+        /*
+        * FIXME:
+        *  target entities are duplicated in result list, if search direction is TO and multiple relations are references to target entity
+        * */
         String from = getQueryTemplate(entityFilter.getDirection(), entityFilter.isMultiRoot());
 
         if (entityFilter.isMultiRoot()) {
@@ -755,7 +790,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
                     .append("nr.").append(fromOrTo).append("_type").append(" = re.").append(toOrFrom).append("_type")
                     .append(" and ")
                     .append(whereFilter.toString().replaceAll("re\\.", "nr\\."));
-
+            notExistsPart.append(" and nr.relation_type_group = 'COMMON'"); // hit the index, the same condition are on the recursive query
             notExistsPart.append(")");
             whereFilter.append(" and ( r_int.lvl = ").append(entityFilter.getMaxLevel()).append(" OR ").append(notExistsPart.toString()).append(")");
         }
@@ -763,7 +798,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         return "( " + selectFields + from + ")";
     }
 
-    private String buildEtfCondition(QueryContext ctx, RelationEntityTypeFilter etf, EntitySearchDirection direction, int entityTypeFilterIdx) {
+    private String buildEtfCondition(SqlQueryContext ctx, RelationEntityTypeFilter etf, EntitySearchDirection direction, int entityTypeFilterIdx) {
         StringBuilder whereFilter = new StringBuilder();
         String relationType = etf.getRelationType();
         List<EntityType> entityTypes = etf.getEntityTypes();
@@ -812,7 +847,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         return from;
     }
 
-    private String buildAliasWhereQuery(QueryContext ctx, EntityFilter entityFilter, List<EntityKeyMapping> selectionMapping, String searchText) {
+    private String buildAliasWhereQuery(SqlQueryContext ctx, EntityFilter entityFilter, List<EntityKeyMapping> selectionMapping, String searchText) {
         List<EntityKeyMapping> aliasFiltersMapping = selectionMapping.stream().filter(mapping -> !mapping.isLatest() && mapping.getEntityKeyColumn() == null)
                 .collect(Collectors.toList());
         String entityFieldsQuery = EntityKeyMapping.buildQuery(ctx, aliasFiltersMapping, entityFilter.getType());
@@ -822,12 +857,12 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
             result += " where (" + entityFieldsQuery + ")";
         }
         if (!searchTextQuery.isEmpty()) {
-            result += (result.isEmpty() ? " where ": " and ") + "(" + searchTextQuery + ") ";
+            result += (result.isEmpty() ? " where " : " and ") + "(" + searchTextQuery + ") ";
         }
         return result;
     }
 
-    private String buildTextSearchQuery(QueryContext ctx, List<EntityKeyMapping> selectionMapping, String searchText) {
+    private String buildTextSearchQuery(SqlQueryContext ctx, List<EntityKeyMapping> selectionMapping, String searchText) {
         if (!StringUtils.isEmpty(searchText) && !selectionMapping.isEmpty()) {
             String sqlSearchText = "%" + searchText + "%";
             ctx.addStringParameter("lowerSearchTextParam", sqlSearchText);
@@ -844,17 +879,17 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         }
     }
 
-    private String singleEntityQuery(QueryContext ctx, SingleEntityFilter filter) {
+    private String singleEntityQuery(SqlQueryContext ctx, SingleEntityFilter filter) {
         ctx.addUuidParameter("entity_filter_single_entity_id", filter.getSingleEntity().getId());
         return "e.id=:entity_filter_single_entity_id";
     }
 
-    private String entityListQuery(QueryContext ctx, EntityListFilter filter) {
+    private String entityListQuery(SqlQueryContext ctx, EntityListFilter filter) {
         ctx.addUuidListParameter("entity_filter_entity_ids", filter.getEntityList().stream().map(UUID::fromString).collect(Collectors.toList()));
         return "e.id in (:entity_filter_entity_ids)";
     }
 
-    private String entityNameQuery(QueryContext ctx, EntityNameFilter filter) {
+    private String entityNameQuery(SqlQueryContext ctx, EntityNameFilter filter) {
         ctx.addStringParameter("entity_filter_name_filter", filter.getEntityNameFilter());
         String nameColumn = getNameColumn(filter.getEntityType());
         if (filter.getEntityNameFilter().startsWith("%") || filter.getEntityNameFilter().endsWith("%")) {
@@ -864,7 +899,7 @@ public class DefaultEntityQueryRepository implements EntityQueryRepository {
         return String.format("e.%s ilike concat(:entity_filter_name_filter, '%%')", nameColumn);
     }
 
-    private String typeQuery(QueryContext ctx, EntityFilter filter) {
+    private String typeQuery(SqlQueryContext ctx, EntityFilter filter) {
         List<String> types;
         String name;
         String nameColumn;

@@ -1,5 +1,5 @@
 ///
-/// Copyright © 2016-2024 The Thingsboard Authors
+/// Copyright © 2016-2026 The Thingsboard Authors
 ///
 /// Licensed under the Apache License, Version 2.0 (the "License");
 /// you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 /// limitations under the License.
 ///
 
-import { Component, forwardRef, Input, OnInit, Renderer2, ViewContainerRef } from '@angular/core';
+import { Component, DestroyRef, forwardRef, Input, OnInit, Renderer2, ViewContainerRef } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -31,7 +31,8 @@ import { PageComponent } from '@shared/components/page.component';
 import {
   entityTypesWithoutRelatedData,
   EntityTypeVersionLoadConfig,
-  exportableEntityTypes
+  exportableEntityTypes,
+  typesWithCalculatedFields
 } from '@shared/models/vc.models';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
@@ -40,23 +41,25 @@ import { EntityType, entityTypeTranslations } from '@shared/models/entity-type.m
 import { MatCheckbox } from '@angular/material/checkbox';
 import { TbPopoverService } from '@shared/components/popover.service';
 import { RemoveOtherEntitiesConfirmComponent } from '@home/components/vc/remove-other-entities-confirm.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'tb-entity-types-version-load',
-  templateUrl: './entity-types-version-load.component.html',
-  styleUrls: ['./entity-types-version.component.scss'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => EntityTypesVersionLoadComponent),
-      multi: true
-    },
-    {
-      provide: NG_VALIDATORS,
-      useExisting: forwardRef(() => EntityTypesVersionLoadComponent),
-      multi: true
-    }
-  ]
+    selector: 'tb-entity-types-version-load',
+    templateUrl: './entity-types-version-load.component.html',
+    styleUrls: ['./entity-types-version.component.scss'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => EntityTypesVersionLoadComponent),
+            multi: true
+        },
+        {
+            provide: NG_VALIDATORS,
+            useExisting: forwardRef(() => EntityTypesVersionLoadComponent),
+            multi: true
+        }
+    ],
+    standalone: false
 })
 export class EntityTypesVersionLoadComponent extends PageComponent implements OnInit, ControlValueAccessor, Validator {
 
@@ -74,12 +77,15 @@ export class EntityTypesVersionLoadComponent extends PageComponent implements On
 
   loading = true;
 
+  readonly typesWithCalculatedFields = typesWithCalculatedFields;
+
   constructor(protected store: Store<AppState>,
               private translate: TranslateService,
               private popoverService: TbPopoverService,
               private renderer: Renderer2,
               private viewContainerRef: ViewContainerRef,
-              private fb: UntypedFormBuilder) {
+              private fb: UntypedFormBuilder,
+              private destroyRef: DestroyRef) {
     super(store);
   }
 
@@ -87,7 +93,9 @@ export class EntityTypesVersionLoadComponent extends PageComponent implements On
     this.entityTypesVersionLoadFormGroup = this.fb.group({
       entityTypes: this.fb.array([], [])
     });
-    this.entityTypesVersionLoadFormGroup.valueChanges.subscribe(() => {
+    this.entityTypesVersionLoadFormGroup.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(() => {
       this.updateModel();
     });
   }
@@ -141,6 +149,7 @@ export class EntityTypesVersionLoadComponent extends PageComponent implements On
           loadRelations: [config.loadRelations, []],
           loadAttributes: [config.loadAttributes, []],
           loadCredentials: [config.loadCredentials, []],
+          loadCalculatedFields: [config.loadCalculatedFields, []],
           removeOtherEntities: [config.removeOtherEntities, []],
           findExistingEntityByName: [config.findExistingEntityByName, []]
         })
@@ -176,6 +185,7 @@ export class EntityTypesVersionLoadComponent extends PageComponent implements On
       loadAttributes: true,
       loadRelations: true,
       loadCredentials: true,
+      loadCalculatedFields: true,
       removeOtherEntities: false,
       findExistingEntityByName: true
     };
@@ -223,16 +233,23 @@ export class EntityTypesVersionLoadComponent extends PageComponent implements On
       if (this.popoverService.hasPopover(trigger)) {
         this.popoverService.hidePopover(trigger);
       } else {
-        const removeOtherEntitiesConfirmPopover = this.popoverService.displayPopover(trigger, this.renderer,
-          this.viewContainerRef, RemoveOtherEntitiesConfirmComponent, 'bottom', true, null,
-          {
+        const removeOtherEntitiesConfirmPopover = this.popoverService.displayPopover({
+          trigger,
+          renderer: this.renderer,
+          componentType: RemoveOtherEntitiesConfirmComponent,
+          hostView: this.viewContainerRef,
+          preferredPlacement: 'bottom',
+          context: {
             onClose: (result: boolean | null) => {
               removeOtherEntitiesConfirmPopover.hide();
               if (result) {
                 entityTypeControl.get('config').get('removeOtherEntities').patchValue(true, {emitEvent: true});
               }
             }
-          }, {}, {}, {}, false);
+          },
+          showCloseButton: false,
+          isModal: true
+        });
       }
     }
   }
