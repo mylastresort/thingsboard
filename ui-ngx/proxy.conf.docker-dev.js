@@ -17,7 +17,6 @@ const forwardUrl = process.env.HOSTS || "http://thingsboard:8080";
 const wsForwardUrl = forwardUrl.replace(/^http/, "ws");
 const ruleNodeUiforwardUrl = forwardUrl;
 const modelUrl = process.env.MODEL_URL || "http://model:8000";
-const modelWsUrl = modelUrl.replace(/^http/, "ws");
 
 const PROXY_CONFIG = {
   // ── Model container routes (bypass ThingsBoard) ──────────────────────────
@@ -40,7 +39,9 @@ const PROXY_CONFIG = {
   "/api/predictiveMaintenance": {
     target: modelUrl,
     secure: false,
-    pathRewrite: { "^/api/predictiveMaintenance": "/api/v1/predictiveMaintenance" },
+    pathRewrite: {
+      "^/api/predictiveMaintenance": "/api/v1/predictiveMaintenance",
+    },
   },
 
   // /api/forecasts* → model:8000/api/v1/forecast*
@@ -64,6 +65,12 @@ const PROXY_CONFIG = {
     target: modelUrl,
     secure: false,
   },
+
+  // "/ws/unified": {
+  //   target: modelUrl + '/models',
+  //   ws: true,
+  //   secure: false,
+  // },
 
   // ── ThingsBoard routes (auth, devices, telemetry, dashboards, …) ─────────
   "/api": {

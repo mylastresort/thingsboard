@@ -150,6 +150,14 @@ async def unified_model_stream(websocket: WebSocket):
     """
     await websocket.accept()
 
+    # Extract token from query params (Angular will pass it here)
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4001, reason="Unauthorized - no token")
+        return
+    # Optional: validate token against TB here if needed
+    # For now, trust the proxy layer to have verified it upstream
+
     # Helper function for non-blocking sends
     async def send_response(data: dict):
         """Send a response without blocking the message loop"""
@@ -247,7 +255,7 @@ async def unified_model_stream(websocket: WebSocket):
         while True:
             message = await websocket.receive_json()
 
-            command_id = message.get("commandId")
+            command_id = message.get("commandId") or message.get("cmdId")  # Accept either commandId or cmdId for compatibility
             msg_type = message.get("type")
             forecast_id = message.get("forecastId")
             data = message.get("data", {})

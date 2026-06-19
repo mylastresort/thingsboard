@@ -61,6 +61,7 @@
       *ngIf="status.toLowerCase() === 'inactive'"
       class="status-icon-button inactive-activate"
       (click)="activateModel()"
+      [disabled]="!trueId"
       matTooltip="Activate"
       aria-label="Activate"
     >

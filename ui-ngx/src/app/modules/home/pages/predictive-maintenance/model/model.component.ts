@@ -960,7 +960,11 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
         this.forecastName = data.name || data.id.id.split('-')[0]; // Use name if available, fallback to ID
         this.forecastAlgorithm = data.forecastAlgorithm;
         this.anomalyAlgorithm = data.anomalyAlgorithm;
-        this.forecastGrouping = JSON.parse(data.additionalData || '{}').forecastGrouping || 'hourly';
+        // this.forecastGrouping = JSON.parse(data.additionalData || '{}').forecastGrouping || 'hourly';
+        const additionalData = typeof data.additionalData === 'string'
+          ? JSON.parse(data.additionalData || '{}')
+          : (data.additionalData || {});
+        this.forecastGrouping = additionalData.forecastGrouping || 'hourly';
 
         // Fetch device name
         this.deviceService.getDevice(data.deviceId.id).subscribe(
@@ -1501,6 +1505,8 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
 
   isWsConnected = false;
 
+  isActivating = false;
+
   progressMessage: { step: string; progress: number } | null = null;
 
   activateModel(): void {
@@ -1508,6 +1514,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
     if (!this.trueId) {
       return;
     }
+    this.isActivating = true;
     this.activationProgress = '';
     this.activationComplete = false;
     this.predictions = null;

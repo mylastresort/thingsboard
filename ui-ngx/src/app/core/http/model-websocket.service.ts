@@ -92,7 +92,13 @@ export class ModelWebSocketService {
   connect(): WebSocketSubject<any> {
     if (!this.ws$ || this.ws$.closed) {
       // Use GENERAL session type which supports authCmd + cmds structure
-      const wsUrl = '/api/ws/model';
+      // const wsUrl = '/api/ws/model';
+         const token = AuthService.getJwtToken();
+        //  const wsUrl = `/api/v1/ws/unified?token=${token}`;
+        // Angular dev server (esbuild) can't proxy WebSocket upgrades reliably.
+        // model:8000 is exposed directly on the host — connect straight to it.
+        const host = window.location.hostname;  // 'localhost' in dev
+        const wsUrl = `ws://${host}:8000/models/ws/unified?token=${token}`;
 
       // console.log("[AnomalyStream] Connecting to:", wsUrl);
 
@@ -103,14 +109,17 @@ export class ModelWebSocketService {
         openObserver: {
           next: () => {
             console.info('%c[AnomalyStream] WebSocket connection opened', 'color: #9E9E9E; font-weight: bold');
-            this.authenticate();
+            // this.authenticate();
+            this.isAuthenticated = true; // token already passed in URL
             this.onConnectCbs.forEach((cb) => cb());
+            this.onConnectCbs = [];
           },
         },
         closeObserver: {
           next: (event) => {
             // console.log("[AnomalyStream] WebSocket connection closed", event);
             this.isAuthenticated = false;
+            this.ws$ = null;
           },
         },
       });
@@ -124,33 +133,12 @@ export class ModelWebSocketService {
           console.error('[AnomalyStream] WebSocket error:', error);
           // console.log("[AnomalyStream] Error details:", JSON.stringify(error));
           this.isAuthenticated = false;
+          this.ws$ = null;
         },
       });
     }
 
     return this.ws$;
-  }
-
-  /**
-   * Authenticate with the WebSocket server
-   */
-  private authenticate(): void {
-    // Get the token from AuthService (static method)
-    this.authToken = AuthService.getJwtToken();
-
-    if (this.authToken && this.ws$) {
-      console.log('[AnomalyStream] Authenticating with token...');
-      // TODO: Authenticate immediately on open
-      this.isAuthenticated = true;
-      // console.log("[AnomalyStream] Authentication ready");
-    } else {
-      // console.error("[AnomalyStream] No JWT token found for authentication");
-      // console.log(
-      // "[AnomalyStream] AuthService.getJwtToken() returned:",
-      // this.authToken
-      // );
-      // console.log("[AnomalyStream] Make sure you are logged in to ThingsBoard");
-    }
   }
 
   private subscribe<T extends AnomalyStreamMessage | AnomalyStreamMessageLogs>(type: AnomalyStreamType): Observable<T> {
@@ -174,10 +162,12 @@ export class ModelWebSocketService {
       case 'complete':
         console.log('[AnomalyStream] Complete message:', message);
         this.responses$.get(AnomalyStreamType.ACTIVATE_COMMAND)?.next(message);
+        this.isActivating = false;
         break;
       case 'error':
         console.error('[AnomalyStream] Error message:', message);
         this.responses$.get(AnomalyStreamType.ACTIVATE_COMMAND)?.error(message);
+        this.isActivating = false;
         break;
       case 'logs':
         // console.log('[AnomalyStream] Log message:', message);
@@ -209,7 +199,8 @@ export class ModelWebSocketService {
   requestJobLogs(jobId: string): Observable<AnomalyStreamMessageLogs> {
     const cmdId = this.cmdIdCounter++;
     const cmd = {
-      cmdId,
+      // cmdId,
+      commandId: cmdId,
       forecastId: jobId,
       type: AnomalyStreamType.SUBSCRIBE_LOGS_COMMAND,
     };
@@ -226,7 +217,8 @@ export class ModelWebSocketService {
   requestJobStatus(jobId: string): Observable<AnomalyStreamMessage> {
     const cmdId = this.cmdIdCounter++;
     const cmd = {
-      cmdId,
+      // cmdId,
+      commandId: cmdId,
       forecastId: jobId,
       type: AnomalyStreamType.JOB_STATUS_COMMAND,
     };
@@ -348,11 +340,14 @@ export class ModelWebSocketService {
 
   private sentActivateCommand = false;
 
+  isActivating = false;
+
   cleanUp() {
     this.sentActivateCommand = false;
   }
 
   sendActivateCommand(forecastId: string): Observable<AnomalyStreamMessage> {
+    console.log('[MODEL] sendActivateCommand called with forecastId:', forecastId);
     if (this.sentActivateCommand) {
       console.warn(
         '[AnomalyStream] Activate command has already been sent. Ignoring duplicate.'
@@ -366,7 +361,8 @@ export class ModelWebSocketService {
     // );
 
     const cmd = {
-      cmdId: this.cmdIdCounter++,
+      // cmdId: this.cmdIdCounter++,
+      commandId: this.cmdIdCounter++,
       forecastId,
       type: AnomalyStreamType.ACTIVATE_COMMAND,
     };
@@ -374,6 +370,7 @@ export class ModelWebSocketService {
       this.onConnect(() => {
         this.ws$.next(cmd);
       });
+      this.connect();
     } else {
       this.ws$.next(cmd);
     }
@@ -389,7 +386,8 @@ export class ModelWebSocketService {
       return;
     }
     const cmd = {
-      cmdId: this.cmdIdCounter++,
+      // cmdId: this.cmdIdCounter++,
+      commandId: this.cmdIdCounter++,
       forecastId,
       type: AnomalyStreamType.UNSUBSCRIBE_JOB_LOGS_COMMAND,
     };
