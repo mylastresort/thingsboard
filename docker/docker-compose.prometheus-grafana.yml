@@ -29,7 +29,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
     ports:
       - 9090:9090
-    restart: always
+    restart: "no"
   grafana:
     image: grafana/grafana
     user: "472"
@@ -42,4 +42,4 @@ services:
       - ./monitoring/grafana/provisioning/:/etc/grafana/provisioning/
     env_file:
       - monitoring/grafana/config.monitoring
-    restart: always
+    restart: "no"

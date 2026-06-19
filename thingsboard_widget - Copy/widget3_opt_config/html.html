@@ -1,0 +1,179 @@
+<div class="oc-root">
+
+    <!-- ── Toolbar ── -->
+    <div class="oc-bar">
+        <mat-icon class="oc-logo-icon">tune</mat-icon>
+        <span class="oc-logo-text">Optimization Config Builder</span>
+        <span class="oc-grow"></span>
+        <button id="refreshDevicesBtn" class="oc-ibtn" title="Refresh device list">
+            <mat-icon>refresh</mat-icon>
+        </button>
+    </div>
+
+    <!-- ── Config name ── -->
+    <div class="oc-name-row">
+        <label class="oc-name-label">Config name</label>
+        <input id="configName" class="oc-name-input" type="text" placeholder="e.g. PdM Pressure Optimize" />
+    </div>
+
+    <!-- ── Parameters section ── -->
+    <div class="oc-section">
+        <div class="oc-section-hd">
+            <span class="oc-section-title">Parameters</span>
+            <button id="addParamBtn" class="oc-btn oc-btn-primary">
+                <mat-icon>add</mat-icon> Add Parameter
+            </button>
+        </div>
+        <div class="oc-tbl-wrap">
+            <table class="oc-tbl">
+                <thead>
+                    <tr>
+                        <th>Label (FlexSim name)</th>
+                        <th>Device</th>
+                        <th>Telemetry Key</th>
+                        <th>Time Window</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Step</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="paramsTbody">
+                    <tr id="paramsEmpty">
+                        <td colspan="8" class="oc-empty">No parameters added yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── Performance Measures section ── -->
+    <div class="oc-section">
+        <div class="oc-section-hd">
+            <span class="oc-section-title">Performance Measures</span>
+            <button id="addMeasureBtn" class="oc-btn oc-btn-primary">
+                <mat-icon>add</mat-icon> Add Measure
+            </button>
+        </div>
+        <div class="oc-tbl-wrap">
+            <table class="oc-tbl">
+                <thead>
+                    <tr>
+                        <th>Name (FlexSim PM)</th>
+                        <th>Direction</th>
+                        <th>Aggregation</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="measuresTbody">
+                    <tr id="measuresEmpty">
+                        <td colspan="4" class="oc-empty">No measures added yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── Footer ── -->
+    <div class="oc-footer">
+        <div id="statusBar" class="oc-status"></div>
+        <button id="clearBtn" class="oc-btn">Clear all</button>
+        <button id="saveBtn" class="oc-btn oc-btn-save">
+            <mat-icon>save</mat-icon> Save Config
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Add Parameter dialog                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="paramDlg" class="oc-overlay" style="display:none">
+        <div class="oc-dlg">
+            <div class="oc-dlg-hd">Add Parameter</div>
+
+            <label class="oc-lbl">Device
+                <select id="dlgDevice" class="oc-fw-sel">
+                    <option value="">— loading… —</option>
+                </select>
+            </label>
+
+            <label class="oc-lbl">Telemetry key
+                <select id="dlgKey" class="oc-fw-sel" disabled>
+                    <option value="">— select a device first —</option>
+                </select>
+            </label>
+
+            <label class="oc-lbl">Time window
+                <select id="dlgWindow" class="oc-fw-sel">
+                    <option value="1">Last 1 hour</option>
+                    <option value="6">Last 6 hours</option>
+                    <option value="24">Last 24 hours</option>
+                    <option value="168" selected>Last 7 days</option>
+                    <option value="720">Last 30 days</option>
+                </select>
+            </label>
+
+            <div class="oc-compute-row">
+                <button id="computeBtn" class="oc-btn oc-btn-secondary" disabled>
+                    <mat-icon>calculate</mat-icon> Compute bounds
+                </button>
+                <span id="computeStatus" class="oc-compute-status"></span>
+            </div>
+
+            <div class="oc-bounds-row">
+                <label class="oc-inline-lbl">Min
+                    <input id="dlgMin" class="oc-num-input" type="number" step="any" placeholder="auto" />
+                </label>
+                <label class="oc-inline-lbl">Max
+                    <input id="dlgMax" class="oc-num-input" type="number" step="any" placeholder="auto" />
+                </label>
+                <label class="oc-inline-lbl">Step (optional)
+                    <input id="dlgStep" class="oc-num-input" type="number" step="any" placeholder="none" />
+                </label>
+            </div>
+
+            <label class="oc-lbl">FlexSim parameter label
+                <input id="dlgLabel" class="oc-fw-input" type="text" placeholder="e.g. PdM1_pressure" />
+            </label>
+
+            <div class="oc-dlg-ft">
+                <button id="paramCancel" class="oc-btn">Cancel</button>
+                <button id="paramOk" class="oc-btn oc-btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Add Performance Measure dialog                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div id="measureDlg" class="oc-overlay" style="display:none">
+        <div class="oc-dlg oc-dlg-sm">
+            <div class="oc-dlg-hd">Add Performance Measure</div>
+
+            <label class="oc-lbl">FlexSim performance measure name
+                <input id="dlgMName" class="oc-fw-input" type="text" placeholder="e.g. PdM1_PowerUsage" />
+            </label>
+
+            <label class="oc-lbl">Direction
+                <select id="dlgMDir" class="oc-fw-sel">
+                    <option value="minimize">Minimize</option>
+                    <option value="maximize">Maximize</option>
+                </select>
+            </label>
+
+            <label class="oc-lbl">Aggregation
+                <select id="dlgMAgg" class="oc-fw-sel">
+                    <option value="Mean" selected>Mean</option>
+                    <option value="Sum">Sum</option>
+                    <option value="Min">Min</option>
+                    <option value="Max">Max</option>
+                </select>
+            </label>
+
+            <div class="oc-dlg-ft">
+                <button id="measureCancel" class="oc-btn">Cancel</button>
+                <button id="measureOk" class="oc-btn oc-btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+</div>

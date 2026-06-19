@@ -1,0 +1,16 @@
+services:
+  tb-flexsim-bridge:
+    build:
+      context: ./msa/tb-flexsim-bridge
+    container_name: tb-flexsim-bridge
+    restart: unless-stopped
+    ports:
+      - "8095:8095"
+    env_file:
+      - ./msa/tb-flexsim-bridge/.env
+    networks:
+      - thingsboard
+
+networks:
+  thingsboard:
+    external: true

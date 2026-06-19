@@ -1,0 +1,82 @@
+<div class="fl-root">
+
+  <!-- Toolbar -->
+  <div class="fl-bar">
+    <span class="fl-status-label">Status: <span id="hTxt">…</span></span>
+    <span class="fl-grow"></span>
+    <div class="fl-bar-actions">
+      <button id="syncBtn" class="fl-ibtn" title="Sync dashboard params → FlexSim">
+        <mat-icon>sync</mat-icon>
+      </button>
+      <button id="refreshBtn" class="fl-ibtn" title="Refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <button id="addBtn" class="fl-ibtn fl-ibtn-add" title="Open model in FlexSim">
+        <mat-icon>add</mat-icon>
+      </button>
+      <div class="fl-bar-divider"></div>
+      <button id="settingsBtn" class="fl-ibtn" title="Widget settings">
+        <mat-icon>settings</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Simulation table -->
+  <div class="fl-tbl-wrap">
+    <table class="fl-tbl">
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Simulation</th>
+          <th>#&nbsp;Runs</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Status bar -->
+  <div id="sb" class="fl-sb"></div>
+
+  <!-- Add configuration dialog -->
+  <div id="modal" class="fl-overlay" style="display:none">
+    <div class="fl-dlg">
+      <div class="fl-dlg-hd">New OptQuest Configuration</div>
+      <label class="fl-lbl">Model
+        <select id="mModel" class="fl-fw-sel"></select>
+      </label>
+      <label class="fl-lbl">Clone from
+        <select id="mCloneFrom" class="fl-fw-sel"></select>
+      </label>
+      <label class="fl-lbl">New configuration name
+        <input id="mConf" class="fl-fw-input" type="text" placeholder="e.g. Optimization2" />
+      </label>
+      <div class="fl-dlg-ft">
+        <button id="mCancel" class="fl-btn">Cancel</button>
+        <button id="mOk" class="fl-btn fl-btn-p">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings dialog -->
+  <div id="settingsModal" class="fl-overlay" style="display:none">
+    <div class="fl-dlg">
+      <div class="fl-dlg-hd">Widget Settings</div>
+      <label class="fl-lbl">Server Base URL
+        <input id="cfgUrl" class="fl-fw-input" type="text" placeholder="http://localhost:8000" />
+      </label>
+      <label class="fl-lbl">API Token
+        <input id="cfgToken" class="fl-fw-input" type="text" placeholder="jessica" />
+      </label>
+      <label class="fl-lbl">Detail State ID
+        <input id="cfgState" class="fl-fw-input" type="text" placeholder="simulation" />
+      </label>
+      <div class="fl-dlg-ft">
+        <button id="cfgCancel" class="fl-btn">Cancel</button>
+        <button id="cfgSave" class="fl-btn fl-btn-p">Save &amp; Refresh</button>
+      </div>
+    </div>
+  </div>
+
+</div>

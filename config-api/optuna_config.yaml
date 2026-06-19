@@ -1,0 +1,88 @@
+# ──────────────────────────────────────────────────────────────────────────────
+#  Optuna config — Line 2 full search space
+#  Covers: inter-arrival time, all cycle times, and every PDM sensor band.
+#
+#  Sensor keys follow the dotted path expected by build_config:
+#    pdm1_sensors.<sensor_name>.<min|max>
+#    pdm2_sensors.<sensor_name>.<min|max>
+#
+#  build_config auto-sorts [min, max] per sensor so an inverted pair
+#  sampled by Optuna is silently corrected before the sim sees it.
+#  Replace sensor names with the ones defined in Line2Config.
+# ──────────────────────────────────────────────────────────────────────────────
+
+settings:
+  n_trials: 150
+  sampler: tpe          # tpe | cmaes | random | nsga2 | nsga3
+  seed: 42
+  show_progress: true
+
+simulation:
+  sim_time: 480.0       # minutes (one 8-hour shift)
+  n_replications: 3     # average over 3 seeds for stability
+  seed: 0
+
+# ── Decision variables ────────────────────────────────────────────────────────
+
+decision_variables:
+
+  # ── PDM 1 sensors ───────────────────────────────────────────────────────────
+  # Replace sensor names below with the keys in Line2Config.pdm1_sensors.
+
+  pdm1_sensors.volt:
+    type: float
+    low: 15.0
+    high: 55.0
+
+  pdm1_sensors.pressure:
+    type: float
+    low: 0.5
+    high: 3.0
+
+  pdm1_sensors.vibration:
+    type: float
+    low: 0.0
+    high: 10.0
+
+  pdm1_sensors.rotate:
+    type: float
+    low: 0.0
+    high: 20.0
+
+  # ── PDM 2 sensors ───────────────────────────────────────────────────────────
+  # Mirror structure; tune ranges independently if machines differ.
+
+  pdm2_sensors.volt:
+    type: float
+    low: 15.0
+    high: 55.0
+
+  pdm2_sensors.pressure:
+    type: float
+    low: 0.5
+    high: 3.0
+
+  pdm2_sensors.vibration:
+    type: float
+    low: 0.0
+    high: 10.0
+
+  pdm2_sensors.rotate:
+    type: float
+    low: 0.0
+    high: 20.0
+
+# ── Objectives ────────────────────────────────────────────────────────────────
+
+objectives:
+  - metric: power_avg
+    direction: minimize
+
+# ── Constraints (optional) ────────────────────────────────────────────────────
+
+constraints: []
+
+# ── Performance measures (reported for best config, not optimised) ────────────
+
+performance_measures:
+  - power_avg

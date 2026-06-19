@@ -1,0 +1,123 @@
+<div class="sn-root">
+  <!-- ── TOOLBAR ── -->
+  <div class="sn-toolbar">
+    <mat-icon class="sn-logo-icon">account_tree</mat-icon>
+    <span class="sn-logo-text">Network Editor</span>
+    <div class="sn-health">
+      <div id="healthDot" class="sn-dot"></div>
+      <span id="healthText">Connecting…</span>
+    </div>
+    <span class="sn-grow"></span>
+    <button id="settingsBtn" class="sn-ibtn" title="Settings">
+      <mat-icon>settings</mat-icon>
+    </button>
+  </div>
+
+  <!-- ── BODY ── -->
+  <div class="sn-body">
+    <!-- LEFT: network list -->
+    <div class="sn-sidebar">
+      <div class="sn-sidebar-head">
+        <span class="sn-sidebar-title">Networks</span>
+        <button id="newNetBtn" class="sn-ibtn" title="New network">
+          <mat-icon>add</mat-icon>
+        </button>
+        <button id="refreshNetBtn" class="sn-ibtn" title="Refresh list">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+      <ul id="netList" class="sn-net-list"></ul>
+    </div>
+
+    <!-- RIGHT: editor -->
+    <div class="sn-editor">
+      <!-- Editor toolbar -->
+      <div class="sn-edit-bar">
+        <span id="activeLabel" class="sn-active-label"
+          >— no network loaded —</span
+        >
+        <div class="sn-grow"></div>
+        <span class="sn-label">Add:</span>
+        <button id="addSource" class="sn-node-btn sn-source">⬤ Source</button>
+        <button id="addQueue" class="sn-node-btn sn-queue">▭ Queue</button>
+        <button id="addProc" class="sn-node-btn sn-proc">⚙ Processor</button>
+        <button id="addPdm" class="sn-node-btn sn-pdm">📡 PdM</button>
+        <button id="addSink" class="sn-node-btn sn-sink">◼ Sink</button>
+        <div class="sn-divider"></div>
+        <button id="clearBtn" class="sn-ibtn" title="Clear canvas">
+          <mat-icon>delete_sweep</mat-icon>
+        </button>
+        <button id="saveBtn" class="sn-btn sn-btn-save" disabled>
+          <mat-icon>save</mat-icon><span>Save</span>
+        </button>
+      </div>
+
+      <!-- Canvas -->
+      <div class="sn-canvas-wrap" id="canvasWrap">
+        <div class="sn-canvas-empty" id="canvasEmpty">
+          <mat-icon>account_tree</mat-icon>
+          <p>Select a network from the list<br />or create a new one.</p>
+        </div>
+        <canvas id="simCanvas" style="display: none"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATUS ── -->
+  <div id="statusBar" class="sn-status"></div>
+
+  <!-- ── NEW NETWORK DIALOG ── -->
+  <div id="newNetModal" class="sn-overlay" style="display: none">
+    <div class="sn-dlg">
+      <div class="sn-dlg-title">
+        <mat-icon>add_circle</mat-icon> New Network
+      </div>
+      <label class="sn-lbl"
+        >Name
+        <input
+          id="newNetName"
+          class="sn-input sn-fw"
+          type="text"
+          placeholder="e.g. line3"
+        />
+        <span class="sn-hint">Stored as a config record in the database</span>
+      </label>
+      <label class="sn-lbl"
+        >Description
+        <input
+          id="newNetDesc"
+          class="sn-input sn-fw"
+          type="text"
+          placeholder="Optional description"
+        />
+      </label>
+      <div id="newNetError" class="sn-dlg-error" style="display: none"></div>
+      <div class="sn-dlg-ft">
+        <button id="newNetCancel" class="sn-btn">Cancel</button>
+        <button id="newNetOk" class="sn-btn sn-btn-save">
+          Create &amp; Open
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS MODAL ── -->
+  <div id="settingsModal" class="sn-overlay" style="display: none">
+    <div class="sn-dlg">
+      <div class="sn-dlg-title"><mat-icon>settings</mat-icon> Settings</div>
+      <label class="sn-lbl"
+        >Config API Base URL
+        <input
+          id="cfgUrl"
+          class="sn-input sn-fw"
+          type="text"
+          placeholder="http://localhost:9000"
+        />
+      </label>
+      <div class="sn-dlg-ft">
+        <button id="cfgCancel" class="sn-btn">Cancel</button>
+        <button id="cfgSave" class="sn-btn sn-btn-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>

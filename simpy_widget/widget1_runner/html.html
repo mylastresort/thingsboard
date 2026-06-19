@@ -1,0 +1,132 @@
+<div class="sp-root">
+  <!-- ── TOOLBAR ── -->
+  <div class="sp-toolbar">
+    <mat-icon class="sp-logo-icon">science</mat-icon>
+    <span class="sp-logo-text">SimPy — Line 2</span>
+    <div class="sp-health">
+      <div id="healthDot" class="sp-dot"></div>
+      <span id="healthText">Connecting…</span>
+    </div>
+    <span class="sp-grow"></span>
+    <button id="settingsBtn" class="sp-ibtn" title="Settings">
+      <mat-icon>settings</mat-icon>
+    </button>
+  </div>
+
+  <!-- ── CONTROLS ── -->
+  <div class="sp-controls">
+    <label class="sp-ctrl-group">
+      <span class="sp-ctrl-label">Sim Time (s)</span>
+      <input
+        id="simTimeInput"
+        class="sp-input"
+        type="number"
+        value="28000"
+        min="1000"
+        step="1000"
+      />
+    </label>
+    <label class="sp-ctrl-group">
+      <span class="sp-ctrl-label">Random Seed</span>
+      <input
+        id="seedInput"
+        class="sp-input sp-input-sm"
+        type="number"
+        value="42"
+        min="0"
+      />
+    </label>
+    <button id="runBtn" class="sp-btn sp-btn-run">
+      <mat-icon>play_arrow</mat-icon>
+      <span>Run Simulation</span>
+    </button>
+    <span id="configBadge" class="sp-badge" style="display: none"></span>
+    <span class="sp-grow"></span>
+    <span id="elapsed" class="sp-elapsed" style="display: none"></span>
+  </div>
+
+  <!-- ── EMPTY / SPINNER ── -->
+  <div class="sp-empty" id="emptyState">
+    <mat-icon id="emptyIcon">analytics</mat-icon>
+    <p id="emptyMsg">Click <b>Run Simulation</b> to start.</p>
+  </div>
+
+  <!-- ── RESULTS (hidden until first run) ── -->
+  <div id="results" style="display: none">
+    <!-- KPI cards -->
+    <div class="sp-kpis">
+      <div class="sp-kpi">
+        <div class="sp-kpi-val" id="kpiThroughput">—</div>
+        <div class="sp-kpi-lbl">Throughput (ent/h)</div>
+      </div>
+      <div class="sp-kpi">
+        <div class="sp-kpi-val" id="kpiArrivals">—</div>
+        <div class="sp-kpi-lbl">Arrivals (Sink 2)</div>
+      </div>
+      <div class="sp-kpi sp-kpi-warn">
+        <div class="sp-kpi-val" id="kpiCycleAvg">—</div>
+        <div class="sp-kpi-lbl">Avg Cycle Time (s)</div>
+      </div>
+      <div class="sp-kpi sp-kpi-info">
+        <div class="sp-kpi-val" id="kpiPowerAvg">—</div>
+        <div class="sp-kpi-lbl">Avg Power (units)</div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="sp-charts">
+      <div class="sp-chart-card">
+        <div class="sp-chart-title">Cycle Time (s)</div>
+        <div id="cycleChart" class="sp-chart"></div>
+      </div>
+      <div class="sp-chart-card">
+        <div class="sp-chart-title">Power Usage</div>
+        <div id="powerChart" class="sp-chart"></div>
+      </div>
+    </div>
+
+    <!-- Resource state table -->
+    <div class="sp-section">
+      <div class="sp-section-title">Resource State at End</div>
+      <table class="sp-tbl">
+        <thead>
+          <tr>
+            <th>Resource</th>
+            <th>Busy</th>
+            <th>Queue</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="resourceTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── STATUS BAR ── -->
+  <div id="statusBar" class="sp-status"></div>
+
+  <!-- ── SETTINGS MODAL ── -->
+  <div id="settingsModal" class="sp-overlay" style="display: none">
+    <div class="sp-dlg">
+      <div class="sp-dlg-title">
+        <mat-icon>settings</mat-icon> Widget Settings
+      </div>
+      <label class="sp-lbl"
+        >Config API Base URL
+        <input
+          id="cfgUrl"
+          class="sp-input sp-fw"
+          type="text"
+          placeholder="http://localhost:9000"
+        />
+        <span class="sp-hint">e.g. http://localhost:9000</span>
+      </label>
+      <div class="sp-dlg-ft">
+        <button id="cfgCancel" class="sp-btn">Cancel</button>
+        <button id="cfgSave" class="sp-btn sp-btn-run">
+          Save &amp; Reconnect
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -25,14 +25,14 @@ services:
       ZOO_SERVERS: server.1=zookeeper:2888:3888;zookeeper:2181
       ZOO_ADMINSERVER_ENABLED: "false"
   tb-js-executor:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${JS_EXECUTOR_DOCKER_NAME}:${TB_VERSION}"
     deploy:
       replicas: 10
     env_file:
       - tb-js-executor.env
   tb-core1:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8080"
@@ -58,7 +58,7 @@ services:
       - tb-rule-engine1
       - tb-rule-engine2
   tb-core2:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8080"
@@ -84,7 +84,7 @@ services:
       - tb-rule-engine1
       - tb-rule-engine2
   tb-rule-engine1:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8080"
@@ -106,7 +106,7 @@ services:
       - zookeeper
       - tb-js-executor
   tb-rule-engine2:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8080"
@@ -128,7 +128,7 @@ services:
       - zookeeper
       - tb-js-executor
   tb-mqtt-transport1:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${MQTT_TRANSPORT_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "1883"
@@ -145,7 +145,7 @@ services:
       - tb-core1
       - tb-core2
   tb-mqtt-transport2:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${MQTT_TRANSPORT_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "1883"
@@ -162,7 +162,7 @@ services:
       - tb-core1
       - tb-core2
   tb-http-transport1:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${HTTP_TRANSPORT_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8081"
@@ -179,7 +179,7 @@ services:
       - tb-core1
       - tb-core2
   tb-http-transport2:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${HTTP_TRANSPORT_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8081"
@@ -196,7 +196,7 @@ services:
       - tb-core1
       - tb-core2
   tb-coap-transport:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${COAP_TRANSPORT_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "5683:5683/udp"
@@ -213,7 +213,7 @@ services:
       - tb-core1
       - tb-core2
   tb-lwm2m-transport:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${LWM2M_TRANSPORT_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "5685:5685/udp"
@@ -231,7 +231,7 @@ services:
       - tb-core1
       - tb-core2
   tb-snmp-transport:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${SNMP_TRANSPORT_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "1620:1620/udp"
@@ -248,21 +248,21 @@ services:
       - tb-core1
       - tb-core2
   tb-web-ui1:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${WEB_UI_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8080"
     env_file:
       - tb-web-ui.env
   tb-web-ui2:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${WEB_UI_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8080"
     env_file:
       - tb-web-ui.env
   tb-vc-executor1:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${TB_VC_EXECUTOR_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8081"
@@ -279,7 +279,7 @@ services:
       - tb-core1
       - tb-core2
   tb-vc-executor2:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${TB_VC_EXECUTOR_DOCKER_NAME}:${TB_VERSION}"
     ports:
       - "8081"
@@ -296,7 +296,7 @@ services:
       - tb-core1
       - tb-core2
   haproxy:
-    restart: always
+    restart: "no"
     container_name: "${LOAD_BALANCER_NAME}"
     image: thingsboard/haproxy-certbot:2.2.33-alpine
     volumes:

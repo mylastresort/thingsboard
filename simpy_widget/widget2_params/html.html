@@ -1,0 +1,99 @@
+<div class="sp2-root">
+  <!-- ── TOOLBAR ── -->
+  <div class="sp2-toolbar">
+    <mat-icon class="sp2-logo-icon">tune</mat-icon>
+    <span class="sp2-logo-text">Line 2 — Parameters</span>
+    <div class="sp2-health">
+      <div id="healthDot" class="sp2-dot"></div>
+      <span id="healthText">Connecting…</span>
+    </div>
+    <span class="sp2-grow"></span>
+    <button id="refreshBtn" class="sp2-ibtn" title="Refresh">
+      <mat-icon>refresh</mat-icon>
+    </button>
+    <button id="settingsBtn" class="sp2-ibtn" title="Settings">
+      <mat-icon>settings</mat-icon>
+    </button>
+  </div>
+
+  <!-- ── CONTENT ── -->
+  <div class="sp2-body">
+    <!-- Source parameters -->
+    <div class="sp2-section">
+      <div class="sp2-section-title">Source</div>
+      <table class="sp2-tbl">
+        <thead>
+          <tr>
+            <th>Object</th>
+            <th>Parameter</th>
+            <th>Value</th>
+            <th>Unit</th>
+          </tr>
+        </thead>
+        <tbody id="sourceTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Processor parameters -->
+    <div class="sp2-section">
+      <div class="sp2-section-title">Processors</div>
+      <table class="sp2-tbl">
+        <thead>
+          <tr>
+            <th>Object</th>
+            <th>Parameter</th>
+            <th>Value</th>
+            <th>Unit</th>
+          </tr>
+        </thead>
+        <tbody id="procTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- Sensor ranges (PdM) -->
+    <div class="sp2-section">
+      <div class="sp2-section-title">PdM Sensor Ranges</div>
+      <table class="sp2-tbl sp2-tbl-sensors">
+        <thead>
+          <tr>
+            <th>Machine</th>
+            <th>Sensor</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Unit</th>
+            <th>Distribution</th>
+          </tr>
+        </thead>
+        <tbody id="sensorTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── STATUS ── -->
+  <div id="statusBar" class="sp2-status"></div>
+
+  <!-- ── SETTINGS MODAL ── -->
+  <div id="settingsModal" class="sp2-overlay" style="display: none">
+    <div class="sp2-dlg">
+      <div class="sp2-dlg-title">
+        <mat-icon>settings</mat-icon> Widget Settings
+      </div>
+      <label class="sp2-lbl"
+        >Config API Base URL
+        <input
+          id="cfgUrl"
+          class="sp2-input sp2-fw"
+          type="text"
+          placeholder="http://localhost:9000"
+        />
+        <span class="sp2-hint">e.g. http://localhost:9000</span>
+      </label>
+      <div class="sp2-dlg-ft">
+        <button id="cfgCancel" class="sp2-btn">Cancel</button>
+        <button id="cfgSave" class="sp2-btn sp2-btn-primary">
+          Save &amp; Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

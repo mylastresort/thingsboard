@@ -1,0 +1,18 @@
+[
+  {
+    "id": "serverBaseUrl",
+    "name": "Server Base URL",
+    "group": "Connection",
+    "type": "text",
+    "default": "http://localhost:8000",
+    "required": true
+  },
+  {
+    "id": "apiToken",
+    "name": "API Token",
+    "group": "Connection",
+    "type": "text",
+    "default": "jessica",
+    "required": true
+  }
+]
