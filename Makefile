@@ -136,4 +136,9 @@ restart-ui:
 install:
 	cd docker && ./docker-install-tb.sh
 
+dump-db:
+# 	$(COMPOSE) exec -T thingsboard /bin/bash -c "pg_dump -U thingsboard thingsboard" > thingsboard_dump.sql
+# 	$(COMPOSE) run -it -v ${PWD}:/app --rm database pg_dump -U thingsboard thingsboard > thingsboard_dump.sql
+	$(COMPOSE) run -it --rm database bash
+
 .PHONY: all compile-all backup clean clean-mvn fclean compile compile-debug build-all build-thingsboard build-model build-ui rebuild-thingsboard rebuild-model rebuild-ui up down up-monolith down-monolith logs logs-thingsboard logs-model logs-ui restart restart-thingsboard restart-model restart-ui install

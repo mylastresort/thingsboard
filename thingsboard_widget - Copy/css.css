@@ -1,0 +1,502 @@
+/* ── Root ─────────────────────────────────────────── */
+.fsm-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  background: var(--tb-primary-bg, #f5f5f5);
+  color: var(--tb-primary-text, #212121);
+  position: relative;
+}
+
+/* ── Toolbar ──────────────────────────────────────── */
+.fsm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--tb-primary-500, #305680);
+  color: #fff;
+}
+
+.fsm-logo-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+.fsm-logo-text {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.fsm-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, .3);
+  margin: 0 4px;
+}
+
+.fsm-health {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  background: rgba(0, 0, 0, .25);
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+.fsm-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #aaa;
+  flex-shrink: 0;
+  transition: background .3s;
+}
+
+.fsm-dot.on {
+  background: #4caf50;
+  box-shadow: 0 0 5px #4caf50;
+}
+
+.fsm-dot.off {
+  background: #ef5350;
+}
+
+.fsm-dot.chk {
+  background: #ffa726;
+}
+
+.fsm-grow {
+  flex: 1;
+}
+
+.fsm-tbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, .4);
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.fsm-tbtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, .22);
+}
+
+.fsm-tbtn:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.fsm-tbtn mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.fsm-tbtn-icon {
+  padding: 6px;
+}
+
+/* ── Body ─────────────────────────────────────────── */
+.fsm-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 1px;
+  background: #bbb;
+}
+
+.fsm-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fsm-left {
+  width: 38%;
+  min-width: 210px;
+  background: #fff;
+}
+
+.fsm-right {
+  flex: 1;
+  background: #fff;
+}
+
+/* ── Section bar ──────────────────────────────────── */
+.fsm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+  min-height: 38px;
+}
+
+.fsm-bar-title {
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.fsm-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fsm-ibtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  color: #555;
+}
+
+.fsm-ibtn:hover:not([disabled]) {
+  background: #f0f0f0;
+}
+
+.fsm-ibtn[disabled] {
+  opacity: .35;
+  cursor: default;
+}
+
+.fsm-ibtn-danger {
+  color: #c62828;
+}
+
+.fsm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  background: #e0e0e0;
+  color: #333;
+}
+
+.fsm-btn:hover:not(:disabled) {
+  filter: brightness(.92);
+}
+
+.fsm-btn:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+.fsm-btn mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.fsm-btn-primary {
+  background: var(--tb-primary-500, #305680);
+  color: #fff;
+}
+
+.fsm-btn-accent {
+  background: #e65100;
+  color: #fff;
+}
+
+.fsm-sel {
+  font-size: 11px;
+  padding: 3px 5px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+  color: #333;
+  max-width: 130px;
+}
+
+/* ── Table ────────────────────────────────────────── */
+.fsm-tbl-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.fsm-tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fsm-tbl th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 5px 8px;
+  background: #f0f0f0;
+  border-bottom: 2px solid #ddd;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #777;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.fsm-tbl td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.fsm-tbl tbody tr {
+  cursor: pointer;
+}
+
+.fsm-tbl tbody tr:hover td {
+  background: #f8faff;
+}
+
+.fsm-tbl tbody tr.sel td {
+  background: #e8f0fe;
+}
+
+.fsm-tbl tbody tr.sel td:first-child {
+  box-shadow: inset 3px 0 0 var(--tb-primary-500, #305680);
+}
+
+.fsm-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.fsm-badge-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.fsm-badge-no {
+  background: #f5f5f5;
+  color: #9e9e9e;
+}
+
+/* ── Chart area ───────────────────────────────────── */
+.fsm-chart-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.fsm-empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+  text-align: center;
+  line-height: 2;
+  gap: 6px;
+}
+
+.fsm-empty-state mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+}
+
+.fsm-chart {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── Status bar ───────────────────────────────────── */
+.fsm-status {
+  padding: 3px 10px;
+  font-size: 11px;
+  color: #777;
+  background: #fafafa;
+  border-top: 1px solid #ebebeb;
+  flex-shrink: 0;
+  min-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fsm-status.err {
+  color: #c62828;
+}
+
+/* ── Modal overlay ────────────────────────────────── */
+.fsm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.fsm-dialog {
+  background: #fff;
+  border-radius: 6px;
+  padding: 20px;
+  min-width: 260px;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .3);
+}
+
+.fsm-dialog-hd {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.fsm-dlabel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.fsm-sel-wide {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.fsm-dialog-ft {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Dark mode ────────────────────────────────────── */
+.tb-dashboard-page.dark .fsm-root {
+  background: #1c1c2e;
+  color: #e0e0e0;
+}
+
+.tb-dashboard-page.dark .fsm-body {
+  background: #555;
+}
+
+.tb-dashboard-page.dark .fsm-left,
+.tb-dashboard-page.dark .fsm-right {
+  background: #232338;
+}
+
+.tb-dashboard-page.dark .fsm-bar {
+  background: #1a1a2e;
+  border-color: #333;
+}
+
+.tb-dashboard-page.dark .fsm-ibtn {
+  background: #2a2a3e;
+  border-color: #444;
+  color: #bbb;
+}
+
+.tb-dashboard-page.dark .fsm-ibtn:hover:not([disabled]) {
+  background: #333450;
+}
+
+.tb-dashboard-page.dark .fsm-sel {
+  background: #2a2a3e;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.tb-dashboard-page.dark .fsm-tbl th {
+  background: #1a1a2e;
+  color: #888;
+  border-color: #444;
+}
+
+.tb-dashboard-page.dark .fsm-tbl td {
+  border-color: #2e2e45;
+}
+
+.tb-dashboard-page.dark .fsm-tbl tbody tr:hover td {
+  background: #252540;
+}
+
+.tb-dashboard-page.dark .fsm-tbl tbody tr.sel td {
+  background: #1e2d5e;
+}
+
+.tb-dashboard-page.dark .fsm-badge-ok {
+  background: #1b3a1b;
+  color: #66bb6a;
+}
+
+.tb-dashboard-page.dark .fsm-badge-no {
+  background: #252535;
+  color: #666;
+}
+
+.tb-dashboard-page.dark .fsm-status {
+  background: #1a1a2e;
+  border-color: #333;
+  color: #888;
+}
+
+.tb-dashboard-page.dark .fsm-status.err {
+  color: #ef9a9a;
+}
+
+.tb-dashboard-page.dark .fsm-empty-state {
+  color: #444;
+}
+
+.tb-dashboard-page.dark .fsm-dialog {
+  background: #232338;
+  color: #e0e0e0;
+}
+
+.tb-dashboard-page.dark .fsm-sel-wide {
+  background: #2a2a3e;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.tb-dashboard-page.dark .fsm-dlabel {
+  color: #aaa;
+}
+
+.tb-dashboard-page.dark .fsm-btn {
+  background: #333;
+  color: #ccc;
+}
