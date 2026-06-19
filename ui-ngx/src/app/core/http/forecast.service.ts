@@ -48,7 +48,7 @@ export class PredictiveModelsService {
    * @returns Observable with available models structure
    */
   getAvailableModels(): Observable<AvailableModelsResponse> {
-    return this.http.get<AvailableModelsResponse>('/api/predictive-maintenance/availableModels');
+    return this.http.get<AvailableModelsResponse>('/api/models/available');
   }
 
   getLoadModelConfigs(): Observable<any> {
