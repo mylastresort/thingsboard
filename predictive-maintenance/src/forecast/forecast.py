@@ -16,7 +16,7 @@ import requests
 import sys
 import os
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 router = APIRouter(
     prefix="/forecast",
@@ -27,6 +27,7 @@ router = APIRouter(
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
+
 
 class ForecastCreate(BaseModel):
     name: str
@@ -39,13 +40,29 @@ class ForecastCreate(BaseModel):
     anomalyAlgorithm: Optional[str] = "THRESHOLD"
     anomalyStartDate: Optional[int] = 0
     anomalyEndDate: Optional[int] = 0
-    viewPreferences: Optional[dict] = None
-    additionalData: Optional[dict] = {}
+    viewPreferences: Optional[dict | str] = None
+    additionalData: Optional[dict | str] = {}
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_json_strings(cls, data: dict):
+        if isinstance(data.get("viewPreferences"), str):
+            try:
+                data["viewPreferences"] = json.loads(data["viewPreferences"])
+            except json.JSONDecodeError:
+                pass
+        if isinstance(data.get("additionalData"), str):
+            try:
+                data["additionalData"] = json.loads(data["additionalData"])
+            except json.JSONDecodeError:
+                pass
+        return data
 
 
 # ---------------------------------------------------------------------------
 # CRUD endpoints
 # ---------------------------------------------------------------------------
+
 
 def _row_to_dict(row) -> dict:
     """Convert a DB row to a ThingsBoard-style PageData entity dict."""
@@ -138,29 +155,62 @@ async def get_forecast(forecast_id: str):
 
 
 @router.post("", summary="Create a forecast config", status_code=201)
-async def create_forecast(body: ForecastCreate):
+async def create_forecast(body: ForecastCreate, x_authorization: str = Header(None)):
     import time as _time
+    import requests
+
     now = int(_time.time() * 1000)
+    import uuid
+
+    new_id = str(uuid.uuid4())
     tenant_id = body.tenantId.get("id") if body.tenantId else None
     device_id = body.deviceId.get("id") if body.deviceId else None
+
+    if not tenant_id and x_authorization:
+        try:
+            # Fetch the actual tenant ID from the monolithic backend using the JWT token
+            resp = requests.get(
+                "http://thingsboard:8080/api/auth/user",
+                headers={"X-Authorization": x_authorization},
+                timeout=5,
+            )
+            if resp.status_code == 200:
+                user_data = resp.json()
+                fetched_tenant = user_data.get("tenantId", {}).get("id")
+                if fetched_tenant:
+                    tenant_id = fetched_tenant
+        except Exception as e:
+            logger.error(f"Failed to fetch user info from thingsboard backend: {e}")
+
     with get_db_connection() as conn:
+        from sqlalchemy import text
+
+        if not tenant_id:
+            # Fallback to get the first available tenant from the DB
+            fallback_tenant = conn.execute(text("SELECT id FROM tenant LIMIT 1")).scalar()
+            if fallback_tenant:
+                tenant_id = str(fallback_tenant)
+            else:
+                # Use a dummy UUID if DB is absolutely empty (rare)
+                tenant_id = "13814000-1dd2-11b2-8080-808080808080"
         row = conn.execute(
             text(
                 "INSERT INTO predictive_maintenance_config "
-                "(name, created_time, tenant_id, device_id, attributes, "
+                "(id, name, created_time, tenant_id, device_id, attributes, "
                 "forecast_algorithm, forecast_start_date, forecast_end_date, "
                 "anomaly_algorithm, anomaly_start_date, anomaly_end_date, "
                 "view_preferences, additional_data) "
-                "VALUES (:name, :created_time, :tenant_id, :device_id, :attributes::jsonb, "
+                "VALUES (CAST(:id AS uuid), :name, :created_time, :tenant_id, :device_id, CAST(:attributes AS jsonb), "
                 ":forecast_algorithm, :forecast_start_date, :forecast_end_date, "
                 ":anomaly_algorithm, :anomaly_start_date, :anomaly_end_date, "
-                ":view_preferences::jsonb, :additional_data::jsonb) "
+                "CAST(:view_preferences AS jsonb), CAST(:additional_data AS jsonb)) "
                 "RETURNING id, tenant_id, device_id, created_time, name, attributes, "
                 "forecast_algorithm, forecast_start_date, forecast_end_date, "
                 "anomaly_algorithm, anomaly_start_date, anomaly_end_date, "
                 "view_preferences, additional_data"
             ),
             {
+                "id": new_id,
                 "name": body.name,
                 "created_time": now,
                 "tenant_id": tenant_id,
@@ -172,7 +222,9 @@ async def create_forecast(body: ForecastCreate):
                 "anomaly_algorithm": body.anomalyAlgorithm or "THRESHOLD",
                 "anomaly_start_date": body.anomalyStartDate or 0,
                 "anomaly_end_date": body.anomalyEndDate or 0,
-                "view_preferences": json.dumps(body.viewPreferences or {"selectedViews": ["forecast", "anomalies"]}),
+                "view_preferences": json.dumps(
+                    body.viewPreferences or {"selectedViews": ["forecast", "anomalies"]}
+                ),
                 "additional_data": json.dumps(body.additionalData or {}),
             },
         ).fetchone()
@@ -187,11 +239,11 @@ async def update_forecast_config(forecast_id: str, body: ForecastCreate):
         row = conn.execute(
             text(
                 "UPDATE predictive_maintenance_config SET "
-                "name = :name, device_id = :device_id, attributes = :attributes::jsonb, "
+                "name = :name, device_id = :device_id, attributes = CAST(:attributes AS jsonb), "
                 "forecast_algorithm = :forecast_algorithm, forecast_start_date = :forecast_start_date, "
                 "forecast_end_date = :forecast_end_date, anomaly_algorithm = :anomaly_algorithm, "
                 "anomaly_start_date = :anomaly_start_date, anomaly_end_date = :anomaly_end_date, "
-                "view_preferences = :view_preferences::jsonb, additional_data = :additional_data::jsonb "
+                "view_preferences = CAST(:view_preferences AS jsonb), additional_data = CAST(:additional_data AS jsonb) "
                 "WHERE id = :id "
                 "RETURNING id, tenant_id, device_id, created_time, name, attributes, "
                 "forecast_algorithm, forecast_start_date, forecast_end_date, "
@@ -472,7 +524,8 @@ async def websocket_endpoint(
                         response_data = response.get("data", None)
                         # logging.warning(f"keys: {response_data.keys()}")
                         if (
-                            not response_data or not response_data.get("pressure", None)
+                            not response_data
+                            or not response_data.get("pressure", None)
                             # or not response_data.get("forecast", None)
                         ):
                             continue

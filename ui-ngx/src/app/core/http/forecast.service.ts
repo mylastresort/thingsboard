@@ -17,7 +17,7 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject } from 'rxjs';
+import { map, Observable, Subject } from 'rxjs';
 
 export interface AvailableModelsResponse {
   ForecastModel?: { model_name: string }[];
@@ -59,9 +59,11 @@ export class PredictiveModelsService {
     return this.http.post<any>('/api/models/saveLoadConfig', config, {});
   }
 
-  private baseUrl = '/api/forecasts'; // Base URL for your API
+  private baseUrl = '/api/v1/forecast'; // Base URL for your API
 
-  private baseUrlModels = '/api/models'; // Base URL for your API
+  private baseUrlModels = '/api/v1/models'; // Base URL for your API
+
+  private fastApiForecastBaseUrl = '/api/v1/forecast';
 
   constructor(private http: HttpClient) {}
 
@@ -142,12 +144,12 @@ export class PredictiveModelsService {
   addPredictiveModelConfig(
     forecast: ForecastCreate,
     config?: RequestConfig
-  ): Observable<Forecast> {
+  ): Observable<any> {
     return this.http.post<Forecast>(
-      `${this.baseUrl}`,
+      this.fastApiForecastBaseUrl,
       forecast,
       defaultHttpOptionsFromConfig(config)
-    );
+    ).pipe(map(() => ({ success: true } as any)));
   }
 
   // Update an existing predictive model

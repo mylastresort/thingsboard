@@ -22,10 +22,16 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
 DB_HOST = os.getenv("POSTGRES_HOST", "postgres")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 
-# Use DATABASE_URL env var if provided, otherwise build from individual parts
+# ThingsBoard connection (for telemetry/devices)
+THINGSBOARD_DB_URL = os.getenv(
+    "THINGSBOARD_DB_URL",
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+)
+
+# Custom database connection for local configuration and models
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+    THINGSBOARD_DB_URL,
 )
 
 # Create the engine with connection pooling disabled for read-only operations
@@ -33,9 +39,12 @@ engine = create_engine(
     DATABASE_URL,
     poolclass=NullPool,  # No connection pooling for read-only
     echo=False,
-    connect_args={
-        # "options": "-c default_transaction_read_only=on"  # Read-only transactions
-    },
+)
+
+tb_engine = create_engine(
+    THINGSBOARD_DB_URL,
+    poolclass=NullPool,
+    echo=False,
 )
 
 # Create a session factory
@@ -43,8 +52,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db_connection():
-    """Get database connection for raw SQL queries"""
+    """Get database connection for raw SQL queries to local config DB"""
     return engine.connect()
+
+
+def get_tb_db_connection():
+    """Get database connection for raw SQL queries to Thingsboard DB"""
+    return tb_engine.connect()
 
 
 def fetch_device_telemetry(
@@ -99,7 +113,7 @@ def fetch_device_telemetry(
             params["keys"] = keys
 
         # Execute query
-        with get_db_connection() as conn:
+        with get_tb_db_connection() as conn:
             df = pd.read_sql(text(query), conn, params=params)
 
         # Convert timestamp from milliseconds to datetime
@@ -114,9 +128,7 @@ def fetch_device_telemetry(
         raise
 
 
-def fetch_latest_telemetry(
-    device_id: str, keys: Optional[List[str]] = None
-) -> Dict[str, float]:
+def fetch_latest_telemetry(device_id: str, keys: Optional[List[str]] = None) -> Dict[str, float]:
     """
     Fetch latest telemetry values from ThingsBoard ts_kv_latest table.
 
@@ -143,7 +155,7 @@ def fetch_latest_telemetry(
         if keys:
             params["keys"] = keys
 
-        with get_db_connection() as conn:
+        with get_tb_db_connection() as conn:
             result = conn.execute(text(query), params)
             return {row.key: row.value for row in result}
 
@@ -187,9 +199,7 @@ def fetch_device_sensors_for_training(
         for i in range(expected_sensors):
             col_name = f"sensor_{i:02d}"
             if col_name not in df_pivot.columns:
-                logger.warning(
-                    f"Missing {col_name} for device {device_id}, filling with NaN"
-                )
+                logger.warning(f"Missing {col_name} for device {device_id}, filling with NaN")
                 df_pivot[col_name] = None
 
         # Select only sensor columns in order
@@ -251,7 +261,7 @@ def fetch_device_failures(
 
         query += " ORDER BY created_time DESC"
 
-        with get_db_connection() as conn:
+        with get_tb_db_connection() as conn:
             df = pd.read_sql(text(query), conn, params=params)
 
         # Convert timestamps
@@ -294,7 +304,7 @@ def fetch_all_devices(device_type: Optional[str] = None) -> List[Dict[str, str]]
             query += " AND type = :device_type"
             params["device_type"] = device_type
 
-        with get_db_connection() as conn:
+        with get_tb_db_connection() as conn:
             result = conn.execute(text(query), params)
             return [
                 {
@@ -409,3 +419,55 @@ def create_training_dataset_for_forecast(
     except Exception as e:
         logger.error(f"Error creating forecast dataset: {e}")
         raise
+
+
+def setup_model_database():
+    """
+    Create custom database tables for the model server if they don't exist.
+    """
+    with get_db_connection() as conn:
+        # Predictive Maintenance Config Table
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS predictive_maintenance_config (
+                id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+                name varchar(255) NOT NULL,
+                created_time bigint NOT NULL,
+                tenant_id uuid,
+                device_id uuid,
+                attributes jsonb,
+                forecast_algorithm varchar(255),
+                forecast_start_date bigint,
+                forecast_end_date bigint,
+                anomaly_algorithm varchar(255),
+                anomaly_start_date bigint,
+                anomaly_end_date bigint,
+                view_preferences jsonb,
+                additional_data jsonb
+            );
+        """))
+
+        # Model Logs Table
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS model_logs (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                created_time BIGINT NOT NULL,
+                model_id VARCHAR(255) NOT NULL,
+                tenant_id UUID,
+                device_id UUID,
+                timestamp BIGINT NOT NULL,
+                log_level VARCHAR(20) NOT NULL,
+                message TEXT NOT NULL,
+                source VARCHAR(100),
+                metadata JSONB,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        """))
+
+        # Predictive Model Load Model Config Table
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS predictive_model_load_model_config (
+                name VARCHAR(255) PRIMARY KEY,
+                config JSONB
+            );
+        """))
+        conn.commit()

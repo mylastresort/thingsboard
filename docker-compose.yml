@@ -20,6 +20,25 @@ services:
       retries: 5
       start_period: 10s
 
+  model-postgres:
+    image: "postgres:16"
+    container_name: tb-lts43-monolith-model-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: model_user
+      POSTGRES_PASSWORD: model_pass
+      POSTGRES_DB: model_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - ../psql_data-model:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U model_user -d model_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   model:
     build:
       context: ./predictive-maintenance
@@ -34,11 +53,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      model-postgres:
+        condition: service_healthy
     env_file:
       - .env
     environment:
-      - WAIT_HOSTS=postgres:5432
+      - WAIT_HOSTS=postgres:5432,model-postgres:5432
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - THINGSBOARD_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
       - MODELS_PATH=/models
       - AUTO_START_PREDICTION_JOBS=${AUTO_START_PREDICTION_JOBS:-false}
       - ENABLE_FILE_WATCH=false
@@ -94,6 +116,8 @@ services:
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_RULECHAIN: WARN
     depends_on:
       postgres:
+        condition: service_healthy
+      model-postgres:
         condition: service_healthy
       # model:
       #   condition: service_healthy

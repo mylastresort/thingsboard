@@ -30,7 +30,7 @@ from src.model.job import start_prediction_job, add_model_log
 from sqlalchemy import text
 from library.core.data_registry import DataRegistry
 import traceback
-
+from src.db_connector import setup_model_database
 
 pd.set_option("display.max_columns", None)
 # Load environment variables from .env file
@@ -69,6 +69,13 @@ logger.info(f"Predictive Maintenance Service Starting")
 
 @app.on_event("startup")
 async def startup_event():
+    # Setup custom model database tables if they don't exist
+    try:
+        setup_model_database()
+        logger.info("Custom model database tables verified/created successfully.")
+    except Exception as e:
+        logger.error(f"Failed to setup model database tables: {e}")
+
     # return
     """
     Startup event handler: Auto-start prediction jobs for trained models
@@ -94,13 +101,11 @@ async def startup_event():
 
         # Query for all predictive maintenance configurations
         with data_registry.engine.connect() as conn:
-            query = text(
-                """
+            query = text("""
                 SELECT id, name, device_id, forecast_algorithm, anomaly_algorithm, additional_data
                 FROM predictive_maintenance_config
                 ORDER BY created_time DESC
-                """
-            )
+                """)
             result = conn.execute(query)
             configs = result.fetchall()
 
@@ -376,9 +381,9 @@ def health_check():
             status["database"]["error"] = str(e)
             status["status"] = "degraded"
     else:
-        status["database"]["url"] = (
-            "postgresql://postgres:postgres@localhost:5432/thingsboard (default)"
-        )
+        status["database"][
+            "url"
+        ] = "postgresql://postgres:postgres@localhost:5432/thingsboard (default)"
 
     return status
 
