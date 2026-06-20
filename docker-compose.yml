@@ -214,8 +214,8 @@ services:
       - "8090:8090"
     environment:
       - TB_ENABLE_PROXY=true
-      - TB_HOST=thingsboard
-      - TB_PORT=8080
+      - TB_HOST=gateway
+      - TB_PORT=80
       - HTTP_BIND_ADDRESS=0.0.0.0
       - HTTP_BIND_PORT=8090
     depends_on:
