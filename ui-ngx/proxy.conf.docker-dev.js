@@ -13,89 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-const forwardUrl = process.env.HOSTS || "http://thingsboard:8080";
-const wsForwardUrl = forwardUrl.replace(/^http/, "ws");
-const ruleNodeUiforwardUrl = forwardUrl;
-const modelUrl = process.env.MODEL_URL || "http://model:8000";
+const gatewayUrl = process.env.GATEWAY_URL || "http://gateway:80";
+const wsGatewayUrl = gatewayUrl.replace(/^http/, "ws");
 
 const PROXY_CONFIG = {
-  // ── Model container routes (bypass ThingsBoard) ──────────────────────────
-
-  // /api/v1/* → model:8000  (model's native prefix: activate, ws, etc.)
-  "/api/v1": {
-    target: modelUrl,
-    secure: false,
-    ws: true,
-  },
-
-  // /api/models/* → model:8000/api/v1/models/*
-  "/api/models": {
-    target: modelUrl,
-    secure: false,
-    pathRewrite: { "^/api/models": "/api/v1/models" },
-  },
-
-  // /api/predictiveMaintenance/* → model:8000/api/v1/predictiveMaintenance/*
-  "/api/predictiveMaintenance": {
-    target: modelUrl,
-    secure: false,
-    pathRewrite: {
-      "^/api/predictiveMaintenance": "/api/v1/predictiveMaintenance",
-    },
-  },
-
-  // /api/forecasts* → model:8000/api/v1/forecast*
-  // (TB used /forecasts plural, FastAPI uses /forecast singular)
-  "/api/forecasts": {
-    target: modelUrl,
-    secure: false,
-    pathRewrite: { "^/api/forecasts": "/api/v1/forecast" },
-    ws: true,
-  },
-
-  // /api/devices-with-models → model:8000/api/v1/devices-with-models
-  "/api/devices-with-models": {
-    target: modelUrl,
-    secure: false,
-    pathRewrite: { "^/api/devices-with-models": "/api/v1/devices-with-models" },
-  },
-
-  // /api/notify-* → model:8000 (notification hooks called by ThingsBoard rule engine)
-  "/api/notify": {
-    target: modelUrl,
-    secure: false,
-  },
-
-  // "/ws/unified": {
-  //   target: modelUrl + '/models',
-  //   ws: true,
-  //   secure: false,
-  // },
-
-  // ── ThingsBoard routes (auth, devices, telemetry, dashboards, …) ─────────
+  // All API/static/auth traffic now goes through the HAProxy gateway,
+  // which owns the routing to thingsboard vs model. The dev server
+  // no longer needs to know about either backend directly.
   "/api": {
-    target: forwardUrl,
+    target: gatewayUrl,
     secure: false,
   },
   "/api/ws": {
-    target: wsForwardUrl,
+    target: wsGatewayUrl,
+    ws: true,
+    secure: false,
+  },
+  "/api/forecasts": {
+    target: gatewayUrl,
     ws: true,
     secure: false,
   },
   "/static/rulenode": {
-    target: ruleNodeUiforwardUrl,
+    target: gatewayUrl,
     secure: false,
   },
   "/static/widgets": {
-    target: forwardUrl,
+    target: gatewayUrl,
     secure: false,
   },
   "/oauth2": {
-    target: forwardUrl,
+    target: gatewayUrl,
     secure: false,
   },
   "/login/oauth2": {
-    target: forwardUrl,
+    target: gatewayUrl,
     secure: false,
   },
 };

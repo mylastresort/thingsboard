@@ -171,6 +171,20 @@ services:
       thingsboard:
         condition: service_started
 
+  gateway:
+    image: haproxy:2.9-alpine
+    container_name: tb-lts43-monolith-gateway
+    ports:
+      # - "8088:80"      # no longer needs browser access, but harmless to keep mapped for curl/debugging
+      - "9999:9999"
+    volumes:
+      - ./gateway/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      thingsboard:
+        condition: service_started
+      model:
+        condition: service_healthy
+
   tb-web-ui-dev:
     build:
       context: ./ui-ngx
@@ -180,14 +194,15 @@ services:
     volumes:
       - ./ui-ngx:/app
     environment:
-      - HOSTS=http://thingsboard:8080
-      - MODEL_URL=http://model:8000
+      - GATEWAY_URL=http://gateway:80
     command: sh ./entrypoint.sh
     ports:
       - "4200:4200"
     depends_on:
       thingsboard:
         condition: service_started # downgraded — no healthcheck to wait on
+      gateway:
+        condition: service_started
 
 
   tb-web-ui:
