@@ -1461,7 +1461,7 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
           });
         } else {
           console.warn('Model ID not found in response, navigating to PM list');
-          this.router.navigateByUrl('/PM');
+          this.router.navigateByUrl('/predictive-maintenance');
         }
       },
       (error) => {
