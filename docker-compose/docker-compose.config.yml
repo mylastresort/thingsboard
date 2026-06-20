@@ -1,0 +1,39 @@
+services:
+  config-db:
+    image: postgres:16
+    container_name: tb-lts43-monolith-config-db
+    restart: on-failure:3
+    environment:
+      POSTGRES_USER: config_user
+      POSTGRES_PASSWORD: config_pass
+      POSTGRES_DB: config_db
+    ports:
+      - "5432"
+    volumes:
+      - ../psql_data-merge-config:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d config_db -U config_user"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  config-api:
+    build:
+      context: ./config-api
+      dockerfile: Dockerfile
+    container_name: tb-lts43-monolith-config-api
+    restart: on-failure:3
+    ports:
+      - "9000:9000"
+    depends_on:
+      config-db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://config_user:config_pass@config-db:5432/config_db
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

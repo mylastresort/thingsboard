@@ -1,0 +1,38 @@
+services:
+  go-toolbox-interpreter:
+    build:
+      context: ./go-toolbox
+      dockerfile: Dockerfile
+      target: base
+    container_name: tb-lts43-monolith-go-toolbox-interpreter
+    working_dir: /src
+    volumes:
+      - ./go-toolbox:/src
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      - TB_USERNAME=${TB_USERNAME}
+      - TB_PASSWORD=${TB_PASSWORD}
+    stdin_open: true
+    tty: true
+    command: go run .
+
+  go-toolbox-dash:
+    build:
+      context: ./go-toolbox
+      dockerfile: Dockerfile
+      target: dash
+    container_name: tb-lts43-monolith-dash
+    volumes:
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    depends_on:
+      thingsboard:
+        condition: service_started
+    command: /go/bin/dash
+
+volumes:
+  go-mod-cache:
+    driver: local
+  go-build-cache:
+    driver: local

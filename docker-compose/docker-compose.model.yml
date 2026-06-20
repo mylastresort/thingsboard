@@ -1,0 +1,65 @@
+services:
+  model-postgres:
+    image: "postgres:16"
+    container_name: tb-lts43-monolith-model-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: model_user
+      POSTGRES_PASSWORD: model_pass
+      POSTGRES_DB: model_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - ../psql_data-model:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U model_user -d model_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  model:
+    build:
+      context: ./predictive-maintenance
+      dockerfile: .Dockerfile
+    container_name: tb-lts43-monolith-model
+    volumes:
+      - .:/app
+      - pip-cache:/root/.cache/pip
+      - models-cache:/models
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      model-postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - WAIT_HOSTS=postgres:5432,model-postgres:5432
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - THINGSBOARD_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - MODELS_PATH=/models
+      - AUTO_START_PREDICTION_JOBS=${AUTO_START_PREDICTION_JOBS:-false}
+      - ENABLE_FILE_WATCH=false
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - AccountSid=${ACCOUNT_SID:-defaultSid}
+      - AccountToken=${ACCOUNT_TOKEN:-defaultToken}
+      - TwilioSmsFrom=${TWILIO_SMS_FROM:-+1234567890}
+      - PhoneNumberID=${PHONE_NUMBER_ID:-123456789}
+      - WB_TOKEN=${WB_TOKEN:-defaultWBToken}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS:-test@example.com}
+      - APP_PASSWORD=${APP_PASSWORD:-defaultPassword}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  pip-cache:
+    driver: local
+  models-cache:
+    driver: local

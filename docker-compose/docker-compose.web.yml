@@ -1,0 +1,18 @@
+services:
+  tb-web-ui:
+    build:
+      context: . # ← repo root
+      dockerfile: msa/web-ui/Dockerfile
+    container_name: tb-lts43-monolith-tb-web-ui
+    ports:
+      - "8090:8090"
+    environment:
+      - TB_ENABLE_PROXY=true
+      - TB_HOST=gateway
+      - TB_PORT=80
+      - HTTP_BIND_ADDRESS=0.0.0.0
+      - HTTP_BIND_PORT=8090
+    depends_on:
+      thingsboard:
+        condition: service_started
+    restart: unless-stopped

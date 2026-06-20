@@ -1,9 +1,27 @@
-COMPOSE        := docker compose
-PROJECT        := tb-lts43-merge
-TB_SERVICE     := node
-WEB_SERVICE    := tb-web-ui-dev
-POSTGRES       := postgres
+PROJECT         := tb-lts43-monolith-merge
+TB_SERVICE      := thingsboard
+WEB_SERVICE     := tb-web-ui-dev
+WEB_PROD        := tb-web-ui
+MODEL_SERVICE   := model
+CONFIG_SERVICE  := config-api
+POSTGRES        := postgres
 TB_PREV_VERSION ?= 4.2.2.2
+
+# ─── compose file sets ───────────────────────────────────────────────────────
+COMPOSE_DIR := docker-compose
+
+# core = what runs in production
+CORE_FILES := -f $(COMPOSE_DIR)/docker-compose.base.yml -f $(COMPOSE_DIR)/docker-compose.db.yml \
+               -f $(COMPOSE_DIR)/docker-compose.tb.yml -f $(COMPOSE_DIR)/docker-compose.gateway.yml \
+               -f $(COMPOSE_DIR)/docker-compose.web.yml -f $(COMPOSE_DIR)/docker-compose.model.yml \
+               -f $(COMPOSE_DIR)/docker-compose.config.yml
+# dev = core + angular dev server, ws-events seeder, go-toolbox
+DEV_FILES  := $(CORE_FILES) -f $(COMPOSE_DIR)/docker-compose.toolbox.yml -f $(COMPOSE_DIR)/docker-compose.dev.yml
+
+# --project-directory pins relative paths (volumes, build context, .env) to the repo
+# root regardless of where the -f files live — run `make` from repo root.
+# override with `make COMPOSE="docker compose --project-directory . $(CORE_FILES)" <target>`
+COMPOSE := docker compose --project-directory . $(DEV_FILES)
 
 .DEFAULT_GOAL  := help
 
@@ -17,8 +35,12 @@ help:
 # ─── lifecycle ───────────────────────────────────────────────────────────────
 
 .PHONY: up
-up: ## Start the full stack (detached)
+up: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d
+
+.PHONY: up-prod
+up-prod: ## Start prod-only stack (core: tb, model, config-api)
+	docker compose --project-directory . $(CORE_FILES) up -d
 
 .PHONY: down
 down: ## Stop and remove containers (keep volumes)
@@ -33,12 +55,16 @@ restart: ## Restart all services
 	$(COMPOSE) restart
 
 .PHONY: restart-tb
-restart-tb: ## Restart only thingsboard-ce
+restart-tb: ## Restart only thingsboard
 	$(COMPOSE) restart $(TB_SERVICE)
 
 .PHONY: restart-web
 restart-web: ## Restart only tb-web-ui-dev
 	$(COMPOSE) restart $(WEB_SERVICE)
+
+.PHONY: restart-model
+restart-model: ## Restart only the predictive-maintenance model service
+	$(COMPOSE) restart $(MODEL_SERVICE)
 
 # ─── install / seed ──────────────────────────────────────────────────────────
 
@@ -80,8 +106,16 @@ build: ## Build / rebuild all images
 	$(COMPOSE) build
 
 .PHONY: build-tb
-build-tb: ## Build / rebuild thingsboard-ce image only
+build-tb: ## Build / rebuild thingsboard image only
 	$(COMPOSE) build $(TB_SERVICE)
+
+.PHONY: build-web
+build-web: ## Build / rebuild tb-web-ui-dev image only
+	$(COMPOSE) build $(WEB_SERVICE)
+
+.PHONY: build-web-prod
+build-web-prod: ## Build / rebuild the production tb-web-ui image
+	docker compose --project-directory . $(CORE_FILES) build $(WEB_PROD)
 
 .PHONY: pull
 pull: ## Pull latest base images
@@ -94,7 +128,7 @@ logs: ## Tail logs for all services
 	$(COMPOSE) logs -f
 
 .PHONY: logs-tb
-logs-tb: ## Tail thingsboard-ce logs
+logs-tb: ## Tail thingsboard logs
 	$(COMPOSE) logs -f $(TB_SERVICE)
 
 .PHONY: logs-web
@@ -105,11 +139,23 @@ logs-web: ## Tail tb-web-ui-dev logs
 logs-pg: ## Tail postgres logs
 	$(COMPOSE) logs -f $(POSTGRES)
 
+.PHONY: logs-model
+logs-model: ## Tail predictive-maintenance model logs
+	$(COMPOSE) logs -f $(MODEL_SERVICE)
+
+.PHONY: logs-config
+logs-config: ## Tail config-api logs
+	$(COMPOSE) logs -f $(CONFIG_SERVICE)
+
 # ─── status ──────────────────────────────────────────────────────────────────
 
 .PHONY: ps
 ps: ## Show container status
 	$(COMPOSE) ps
+
+.PHONY: config
+config: ## Print the fully merged compose config
+	$(COMPOSE) config
 
 .PHONY: health
 health: ## Show healthcheck status for all containers
@@ -120,7 +166,7 @@ health: ## Show healthcheck status for all containers
 # ─── shell access ────────────────────────────────────────────────────────────
 
 .PHONY: shell-tb
-shell-tb: ## Open a shell in thingsboard-ce
+shell-tb: ## Open a shell in thingsboard
 	$(COMPOSE) exec $(TB_SERVICE) bash
 
 .PHONY: shell-web
@@ -130,6 +176,10 @@ shell-web: ## Open a shell in tb-web-ui-dev
 .PHONY: shell-pg
 shell-pg: ## Open a psql shell in postgres
 	$(COMPOSE) exec $(POSTGRES) psql -U postgres -d thingsboard
+
+.PHONY: shell-model
+shell-model: ## Open a shell in the model service
+	$(COMPOSE) exec $(MODEL_SERVICE) bash
 
 # ─── cleanup ─────────────────────────────────────────────────────────────────
 

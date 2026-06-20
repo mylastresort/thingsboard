@@ -1,0 +1,47 @@
+services:
+  thingsboard:
+    # restart: always
+    image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
+    container_name: tb-lts43-monolith-node
+    volumes:
+      - ./tb-config:/config
+    ports:
+      - "8080:8080"
+      - "7070:7070"
+      - "1883:1883"
+      - "8883:8883"
+      - "5683-5688:5683-5688/udp"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    environment:
+      TB_SERVICE_ID: tb-ce-node
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/thingsboard
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      TB_QUEUE_TYPE: in-memory
+      FASTAPI_BASE_URL: http://model:8000/api/v1/
+      FASTAPI_WS_URL: ws://model:8000/models/ws/unified
+      LOGGING_LEVEL_ORG_THINGSBOARD: INFO # base: no more DEBUG floods
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG # keep REST controller detail
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_TRANSPORT: DEBUG # keep MQTT/CoAP detail
+
+      # Silence the worst offenders explicitly
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_SERVICE_QUEUE: WARN
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_SERVICE: WARN
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_RULECHAIN: WARN
+    depends_on:
+      postgres:
+        condition: service_healthy
+      model-postgres:
+        condition: service_healthy
+      # model:
+      #   condition: service_healthy
+    env_file:
+      - .env
+    # no healthcheck — actuator/health not available in this build;
+    # tb-web-ui-dev uses service_started below and lets the proxy retry

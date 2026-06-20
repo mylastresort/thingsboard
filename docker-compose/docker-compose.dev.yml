@@ -1,0 +1,30 @@
+services:
+  ws-events:
+    build:
+      context: ./send-telemetry
+      dockerfile: ws-events.Dockerfile
+    container_name: tb-lts43-monolith-ws-events
+    volumes:
+      - .:/app
+    depends_on:
+      thingsboard:
+        condition: service_started
+
+  tb-web-ui-dev:
+    build:
+      context: ./ui-ngx
+      dockerfile: .Dockerfile
+    container_name: tb-lts43-monolith-tb-web-ui-dev
+    working_dir: /app
+    volumes:
+      - ./ui-ngx:/app
+    environment:
+      - GATEWAY_URL=http://gateway:80
+    command: sh ./entrypoint.sh
+    ports:
+      - "4200:4200"
+    depends_on:
+      thingsboard:
+        condition: service_started # downgraded — no healthcheck to wait on
+      gateway:
+        condition: service_started

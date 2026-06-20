@@ -1,0 +1,19 @@
+services:
+  postgres:
+    restart: always
+    image: "postgres:18"
+    container_name: tb-lts43-monolith-postgres
+    ports:
+      - "5432"
+    environment:
+      POSTGRES_DB: thingsboard
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ../psql_data-merge:/var/lib/postgresql
+      - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d thingsboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
