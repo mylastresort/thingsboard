@@ -199,7 +199,7 @@
           color="primary"
           (click)="openCreateModelDialog()"
         >
-          <mat-icon>add</mat-icon>New Model
+          <mat-icon>add</mat-icon>New
         </button>
       </div>
     </div>
@@ -207,139 +207,123 @@
 </div>
 
 <div class="model-dashboard">
-  <!-- Widgets Grid Container -->
-  <div class="widgets-grid-container">
-    <!-- Forecast widgets - One per sensor -->
-    <ng-container *ngFor="let attribute of attributes">
-      <div
-        class="chart-section"
-        [class.collapsed]="timeSeriesChartCollapsed"
-        *ngIf="isWidgetVisible(attribute.key)"
-      >
-        <div
-          class="section-header"
-          (click)="toggleTimeSeriesChart()"
-          role="button"
-          [attr.aria-expanded]="!timeSeriesChartCollapsed"
-          aria-label="Toggle time series chart section"
-        >
-        <button
-          mat-icon-button
-          class="collapse-btn"
-          (click)="$event.stopPropagation(); toggleTimeSeriesChart()"
-          [matTooltip]="
-            timeSeriesChartCollapsed
-              ? 'Expand time series chart'
-              : 'Collapse time series chart'
-          "
-          matTooltipPosition="right"
-          [attr.aria-expanded]="!timeSeriesChartCollapsed"
-          aria-label="Toggle time series chart visibility"
-        >
-          <mat-icon>{{
-            timeSeriesChartCollapsed ? "chevron_right" : "expand_more"
-          }}</mat-icon>
-        </button>
-        <h3 class="section-title">
-          <mat-icon class="section-icon">sensors</mat-icon>
-          {{ attribute.key | titlecase }}
-          <span class="algorithm-label" *ngIf="forecastAlgorithm">{{
-            forecastAlgorithm
-          }}</span>
-        </h3>
-      </div>
-      <div
-        class="chart-content"
-        [@slideCollapse]="timeSeriesChartCollapsed ? 'collapsed' : 'expanded'"
-      >
-        <tb-time-series-telemetry
-          [deviceId]="deviceId"
-          [selectedSensor]="attribute.key"
-          [forecastMaxSteps]="forecastMaxSteps"
-          [modelId]="trueId"
-          [title]="attribute.key"
-          [timewindow]="timewindowsPerSensor[attribute.key] || timewindow"
-          (timewindowChange)="onChildTimewindowChange(attribute.key, $event)"
-          [viewPreferences]="currentViewPreferences"
-          (viewPreferencesChange)="onViewPreferencesChanged($event)"
-          [attributes]="attributes"
-          [logsObservable]="logsObservable"
-        >
-        </tb-time-series-telemetry>
-      </div>
-    </div>
-    </ng-container>
-
-    <!-- Anomalies Section -->
-    <div
-      class="chart-section anomalies-section"
-      [class.collapsed]="anomaliesCollapsed"
+  <!-- Dashboard Tabs -->
+  <div class="dashboard-tabs" role="tablist">
+    <button
+      type="button"
+      class="dashboard-tab"
+      role="tab"
+      [class.active]="activeDashboardTab === 'forecast'"
+      [attr.aria-selected]="activeDashboardTab === 'forecast'"
+      (click)="activeDashboardTab = 'forecast'"
+    >
+      <mat-icon>sensors</mat-icon>
+      <span>Forecast</span>
+    </button>
+    <button
+      type="button"
+      class="dashboard-tab"
+      role="tab"
       *ngIf="shouldShowAnomalies() && isWidgetVisible('anomalies')"
-  >
-    <div
-      class="section-header"
-      (click)="toggleAnomalies()"
-      role="button"
-      [attr.aria-expanded]="!anomaliesCollapsed"
-      aria-label="Toggle anomalies section"
+      [class.active]="activeDashboardTab === 'anomalies'"
+      [attr.aria-selected]="activeDashboardTab === 'anomalies'"
+      (click)="activeDashboardTab = 'anomalies'"
     >
-      <button
-        mat-icon-button
-        class="collapse-btn"
-        (click)="$event.stopPropagation(); toggleAnomalies()"
-        [matTooltip]="
-          anomaliesCollapsed
-            ? 'Expand anomalies table'
-            : 'Collapse anomalies table'
-        "
-        matTooltipPosition="right"
-        [attr.aria-expanded]="!anomaliesCollapsed"
-        aria-label="Toggle anomalies table visibility"
-      >
-        <mat-icon>{{
-          anomaliesCollapsed ? "chevron_right" : "expand_more"
-        }}</mat-icon>
-      </button>
-      <h3 class="section-title">
-        <mat-icon class="section-icon">bug_report</mat-icon>
-        Anomalies
-        <span class="algorithm-label" *ngIf="anomalyAlgorithm">{{
-          anomalyAlgorithm
-        }}</span>
-      </h3>
-      <button
-        mat-icon-button
-        (click)="$event.stopPropagation(); openAnomalyLogsDialog()"
-        [disabled]="!trueId"
-        class="section-logs-button"
-        matTooltip="View anomaly logs"
-        matTooltipPosition="left"
-      >
-        <mat-icon>description</mat-icon>
-      </button>
-      <button
-        mat-icon-button
-        (click)="$event.stopPropagation(); openAnomalyStatsDialog()"
-        [disabled]="!trueId"
-        class="section-stats-button"
-        matTooltip="View anomaly training stats"
-        matTooltipPosition="left"
-      >
-        <mat-icon>info_outline</mat-icon>
-      </button>
+      <mat-icon>bug_report</mat-icon>
+      <span>Anomalies</span>
+    </button>
+  </div>
+
+  <!-- Tab Panels -->
+  <div class="dashboard-tab-content">
+    <!-- Forecast Tab: one widget per sensor -->
+    <div
+      class="tab-panel"
+      role="tabpanel"
+      *ngIf="activeDashboardTab === 'forecast' || !(shouldShowAnomalies() && isWidgetVisible('anomalies'))"
+    >
+      <div class="widgets-grid-container">
+        <ng-container *ngFor="let attribute of attributes">
+          <div class="chart-section" *ngIf="isWidgetVisible(attribute.key)">
+            <div class="section-header">
+              <h3 class="section-title">
+                <mat-icon class="section-icon">sensors</mat-icon>
+                {{ attribute.key | titlecase }}
+                <span class="algorithm-label" *ngIf="forecastAlgorithm">{{
+                  forecastAlgorithm
+                }}</span>
+              </h3>
+            </div>
+            <div class="chart-content">
+              <tb-time-series-telemetry
+                [deviceId]="deviceId"
+                [selectedSensor]="attribute.key"
+                [forecastMaxSteps]="forecastMaxSteps"
+                [modelId]="trueId"
+                [title]="attribute.key"
+                [timewindow]="timewindowsPerSensor[attribute.key] || timewindow"
+                (timewindowChange)="onChildTimewindowChange(attribute.key, $event)"
+                [viewPreferences]="currentViewPreferences"
+                (viewPreferencesChange)="onViewPreferencesChanged($event)"
+                [attributes]="attributes"
+                [logsObservable]="logsObservable"
+              >
+              </tb-time-series-telemetry>
+            </div>
+          </div>
+        </ng-container>
+      </div>
     </div>
+
+    <!-- Anomalies Tab -->
     <div
-      class="chart-content"
-      [@slideCollapse]="anomaliesCollapsed ? 'collapsed' : 'expanded'"
+      class="tab-panel"
+      role="tabpanel"
+      *ngIf="activeDashboardTab === 'anomalies' && shouldShowAnomalies() && isWidgetVisible('anomalies')"
     >
-      <tb-anomalies
-        [deviceId]="deviceId"
-        [forecastId]="trueId"
-        [modelId]="trueId"
-        [predictionType]="'Anomaly'"
-        [predictiveModelsService]="predictiveModelsService"
-      >
-      </tb-anomalies>
+      <div class="widgets-grid-container">
+        <div class="chart-section anomalies-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              <mat-icon class="section-icon">bug_report</mat-icon>
+              Anomalies
+              <span class="algorithm-label" *ngIf="anomalyAlgorithm">{{
+                anomalyAlgorithm
+              }}</span>
+            </h3>
+            <button
+              mat-icon-button
+              (click)="openAnomalyLogsDialog()"
+              [disabled]="!trueId"
+              class="section-logs-button"
+              matTooltip="View anomaly logs"
+              matTooltipPosition="left"
+            >
+              <mat-icon>description</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              (click)="openAnomalyStatsDialog()"
+              [disabled]="!trueId"
+              class="section-stats-button"
+              matTooltip="View anomaly training stats"
+              matTooltipPosition="left"
+            >
+              <mat-icon>info_outline</mat-icon>
+            </button>
+          </div>
+          <div class="chart-content">
+            <tb-anomalies
+              [deviceId]="deviceId"
+              [forecastId]="trueId"
+              [modelId]="trueId"
+              [predictionType]="'Anomaly'"
+              [predictiveModelsService]="predictiveModelsService"
+            >
+            </tb-anomalies>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

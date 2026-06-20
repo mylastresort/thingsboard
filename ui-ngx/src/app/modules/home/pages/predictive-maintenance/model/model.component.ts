@@ -113,6 +113,7 @@ import { AnomalyAlertsComponent } from '../../../components/predictive-maintenan
   ],
 })
 export class ModelComponent extends PageComponent implements Order, OnDestroy {
+  activeDashboardTab: 'forecast' | 'anomalies' = 'forecast';
   // Timewindow config for telemetry chart
   timewindow: Timewindow = {
     displayValue: '',

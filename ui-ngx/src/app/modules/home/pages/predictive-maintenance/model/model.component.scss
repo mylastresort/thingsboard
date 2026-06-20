@@ -1,423 +1,32 @@
-// Notifier dot for unread logs
-.unread-dot {
-  position: absolute;
-  /* Place the dot in the top-left corner of the icon, taking into account icon padding */
-  top: -30%;
-  left: 90%;
-  width: 6px;
-  height: 6px;
-  background: #ff9800;
-  border-radius: 50%;
-  z-index: 2;
-  opacity: 0.9;
-  animation: pulse 2s 1.5;
-  animation-fill-mode: forwards;
+// ─── Animations ──────────────────────────────────────────────────────────────
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.2); }
 }
 
-.icon-with-badge {
-  position: relative;
-  display: inline-block;
-  line-height: 0; // prevent extra height from mat-icon
+@keyframes slideDown {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-.chart-section {
-  padding-bottom: 3rem;
-
-  &.collapsed {
-    padding-bottom: 0; // Remove padding when collapsed
-  }
+@keyframes fadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-.tb-default {
-  :host {
-    .model-select {
-      background-color: #3f51b5; // Primary color similar to app-bar
-      color: white;
-      border: none;
-    }
-
-    // Light mode styling for section headers
-    .model-dashboard {
-      .chart-section,
-      .anomalies-section {
-        border-color: #e0e0e0;
-
-        .section-header {
-          background: rgba(0, 0, 0, 0.02);
-          border-bottom-color: #e0e0e0;
-
-          &:hover {
-            background: rgba(0, 0, 0, 0.04);
-          }
-
-          .collapse-btn {
-            color: rgba(0, 0, 0, 0.6);
-
-            &:hover {
-              color: #3f51b5;
-              background-color: rgba(0, 0, 0, 0.04);
-            }
-
-            mat-icon {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-          }
-
-          .section-title {
-            color: rgba(0, 0, 0, 0.87);
-
-            .section-icon {
-              color: #3f51b5;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-
-            .algorithm-label {
-              opacity: 0.7;
-            }
-          }
-
-          .section-stats-button {
-            width: 32px;
-            height: 32px;
-            min-width: 32px;
-            min-height: 32px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(0, 0, 0, 0.54);
-            opacity: 0.7;
-            margin-left: auto;
-            margin-right: 0;
-
-            &:hover {
-              color: #4caf50;
-              background-color: rgba(76, 175, 80, 0.08);
-              opacity: 1;
-            }
-
-            &:disabled {
-              opacity: 0.3;
-            }
-
-            mat-icon {
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
-              line-height: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-          }
-
-          .section-pause-button,
-          .section-unpause-button {
-            width: 32px;
-            height: 32px;
-            min-width: 32px;
-            min-height: 32px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(0, 0, 0, 0.54);
-            opacity: 0.7;
-            margin-left: 8px;
-            margin-right: 0;
-
-            &:hover {
-              color: #ff9800;
-              background-color: rgba(255, 152, 0, 0.08);
-              opacity: 1;
-            }
-
-            &:disabled {
-              opacity: 0.3;
-            }
-
-            mat-icon {
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
-              line-height: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-          }
-
-          .section-logs-button {
-            width: 32px;
-            height: 32px;
-            min-width: 32px;
-            min-height: 32px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: rgba(0, 0, 0, 0.54);
-            opacity: 0.7;
-            margin-left: 8px;
-            margin-right: 0;
-
-            &:hover {
-              color: #3f51b5;
-              background-color: rgba(63, 81, 181, 0.08);
-              opacity: 1;
-            }
-
-            &:disabled {
-              opacity: 0.3;
-            }
-
-            mat-icon {
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
-              line-height: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-          }
-        }
-      }
-
-      .anomalies-section .section-header {
-        .collapse-btn:hover {
-          color: #ff9800;
-        }
-
-        .section-title {
-          .section-icon {
-            color: #ff9800;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-
-          .algorithm-label {
-            opacity: 0.4;
-          }
-        }
-
-        .section-stats-button {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          min-height: 32px;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(0, 0, 0, 0.54);
-          opacity: 0.7;
-          margin-left: auto;
-          margin-right: 0;
-
-          &:hover {
-            color: #4caf50;
-            background-color: rgba(76, 175, 80, 0.08);
-            opacity: 1;
-          }
-
-          &:disabled {
-            opacity: 0.3;
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-
-        .section-logs-button {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          min-height: 32px;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-left: 8px;
-          margin-right: 0;
-          color: rgba(0, 0, 0, 0.54);
-          opacity: 0.7;
-
-          &:hover {
-            color: #ff9800;
-            background-color: rgba(255, 152, 0, 0.08);
-            opacity: 1;
-          }
-
-          &:disabled {
-            opacity: 0.3;
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-      }
-    }
-  }
-}
-
-.tb-dark {
-  :host {
-    .model-select {
-      color: #f0e5e5;
-      background: var(--tb-dark-app-bar); // Match top sidenav/app-bar
-      // border: 1px solid #3f4449;
-    }
-
-    .forecast-info-container {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-      .forecast-name {
-        .model-select-wrapper {
-          .model-select-field {
-            ::ng-deep {
-              .mat-mdc-text-field-wrapper {
-                background: var(--tb-dark-app-bar, #2d3748);
-                color: white;
-              }
-
-              .mat-mdc-select-value-text {
-                color: white;
-              }
-
-              .mat-mdc-select-arrow {
-                color: rgba(255, 255, 255, 0.7);
-              }
-            }
-          }
-        }
-      }
-    }
-
-    .device-name.clickable {
-      &:hover {
-        color: #64b5f6;
-        text-decoration-color: #64b5f6;
-      }
-    }
-
-    // Dark mode styling for section headers
-    .model-dashboard {
-      .chart-section,
-      .anomalies-section {
-        border-color: #404040;
-
-        .section-header {
-          background: rgba(255, 255, 255, 0.03);
-          border-bottom-color: #404040;
-
-          &:hover {
-            background: rgba(255, 255, 255, 0.06);
-          }
-
-          .collapse-btn {
-            color: rgba(255, 255, 255, 0.7);
-
-            &:hover {
-              background-color: rgba(255, 255, 255, 0.1);
-            }
-
-            mat-icon {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-          }
-
-          .section-title {
-            color: rgba(255, 255, 255, 0.9);
-
-            .section-icon {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-          }
-        }
-      }
-    }
-
-    // Dark mode styles for view selector
-    .forecast-actions .left-actions .button-container {
-      .delete-button {
-        color: #ef5350;
-
-        &:hover:not(:disabled) {
-          background-color: rgba(239, 83, 80, 0.15);
-        }
-      }
-
-      .view-selector-button.active {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
-
-      .view-selector-dropdown {
-        background: var(--tb-dark-dialog-background, #2d3748);
-        border-color: var(--tb-dark-mat-800, #404040);
-
-        button {
-          color: rgba(255, 255, 255, 0.9);
-
-          &:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-          }
-
-          &.selected {
-            background-color: rgba(63, 81, 181, 0.2);
-            color: #64b5f6;
-          }
-        }
-      }
-    }
-  }
-}
+// ─── Host ────────────────────────────────────────────────────────────────────
 
 :host {
   padding-block: 1rem;
-
   display: flex;
   flex-direction: column;
-
   overflow: hidden;
-
   height: 100%;
   width: 100%;
   box-sizing: border-box;
 
-  .model-select {
-    width: 100%;
-    padding: 0.5em;
-    border-radius: 5px;
-    outline: none;
-  }
-
-  .chart-container {
-    margin-top: 1.5rem;
-  }
+  // ── Labels ────────────────────────────────────────────────────────────────
 
   .model-label {
     font-size: 0.9rem;
@@ -451,6 +60,8 @@
     }
   }
 
+  // ── Forecast info bar ─────────────────────────────────────────────────────
+
   .forecast-info-container {
     display: flex;
     justify-content: space-between;
@@ -476,9 +87,7 @@
           height: 36px;
 
           ::ng-deep {
-            .mat-mdc-form-field-subscript-wrapper {
-              display: none;
-            }
+            .mat-mdc-form-field-subscript-wrapper { display: none; }
 
             .mat-mdc-text-field-wrapper {
               background: var(--tb-dark-app-bar, #fff);
@@ -490,7 +99,6 @@
             }
 
             .mat-mdc-select-value {
-              // font-size: 1.2rem;
               font-weight: 500;
               padding-left: 10px;
             }
@@ -504,243 +112,148 @@
       }
     }
 
-    .forecast-actions {
-      .left-actions {
+    .forecast-actions .left-actions {
+      display: flex;
+      gap: 20px;
+
+      .button-container {
         display: flex;
-        gap: 20px;
+        gap: 10px;
+        align-items: center;
+        flex-shrink: 0;
 
-        .model-select-container {
+        button {
+          white-space: nowrap;
+          flex-shrink: 0;
+          padding-inline: 10px;
+          margin: 0;
+          height: 36px;
+          min-height: 36px;
+        }
+
+        button[mat-icon-button] {
+          width: 36px;
+          height: 36px;
+          min-height: 36px;
+          min-width: 36px;
+          padding: 0;
           display: flex;
-          flex-direction: column;
-          gap: 5px;
+          align-items: center;
+          justify-content: center;
 
-          .model-select-button {
-            background: none;
-            color: var(--tb-dark-text-400);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            justify-content: flex-start;
-
-            mat-icon {
-              font-size: 1.2rem;
-            }
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            line-height: 1;
           }
         }
 
-        .button-container {
+        .delete-button {
+          color: #f44336;
+
+          &:hover:not(:disabled) { background-color: rgba(244, 67, 54, 0.08); }
+          &:disabled { opacity: 0.3; }
+        }
+
+        .rebuild-button {
+          background-color: transparent;
+          color: rgba(255, 255, 255, 0.9);
+          border: none;
           display: flex;
-          gap: 10px;
           align-items: center;
-          flex-shrink: 0;
+          font-weight: 500;
+
+          &:hover:not(:disabled) { background-color: rgba(255, 255, 255, 0.1); }
+          &:disabled { opacity: 0.3; color: rgba(255, 255, 255, 0.3); }
+        }
+
+        button[mat-raised-button] {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 500;
+
+          mat-icon { font-size: 18px; width: 18px; height: 18px; }
+          &:disabled { opacity: 0.6; cursor: not-allowed; }
+        }
+
+        .logs-button {
+          position: relative;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: rgba(33, 150, 243, 0.1);
+            mat-icon { color: #2196f3; }
+          }
+          &:disabled { opacity: 0.4; cursor: not-allowed; }
+        }
+
+        .view-selector-button {
+          position: relative;
+          &.active { background-color: rgba(0, 0, 0, 0.04); }
+        }
+
+        .view-selector-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          background: var(--tb-dark-dialog-background, #fff);
+          border: 1px solid var(--tb-dark-mat-800, #e0e0e0);
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          min-width: 180px;
+          z-index: 1000;
+          overflow: hidden;
+          margin-top: 4px;
 
           button {
-            white-space: nowrap;
-            flex-shrink: 0;
-            padding-inline: 10px;
-            margin: 0;
-            height: 36px;
-            min-height: 36px;
-          }
-
-          button[mat-icon-button] {
-            width: 36px;
-            height: 36px;
-            min-height: 36px;
-            min-width: 36px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            mat-icon {
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
-              line-height: 1;
-            }
-          }
-
-          // Delete button styling
-          .delete-button {
-            color: #f44336;
-
-            &:hover:not(:disabled) {
-              background-color: rgba(244, 67, 54, 0.08);
-            }
-
-            &:disabled {
-              opacity: 0.3;
-            }
-          }
-
-          // Rebuild button styling
-          .rebuild-button {
-            background-color: transparent;
-            color: rgba(255, 255, 255, 0.9);
+            width: 100%;
+            padding: 12px 16px;
             border: none;
+            background: transparent;
             display: flex;
             align-items: center;
-            font-weight: 500;
+            gap: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 14px;
+            color: var(--tb-dark-text-primary, rgba(0, 0, 0, 0.87));
 
-            &:hover:not(:disabled) {
-              background-color: rgba(255, 255, 255, 0.1);
-            }
+            &:hover { background-color: rgba(0, 0, 0, 0.04); }
+            &.selected { background-color: rgba(63, 81, 181, 0.1); color: #3f51b5; }
 
-            &:disabled {
-              opacity: 0.3;
-              color: rgba(255, 255, 255, 0.3);
-            }
-          }
-
-          button[mat-raised-button] {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 500;
-
-            mat-icon {
-              font-size: 18px;
-              width: 18px;
-              height: 18px;
-            }
-
-            &:disabled {
-              opacity: 0.6;
-              cursor: not-allowed;
-            }
-          }
-
-          // Logs button styling
-          .logs-button {
-            position: relative;
-            transition: all 0.3s ease;
-
-            &:hover {
-              background-color: rgba(33, 150, 243, 0.1);
-
-              mat-icon {
-                color: #2196f3;
-              }
-            }
-
-            &:disabled {
-              opacity: 0.4;
-              cursor: not-allowed;
-            }
-
-            // Add pulse animation when logs are active
-            &.has-logs::after {
-              content: "";
-              position: absolute;
-              top: 8px;
-              right: 8px;
-              width: 8px;
-              height: 8px;
-              background-color: #4caf50;
-              border-radius: 50%;
-              animation: pulse 2s infinite;
-            }
-          }
-
-          // View selector styles
-          .view-selector-button {
-            position: relative;
-
-            &.active {
-              background-color: rgba(0, 0, 0, 0.04);
-            }
-          }
-
-          .view-selector-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: var(--tb-dark-dialog-background, #fff);
-            border: 1px solid var(--tb-dark-mat-800, #e0e0e0);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            min-width: 180px;
-            z-index: 1000;
-            overflow: hidden;
-            margin-top: 4px;
-
-            button {
-              width: 100%;
-              padding: 12px 16px;
-              border: none;
-              background: transparent;
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              cursor: pointer;
-              transition: background-color 0.2s ease;
-              font-size: 14px;
-              color: var(--tb-dark-text-primary, rgba(0, 0, 0, 0.87));
-
-              &:hover {
-                background-color: rgba(0, 0, 0, 0.04);
-              }
-
-              &.selected {
-                background-color: rgba(63, 81, 181, 0.1);
-                color: #3f51b5;
-              }
-
-              mat-icon {
-                font-size: 20px;
-                width: 20px;
-                height: 20px;
-              }
-            }
+            mat-icon { font-size: 20px; width: 20px; height: 20px; }
           }
         }
       }
     }
   }
 
-  .anomaly-detection-container {
-    padding: 0.5em;
-    width: 100%;
-    height: 100%;
-    overflow: scroll;
-  }
-  .anomaly-detection-header {
-    display: flex;
-    width: 100%;
-    justify-content: space-between;
-    align-items: baseline;
+  // ── Unread dot badge ──────────────────────────────────────────────────────
+
+  .icon-with-badge {
     position: relative;
-
-    .anomaly-detection-header-divider {
-      width: 100%;
-      height: 1px;
-      background-color: #3333335e;
-      position: absolute;
-      bottom: 0;
-    }
+    display: inline-block;
+    line-height: 0;
   }
 
-  .anomaly-detection-tabs {
-    display: flex;
-    padding-left: 0.5em;
-    gap: 1.5em;
-    cursor: pointer;
+  .unread-dot {
+    position: absolute;
+    top: -30%;
+    left: 90%;
+    width: 6px;
+    height: 6px;
+    background: #ff9800;
+    border-radius: 50%;
+    z-index: 2;
+    opacity: 0.9;
+    animation: pulse 2s 1.5;
+    animation-fill-mode: forwards;
   }
 
-  .anomaly-detection-tabs p {
-    font-size: 0.85rem;
-  }
+  // ── Status icons ──────────────────────────────────────────────────────────
 
-  .anomaly-detection-action {
-    display: flex;
-    gap: 1.5em;
-    padding-right: 0.5em;
-  }
-
-  // Status icon in mat-select options
   ::ng-deep {
     .status-icon-option {
       font-size: 120% !important;
@@ -750,21 +263,10 @@
       align-items: center;
       align-self: center;
 
-      &.active {
-        color: #4caf50 !important; // Green for active
-      }
-
-      &.inactive {
-        color: #9e9e9e !important; // Gray for inactive
-      }
-
-      &.pending {
-        color: #ff9800 !important; // Orange for pending
-      }
-
-      &.failed {
-        color: #ff1744 !important; // Bright red for failed
-      }
+      &.active   { color: #4caf50 !important; }
+      &.inactive { color: #9e9e9e !important; }
+      &.pending  { color: #ff9800 !important; }
+      &.failed   { color: #ff1744 !important; }
     }
 
     .status-icon-button {
@@ -782,19 +284,14 @@
           font-size: 24px !important;
           width: 24px !important;
           height: 24px !important;
-          color: #9e9e9e !important; // Gray color like inactive status
+          color: #9e9e9e !important;
           transition: color 0.2s ease;
         }
-
-        &:hover {
-          mat-icon {
-            color: #4caf50 !important; // Green on hover to indicate activation
-          }
-        }
+        &:hover mat-icon { color: #4caf50 !important; }
       }
     }
 
-    // Custom styling for the model select panel with search
+    // Model select panel
     .model-select-panel {
       border-radius: 10px;
       background: var(--tb-dark-dialog-background, #fff);
@@ -817,28 +314,14 @@
         .search-field {
           width: 100%;
 
-          .mat-mdc-form-field-subscript-wrapper {
-            display: none;
-          }
-
-          .mat-mdc-text-field-wrapper {
-            height: 40px;
-          }
-
-          input {
-            font-size: 14px;
-          }
-
-          mat-icon {
-            color: rgba(0, 0, 0, 0.54);
-          }
+          .mat-mdc-form-field-subscript-wrapper { display: none; }
+          .mat-mdc-text-field-wrapper { height: 40px; }
+          input { font-size: 14px; }
+          mat-icon { color: rgba(0, 0, 0, 0.54); }
         }
       }
 
-      .mat-mdc-select-panel {
-        overflow-y: auto;
-        flex-grow: 1;
-      }
+      .mat-mdc-select-panel { overflow-y: auto; flex-grow: 1; }
 
       .mat-mdc-option {
         min-height: 48px;
@@ -847,13 +330,8 @@
         border-radius: 8px;
         background: var(--tb-dark-dialog-background, #fff);
 
-        &:hover {
-          background: rgba(0, 0, 0, 0.04);
-        }
-
-        &.mdc-list-item--selected {
-          background: rgba(63, 81, 181, 0.08);
-        }
+        &:hover { background: rgba(0, 0, 0, 0.04); }
+        &.mdc-list-item--selected { background: rgba(63, 81, 181, 0.08); }
 
         .option-content {
           display: flex;
@@ -862,129 +340,116 @@
           width: 100%;
         }
 
-        // Ensure status icons are properly styled
+        &:not(.mdc-list-item--selected) .option-content {
+          margin-left: calc(1rem + 0.5rem);
+        }
+
         .status-icon-option {
           display: inline-flex;
           align-items: center;
-
-          &.active {
-            color: #4caf50 !important; // Green for active
-          }
-
-          &.inactive {
-            color: #9e9e9e !important; // Gray for inactive
-          }
-
-          &.pending {
-            color: #ff9800 !important; // Orange for pending
-          }
-
-          &.failed {
-            color: #ff1744 !important; // Bright red for failed
-          }
-        }
-
-        // Add margin-left for non-selected models to align with selected ones
-        &:not(.mdc-list-item--selected) .option-content {
-          margin-left: calc(1rem + 0.5rem); // icon size + icon margin
-        }
-      }
-    }
-
-    // Dark mode styling for search panel
-    .tb-dark .model-select-panel {
-      background: var(--tb-dark-dialog-background, #2d3748);
-
-      .search-header {
-        background: var(--tb-dark-dialog-background, #2d3748);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-
-        .search-field {
-          mat-icon {
-            color: rgba(255, 255, 255, 0.7);
-          }
-
-          input {
-            color: white;
-
-            &::placeholder {
-              color: rgba(255, 255, 255, 0.6);
-            }
-          }
-        }
-      }
-
-      .mat-mdc-option {
-        background: var(--tb-dark-dialog-background, #2d3748);
-        color: white;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.08);
-        }
-
-        &.mdc-list-item--selected {
-          background: rgba(63, 81, 181, 0.2);
-        }
-
-        // Ensure status icons are visible in dark mode
-        .status-icon-option {
-          &.active {
-            color: #4caf50 !important; // Green for active
-          }
-
-          &.inactive {
-            color: #9e9e9e !important; // Gray for inactive
-          }
-
-          &.pending {
-            color: #ff9800 !important; // Orange for pending
-          }
-
-          &.failed {
-            color: #ff1744a6 !important; // Bright red for failed
-          }
+          &.active   { color: #4caf50 !important; }
+          &.inactive { color: #9e9e9e !important; }
+          &.pending  { color: #ff9800 !important; }
+          &.failed   { color: #ff1744 !important; }
         }
       }
     }
   }
 
+  // ── Dashboard tabs ───────────────────────────────────────────────────────
+
+  .dashboard-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-inline: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+
+    .dashboard-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.55);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      border-radius: 6px 6px 0 0;
+      transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        line-height: 1;
+      }
+
+      &:hover {
+        color: rgba(255, 255, 255, 0.85);
+        background-color: rgba(255, 255, 255, 0.04);
+      }
+
+      &.active {
+        color: #fff;
+        border-bottom-color: #3f51b5;
+      }
+    }
+  }
+
+  // ── Model dashboard ───────────────────────────────────────────────────────
+
   .model-dashboard {
-    // border: 1px solid #5d5d5d91 !important;
-    // border-radius: 4px;
     flex: 1;
     display: flex;
     flex-direction: column;
-    position: relative; // Add positioning context for absolute positioned children
+    position: relative;
     padding-inline: 1rem;
     overflow-y: auto;
-    min-height: 0; // Allow flex shrinking
-    height: 100%; // Take full available height
+    min-height: 0;
+    height: 100%;
 
-    // Widgets Grid Container - All widgets in a responsive flex layout
+    .dashboard-tabs { padding-inline: 0; }
+
+    .dashboard-tab-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+
+      .tab-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        animation: fadeIn 0.2s ease;
+      }
+    }
+
+    // Widgets grid
     .widgets-grid-container {
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
       margin-bottom: 1rem;
-      flex: 1; // Take all available space
-      align-content: start; // Align to top
-      height: 100%; // Take full height
+      flex: 1;
+      align-content: start;
+      height: 100%;
 
-      // Each chart section grows to fill row evenly
-      .chart-section {
-        flex: 1 1 40rem; // Grow to fill, can shrink, base 40rem
-        min-width: min(100%, 40rem);
-        max-width: 100%;
-      }
-
-      // Anomalies section also grows to fill remaining space on its row
+      .chart-section,
       .anomalies-section {
-        flex: 1 1 40rem; // Grow to fill, can shrink, base 40rem
+        flex: 1 1 40rem;
         min-width: min(100%, 40rem);
         max-width: 100%;
       }
 
-      // When screens are too small, single column
       @media (max-width: 1100px) {
         .chart-section,
         .anomalies-section {
@@ -994,98 +459,55 @@
       }
     }
 
-    // Chart Section (Forecast Chart) styling
-    .chart-section {
-      background: var(--tb-dark-app-bar);
+    // ── Shared widget card styles for both section types ──────────────────
 
+    .chart-section,
+    .anomalies-section {
       display: flex;
       flex-direction: column;
-      min-height: 31.25rem; // 500px in rem
-      height: 31.25rem; // Fixed height for consistent rows
-      // margin: 1rem;
-      border-radius: 10px;
-      border: 1px solid var(--tb-dark-mat-800);
+      min-height: 31.25rem;
+      height: 31.25rem;
+      border-radius: 12px;
       overflow: hidden;
       transition: min-height 0.3s ease, height 0.3s ease;
 
-      &.collapsed {
-        min-height: 0;
-        height: auto;
-        max-height: fit-content; // Only as tall as the header
+      // Widget card surface + elevation
+      background: var(--tb-dark-app-bar);
+      // border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 6px 16px rgba(0, 0, 0, 0.25);
 
-        .chart-content {
-          display: none !important;
-          height: 0 !important;
-          min-height: 0 !important;
-          flex: 0 0 0 !important; // Remove from flex calculation
-          overflow: hidden;
-          padding: 0;
-          margin: 0;
-        }
-
-        .section-header {
-          border-bottom: none; // Remove border when collapsed
-        }
-      }
-
+      // Widget header — solid colored band
       .section-header {
         display: flex;
         align-items: center;
-        padding: 12px 16px;
-        background: rgba(255, 255, 255, 0.02);
-        border-bottom: 1px solid var(--tb-dark-mat-800);
+        padding: 0 12px;
+        height: 48px;
+        flex-shrink: 0;
         user-select: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
 
-        &:hover {
-          background: rgba(255, 255, 255, 0.05);
-        }
-
-        .collapse-btn {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          color: rgba(255, 255, 255, 0.7);
-          transition: all 0.2s ease;
-          margin-right: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          &:hover {
-            color: #64b5f6;
-            background-color: rgba(255, 255, 255, 0.1);
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease;
-          }
-        }
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 
         .section-title {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 500;
           margin: 0;
-          color: rgba(255, 255, 255, 0.9);
+          color: #fff;
           display: flex;
           align-items: center;
           gap: 8px;
           line-height: 1.2;
           flex: 1;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
 
           .section-icon {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-            color: #64b5f6;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            color: rgba(255, 255, 255, 0.85);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1093,130 +515,65 @@
           }
 
           .algorithm-label {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 400;
-            opacity: 0.7;
-            margin-left: 8px;
+            opacity: 0.6;
+            margin-left: 4px;
+            text-transform: none;
+            letter-spacing: 0;
           }
         }
 
-        .section-stats-button {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          min-height: 32px;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255, 255, 255, 0.6);
-          transition: all 0.2s ease;
-          margin-left: auto;
-          margin-right: 0;
-          opacity: 0.7;
-
-          &:hover {
-            color: #81c784;
-            background-color: rgba(129, 199, 132, 0.1);
-            opacity: 1;
-          }
-
-          &:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-        }
-
+        // Shared small icon buttons in widget header
+        .section-stats-button,
+        .section-logs-button,
         .section-pause-button,
         .section-unpause-button {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          min-height: 32px;
+          width: 28px;
+          height: 28px;
+          min-width: 28px;
+          min-height: 28px;
           padding: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(255, 255, 255, 0.7);
           transition: all 0.2s ease;
-          margin-left: 8px;
-          margin-right: 0;
-          opacity: 0.7;
+          margin-left: 4px;
+          border-radius: 4px;
 
-          &:hover {
-            color: #ffa726;
-            background-color: rgba(255, 167, 38, 0.1);
-            opacity: 1;
-          }
-
-          &:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-          }
+          &:disabled { opacity: 0.3; cursor: not-allowed; }
+          &:hover:not(:disabled) { color: #fff; background-color: rgba(255, 255, 255, 0.15); }
 
           mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            line-height: 1;
             display: flex;
             align-items: center;
             justify-content: center;
           }
         }
 
-        .section-logs-button {
-          width: 32px;
-          height: 32px;
-          min-width: 32px;
-          min-height: 32px;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255, 255, 255, 0.6);
-          transition: all 0.2s ease;
-          margin-left: 8px;
-          margin-right: 0;
-          opacity: 0.7;
+        .section-stats-button { margin-left: auto; }
+      }
 
-          &:hover {
-            color: #64b5f6;
-            background-color: rgba(100, 181, 246, 0.1);
-            opacity: 1;
-          }
-
-          &:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            line-height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-        }
+      // In the shared .chart-section/.anomalies-section block, right after .section-header { ... }
+      .section-footer {
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        height: 36px;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.05);   // same value .section-header already uses
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
       }
 
       .chart-content {
         flex: 1;
         overflow: hidden;
-        transition: all 0.3s ease;
+        background: var(--tb-dark-app-bar);
 
         tb-time-series-telemetry {
           overflow: hidden;
@@ -1227,32 +584,30 @@
     }
   }
 
-  // Logs Tooltip Menu
+  // ── Logs tooltip ──────────────────────────────────────────────────────────
+
   .logs-tooltip-menu {
     position: fixed;
-    // z-index: 2000;
     z-index: -10000;
     top: -10000;
     left: -10000;
-    pointer-events: none; // Allow clicks to pass through the container
+    pointer-events: none;
 
     .logs-tooltip-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
       background: transparent;
       z-index: 1999;
       cursor: default;
-      pointer-events: all; // Re-enable clicks on overlay
+      pointer-events: all;
     }
 
     .logs-tooltip-content {
       position: relative;
       z-index: 2001;
-      background: var(--tb-dark-app-bar, #fff); // Match sidenav background
-      border: 1px solid rgba(0, 0, 0, 0.1); // Light mode border
+      background: var(--tb-dark-app-bar, #fff);
+      border: 1px solid rgba(0, 0, 0, 0.1);
       border-radius: 8px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       padding: 16px 20px;
@@ -1261,10 +616,8 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
-      pointer-events: all; // Re-enable clicks on content
-      transform: translateX(
-        -50%
-      ); // Center the tooltip horizontally around the arrow position
+      pointer-events: all;
+      transform: translateX(-50%);
       animation: slideDown 0.3s ease;
 
       .tooltip-header {
@@ -1272,21 +625,8 @@
         align-items: center;
         gap: 12px;
 
-        .tooltip-icon {
-          font-size: 24px;
-          width: 24px;
-          height: 24px;
-          color: #2196f3;
-          flex-shrink: 0;
-        }
-
-        .tooltip-message {
-          margin: 0;
-          font-size: 14px;
-          line-height: 1.5;
-          color: rgba(0, 0, 0, 0.87);
-          flex: 1;
-        }
+        .tooltip-icon { font-size: 24px; width: 24px; height: 24px; color: #2196f3; flex-shrink: 0; }
+        .tooltip-message { margin: 0; font-size: 14px; line-height: 1.5; color: rgba(0, 0, 0, 0.87); flex: 1; }
       }
 
       .tooltip-actions {
@@ -1295,56 +635,38 @@
         justify-content: space-between;
         gap: 12px;
 
-        .dont-show-checkbox {
-          font-size: 13px;
-          flex: 1;
-        }
-
-        .ok-button {
-          min-width: 60px;
-          height: 32px;
-          font-size: 13px;
-          flex-shrink: 0;
-        }
+        .dont-show-checkbox { font-size: 13px; flex: 1; }
+        .ok-button { min-width: 60px; height: 32px; font-size: 13px; flex-shrink: 0; }
       }
 
-      // Arrow pointing up - border layer
       &::before {
         content: "";
         position: absolute;
-        top: -9px;
-        left: 50%;
+        top: -9px; left: 50%;
         transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 9px solid transparent;
-        border-right: 9px solid transparent;
-        border-bottom: 9px solid rgba(0, 0, 0, 0.1);
+        border: 9px solid transparent;
+        border-top: none;
+        border-bottom-color: rgba(0, 0, 0, 0.1);
       }
 
-      // Arrow pointing up - fill layer
       &::after {
         content: "";
         position: absolute;
-        top: -8px;
-        left: 50%;
+        top: -8px; left: 50%;
         transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 8px solid transparent;
-        border-right: 8px solid transparent;
-        border-bottom: 8px solid var(--tb-dark-app-bar, #fff);
+        border: 8px solid transparent;
+        border-top: none;
+        border-bottom-color: var(--tb-dark-app-bar, #fff);
       }
     }
   }
 
-  // Floating View Selector Menu
+  // ── View selector floating menu ───────────────────────────────────────────
+
   .view-selector-floating-menu {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -1352,10 +674,8 @@
 
     .view-selector-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.5);
       cursor: pointer;
     }
@@ -1378,72 +698,19 @@
         background: #f5f5f5;
         border-bottom: 1px solid #e0e0e0;
 
-        h4 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 500;
-          color: rgba(0, 0, 0, 0.87);
-        }
+        h4 { margin: 0; font-size: 16px; font-weight: 500; color: rgba(0, 0, 0, 0.87); }
 
         .close-button {
-          width: 32px;
-          height: 32px;
+          width: 32px; height: 32px;
           color: rgba(0, 0, 0, 0.6);
-
-          &:hover {
-            background-color: rgba(0, 0, 0, 0.04);
-            color: rgba(0, 0, 0, 0.87);
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-          }
-        }
-      }
-
-      .view-options {
-        padding: 16px 0;
-
-        .view-option {
-          padding: 8px 20px;
-          display: flex;
-          align-items: center;
-
-          &:hover {
-            background-color: rgba(0, 0, 0, 0.02);
-          }
-
-          mat-checkbox {
-            width: 100%;
-
-            .option-content {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              margin-left: 8px;
-
-              mat-icon {
-                font-size: 20px;
-                width: 20px;
-                height: 20px;
-                color: rgba(0, 0, 0, 0.6);
-              }
-
-              span {
-                font-size: 14px;
-                color: rgba(0, 0, 0, 0.87);
-              }
-            }
-          }
+          mat-icon { font-size: 20px; width: 20px; height: 20px; }
+          &:hover { background-color: rgba(0, 0, 0, 0.04); color: rgba(0, 0, 0, 0.87); }
         }
       }
 
       .color-config-section {
         padding: 16px 20px;
         border-top: 1px solid #e0e0e0;
-        margin-top: 8px;
 
         .section-header {
           display: flex;
@@ -1455,70 +722,36 @@
 
           &.clickable {
             cursor: pointer;
-            padding: 8px;
-            margin: -8px;
+            padding: 8px; margin: -8px;
             border-radius: 4px;
             transition: background-color 0.2s ease;
-
-            &:hover {
-              background-color: rgba(0, 0, 0, 0.04);
-            }
+            &:hover { background-color: rgba(0, 0, 0, 0.04); }
           }
 
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-            color: rgba(0, 0, 0, 0.6);
-          }
-
-          .expand-icon {
-            margin-left: auto;
-          }
+          mat-icon { font-size: 20px; width: 20px; height: 20px; color: rgba(0, 0, 0, 0.6); }
+          .expand-icon { margin-left: auto; }
         }
 
-        .sensor-colors-content {
-          margin-top: 16px;
-        }
+        .sensor-colors-content { margin-top: 16px; }
 
         .widget-visibility-item {
           padding: 8px 0;
+          &:first-child { padding-top: 0; }
+          &:last-child  { padding-bottom: 0; }
 
-          &:first-child {
-            padding-top: 0;
-          }
+          mat-checkbox .option-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
 
-          &:last-child {
-            padding-bottom: 0;
-          }
-
-          mat-checkbox {
-            .option-content {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-
-              mat-icon {
-                font-size: 20px;
-                width: 20px;
-                height: 20px;
-                color: rgba(0, 0, 0, 0.6);
-              }
-
-              span {
-                font-size: 13px;
-                color: rgba(0, 0, 0, 0.87);
-              }
-            }
+            mat-icon { font-size: 20px; width: 20px; height: 20px; color: rgba(0, 0, 0, 0.6); }
+            span { font-size: 13px; color: rgba(0, 0, 0, 0.87); }
           }
         }
 
         .sensor-color-item {
           margin-bottom: 16px;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
+          &:last-child { margin-bottom: 0; }
 
           .sensor-color-label {
             display: flex;
@@ -1530,8 +763,7 @@
             color: rgba(0, 0, 0, 0.87);
 
             .color-preview {
-              width: 20px;
-              height: 20px;
+              width: 20px; height: 20px;
               border-radius: 4px;
               border: 2px solid rgba(0, 0, 0, 0.2);
             }
@@ -1543,10 +775,8 @@
             gap: 4px;
 
             .color-option {
-              width: 30px;
-              height: 30px;
-              min-width: 30px;
-              min-height: 30px;
+              width: 30px; height: 30px;
+              min-width: 30px; min-height: 30px;
               padding: 0;
               border-radius: 4px;
               border: 2px solid rgba(0, 0, 0, 0.1);
@@ -1556,32 +786,12 @@
               align-items: center;
               justify-content: center;
 
-              &:hover {
-                transform: scale(1.1);
-                border-color: rgba(0, 0, 0, 0.3);
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-              }
+              &:hover { transform: scale(1.1); border-color: rgba(0,0,0,0.3); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+              &.selected { border-color: rgba(0,0,0,0.5); border-width: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 
-              &.selected {
-                border-color: rgba(0, 0, 0, 0.5);
-                border-width: 3px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-              }
+              .check-icon { color: white; font-size: 16px; width: 16px; height: 16px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 
-              .check-icon {
-                color: white;
-                font-size: 16px;
-                width: 16px;
-                height: 16px;
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-              }
-
-              ::ng-deep {
-                .mat-mdc-button-touch-target {
-                  width: 30px;
-                  height: 30px;
-                }
-              }
+              ::ng-deep .mat-mdc-button-touch-target { width: 30px; height: 30px; }
             }
           }
         }
@@ -1590,45 +800,131 @@
   }
 }
 
-// Dark mode styles for logs tooltip and floating menu
-.tb-dark {
+// ─── Light mode overrides ─────────────────────────────────────────────────────
+
+.tb-default {
   :host {
-    .logs-tooltip-menu {
-      .logs-tooltip-content {
-        border: 1px solid var(--tb-dark-mat-800, #404040);
+    .device-name.clickable:hover { color: #3f51b5; }
 
-        .tooltip-header {
-          .tooltip-icon {
-            color: #64b5f6;
-          }
+    .dashboard-tabs {
+      border-bottom-color: rgba(0, 0, 0, 0.08);
 
-          .tooltip-message {
-            color: rgba(255, 255, 255, 0.9);
-          }
+      .dashboard-tab {
+        color: rgba(0, 0, 0, 0.55);
+
+        &:hover {
+          color: rgba(0, 0, 0, 0.87);
+          background-color: rgba(0, 0, 0, 0.04);
         }
 
-        .tooltip-actions {
-          .dont-show-checkbox {
-            color: rgba(255, 255, 255, 0.9);
-          }
-        }
-
-        // Arrow pointing up - border layer for dark mode
-        &::before {
-          border-bottom-color: var(--tb-dark-mat-800, #404040);
-        }
-
-        // Arrow pointing up - fill layer for dark mode
-        &::after {
-          border-bottom-color: var(--tb-dark-app-bar, #2d3748);
+        &.active {
+          color: rgba(0, 0, 0, 0.87);
+          border-bottom-color: #3f51b5;
         }
       }
     }
 
-    .view-selector-floating-menu {
-      .view-selector-overlay {
-        background: rgba(0, 0, 0, 0.7);
+    .model-dashboard {
+      .chart-section,
+      .anomalies-section {
+        border-color: #c8d8e8;
+        box-shadow:
+          0 2px 4px rgba(0, 0, 0, 0.08),
+          0 6px 16px rgba(0, 0, 0, 0.06);
+
+        .section-header {
+          background: rgba(53, 53, 53, 0.06);
+          border-bottom-color: rgba(0, 0, 0, 0.08);
+
+          // In .tb-default :host .model-dashboard .chart-section/.anomalies-section,
+          // next to the existing .section-header override:
+          .section-footer {
+            background: rgba(0, 0, 0, 0.06);
+            border-top-color: rgba(0, 0, 0, 0.08);
+          }
+
+          .section-stats-button,
+          .section-logs-button, .section-pause-button,
+          .section-unpause-button { color: rgba(0, 0, 0, 0.6); }
+
+          .section-title { color: rgba(0, 0, 0, 0.87); }
+          .section-title .section-icon { color: rgba(0, 0, 0, 0.5); }
+        }
+
+        .chart-content { background: #fff; }
       }
+    }
+  }
+}
+
+// ─── Dark mode overrides ──────────────────────────────────────────────────────
+
+.tb-dark {
+  :host {
+    .forecast-info-container {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      .forecast-name .model-select-wrapper .model-select-field {
+        ::ng-deep {
+          .mat-mdc-text-field-wrapper { background: var(--tb-dark-app-bar, #2d3748); color: white; }
+          .mat-mdc-select-value-text  { color: white; }
+          .mat-mdc-select-arrow       { color: rgba(255, 255, 255, 0.7); }
+        }
+      }
+    }
+
+    .device-name.clickable:hover { color: #64b5f6; text-decoration-color: #64b5f6; }
+
+    .dashboard-tabs .dashboard-tab.active {
+      border-bottom-color: #64b5f6;
+    }
+
+    .model-dashboard {
+      .chart-section,
+      .anomalies-section {
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow:
+          0 2px 4px rgba(0, 0, 0, 0.4),
+          0 6px 20px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    .forecast-actions .left-actions .button-container {
+      .delete-button {
+        color: #ef5350;
+        &:hover:not(:disabled) { background-color: rgba(239,83,80,0.15); }
+      }
+
+      .view-selector-button.active { background-color: rgba(255,255,255,0.1); }
+
+      .view-selector-dropdown {
+        background: var(--tb-dark-dialog-background, #2d3748);
+        border-color: var(--tb-dark-mat-800, #404040);
+
+        button {
+          color: rgba(255, 255, 255, 0.9);
+          &:hover   { background-color: rgba(255,255,255,0.1); }
+          &.selected { background-color: rgba(63,81,181,0.2); color: #64b5f6; }
+        }
+      }
+    }
+
+    .logs-tooltip-menu .logs-tooltip-content {
+      border-color: var(--tb-dark-mat-800, #404040);
+
+      .tooltip-header {
+        .tooltip-icon    { color: #64b5f6; }
+        .tooltip-message { color: rgba(255, 255, 255, 0.9); }
+      }
+
+      .tooltip-actions .dont-show-checkbox { color: rgba(255, 255, 255, 0.9); }
+
+      &::before { border-bottom-color: var(--tb-dark-mat-800, #404040); }
+      &::after  { border-bottom-color: var(--tb-dark-app-bar, #2d3748); }
+    }
+
+    .view-selector-floating-menu {
+      .view-selector-overlay { background: rgba(0, 0, 0, 0.7); }
 
       .view-selector-checkboxes {
         background: var(--tb-dark-dialog-background, #2d3748);
@@ -1638,37 +934,11 @@
           background: var(--tb-dark-mat-700, #353535);
           border-bottom-color: var(--tb-dark-mat-800, #404040);
 
-          h4 {
-            color: rgba(255, 255, 255, 0.9);
-          }
+          h4 { color: rgba(255, 255, 255, 0.9); }
 
           .close-button {
             color: rgba(255, 255, 255, 0.7);
-
-            &:hover {
-              background-color: rgba(255, 255, 255, 0.1);
-              color: rgba(255, 255, 255, 0.9);
-            }
-          }
-        }
-
-        .view-options {
-          .view-option {
-            &:hover {
-              background-color: rgba(255, 255, 255, 0.05);
-            }
-
-            mat-checkbox {
-              .option-content {
-                mat-icon {
-                  color: rgba(255, 255, 255, 0.7);
-                }
-
-                span {
-                  color: rgba(255, 255, 255, 0.9);
-                }
-              }
-            }
+            &:hover { background-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); }
           }
         }
 
@@ -1677,123 +947,68 @@
 
           .section-header {
             color: rgba(255, 255, 255, 0.9);
-
-            &.clickable:hover {
-              background-color: rgba(255, 255, 255, 0.05);
-            }
-
-            mat-icon {
-              color: rgba(255, 255, 255, 0.7);
-            }
+            &.clickable:hover { background-color: rgb(34, 34, 34); }
+            mat-icon { color: rgba(255, 255, 255, 0.7); }
           }
 
-          .widget-visibility-item {
-            mat-checkbox {
-              .option-content {
-                mat-icon {
-                  color: rgba(255, 255, 255, 0.7);
-                }
-
-                span {
-                  color: rgba(255, 255, 255, 0.9);
-                }
-              }
-            }
+          .widget-visibility-item mat-checkbox .option-content {
+            mat-icon { color: rgba(255, 255, 255, 0.7); }
+            span     { color: rgba(255, 255, 255, 0.9); }
           }
 
           .sensor-color-item {
             .sensor-color-label {
               color: rgba(255, 255, 255, 0.9);
-
-              .color-preview {
-                border-color: rgba(255, 255, 255, 0.3);
-              }
+              .color-preview { border-color: rgba(255, 255, 255, 0.3); }
             }
 
-            .color-picker-grid {
-              .color-option {
-                border-color: rgba(255, 255, 255, 0.2);
-
-                &:hover {
-                  border-color: rgba(255, 255, 255, 0.4);
-                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-                }
-
-                &.selected {
-                  border-color: rgba(255, 255, 255, 0.6);
-                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-                }
-              }
+            .color-picker-grid .color-option {
+              border-color: rgba(255, 255, 255, 0.2);
+              &:hover   { border-color: rgba(255,255,255,0.4); box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+              &.selected { border-color: rgba(255,255,255,0.6); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
             }
           }
+        }
+      }
+    }
+
+    // Dark mode for model select panel
+    ::ng-deep .model-select-panel {
+      background: var(--tb-dark-dialog-background, #2d3748);
+
+      .search-header {
+        background: var(--tb-dark-dialog-background, #2d3748);
+        border-bottom-color: rgba(255, 255, 255, 0.12);
+
+        .search-field {
+          mat-icon { color: rgba(255, 255, 255, 0.7); }
+          input {
+            color: white;
+            &::placeholder { color: rgba(255, 255, 255, 0.6); }
+          }
+        }
+      }
+
+      .mat-mdc-option {
+        background: var(--tb-dark-dialog-background, #2d3748);
+        color: white;
+
+        &:hover { background: rgba(255, 255, 255, 0.08); }
+        &.mdc-list-item--selected { background: rgba(63, 81, 181, 0.2); }
+
+        .status-icon-option {
+          &.active   { color: #4caf50 !important; }
+          &.inactive { color: #9e9e9e !important; }
+          &.pending  { color: #ff9800 !important; }
+          &.failed   { color: #ff1744a6 !important; }
         }
       }
     }
   }
 }
 
-// Pulse animation for logs indicator
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: scale(1.2);
-  }
-}
+// ─── Chart section padding ────────────────────────────────────────────────────
 
-// Slide down animation for tooltip
-@keyframes slideDown {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-// Responsive grid for forecast graphs
-.forecast-grid-container {
-  width: 100%;
-  padding: 1rem;
-}
-
-.forecast-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 2rem;
-  width: 100%;
-  
-  // Ensure each chart container has minimum height and visual separation
-  > * {
-    min-height: 400px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.2);
-  }
-
-  // Responsive breakpoints
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 600px) {
-    gap: 1rem;
-    > * {
-      min-height: 300px;
-      padding: 0.75rem;
-    }
-  }
+.chart-section {
+  padding-bottom: 3rem;
 }
