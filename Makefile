@@ -38,6 +38,10 @@ help:
 up: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d
 
+.PHONY: up-ui
+up-ui: ## Start the full dev stack (core + toolbox + dev web ui)
+	$(COMPOSE) up -d $(WEB_SERVICE)
+
 .PHONY: up-prod
 up-prod: ## Start prod-only stack (core: tb, model, config-api)
 	docker compose --project-directory . $(CORE_FILES) up -d
@@ -146,6 +150,10 @@ logs-model: ## Tail predictive-maintenance model logs
 .PHONY: logs-config
 logs-config: ## Tail config-api logs
 	$(COMPOSE) logs -f $(CONFIG_SERVICE)
+
+.PHONY: lazydocker
+lazydocker: ## Launch lazydocker pre-wired to the split compose files (project-local config, doesn't touch your global lazydocker config)
+	XDG_CONFIG_HOME="$(CURDIR)/.lazydocker" lazydocker -p tb-lts43-monolith-merge
 
 # ─── status ──────────────────────────────────────────────────────────────────
 

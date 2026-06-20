@@ -1,0 +1,12 @@
+commandTemplates:
+  dockerCompose: >-
+    docker compose --project-directory .
+    -f docker-compose/docker-compose.base.yml
+    -f docker-compose/docker-compose.db.yml
+    -f docker-compose/docker-compose.tb.yml
+    -f docker-compose/docker-compose.gateway.yml
+    -f docker-compose/docker-compose.web.yml
+    -f docker-compose/docker-compose.model.yml
+    -f docker-compose/docker-compose.config.yml
+    -f docker-compose/docker-compose.toolbox.yml
+    -f docker-compose/docker-compose.dev.yml
