@@ -106,9 +106,9 @@ services:
       TB_QUEUE_TYPE: in-memory
       FASTAPI_BASE_URL: http://model:8000/api/v1/
       FASTAPI_WS_URL: ws://model:8000/models/ws/unified
-      LOGGING_LEVEL_ORG_THINGSBOARD: INFO                          # base: no more DEBUG floods
-      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG       # keep REST controller detail
-      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_TRANSPORT: DEBUG        # keep MQTT/CoAP detail
+      LOGGING_LEVEL_ORG_THINGSBOARD: INFO # base: no more DEBUG floods
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG # keep REST controller detail
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_TRANSPORT: DEBUG # keep MQTT/CoAP detail
 
       # Silence the worst offenders explicitly
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_SERVICE_QUEUE: WARN
@@ -160,17 +160,6 @@ services:
       thingsboard:
         condition: service_started
 
-  dashboard-script:
-    build:
-      context: ./send-telemetry
-      dockerfile: dashboard-script.Dockerfile
-    container_name: tb-lts43-monolith-dashboard-script
-    volumes:
-      - .:/app
-    depends_on:
-      thingsboard:
-        condition: service_started
-
   gateway:
     image: haproxy:2.9-alpine
     container_name: tb-lts43-monolith-gateway
@@ -204,10 +193,9 @@ services:
       gateway:
         condition: service_started
 
-
   tb-web-ui:
     build:
-      context: .                        # ← repo root
+      context: . # ← repo root
       dockerfile: msa/web-ui/Dockerfile
     container_name: tb-lts43-monolith-tb-web-ui
     ports:
@@ -262,9 +250,45 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    
+  go-toolbox-interpreter:
+    build:
+      context: ./go-toolbox
+      dockerfile: Dockerfile
+      target: base
+    container_name: tb-lts43-monolith-go-toolbox-interpreter
+    working_dir: /src
+    volumes:
+      - ./go-toolbox:/src
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      - TB_USERNAME=${TB_USERNAME}
+      - TB_PASSWORD=${TB_PASSWORD}
+    stdin_open: true
+    tty: true
+    command: go run .
+
+  go-toolbox-dash:
+    build:
+      context: ./go-toolbox
+      dockerfile: Dockerfile
+      target: dash
+    container_name: tb-lts43-monolith-dash
+    volumes:
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    depends_on:
+      thingsboard:
+        condition: service_started
+    command: /go/bin/dash
 
 volumes:
   pip-cache:
     driver: local
   models-cache:
+    driver: local
+  go-mod-cache:
+    driver: local
+  go-build-cache:
     driver: local

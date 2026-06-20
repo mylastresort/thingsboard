@@ -1,0 +1,174 @@
+{
+  "mqtt_host": "thingsboard",
+  "mqtt_port": 1883,
+  "devices": [
+    {
+      "name": "pdm1",
+      "token": "kvwS3Jp5RRQcmARmgcF1",
+      "metric": "pdm1",
+      "min": 0,
+      "max": 0,
+      "sleep_s": 2
+    },
+    {
+      "name": "device1_vibration1",
+      "token": "sc02igdNfcnBceA6Vwh2",
+      "metric": "vibration",
+      "min": 5000,
+      "max": 6000,
+      "sleep_s": 2
+    },
+    {
+      "name": "device1_vibration2",
+      "token": "sc02igdNfcnBceA6Vwh2",
+      "metric": "vibration",
+      "min": 5000,
+      "max": 6000,
+      "sleep_s": 2
+    },
+    {
+      "name": "device1_vibration3",
+      "token": "sc02igdNfcnBceA6Vwh2",
+      "metric": "vibration",
+      "min": 5000,
+      "max": 6000,
+      "sleep_s": 2
+    },
+    {
+      "name": "device2_temperature1",
+      "token": "kBG5JB86PX0UkOgX3pwF",
+      "metric": "temperature",
+      "min": 70,
+      "max": 80,
+      "sleep_s": 2
+    },
+    {
+      "name": "device2_temperature2",
+      "token": "cZLVz0o4qx5MIvVv7iz1",
+      "metric": "temperature",
+      "min": 70,
+      "max": 80,
+      "sleep_s": 2
+    },
+    {
+      "name": "device2_temperature3",
+      "token": "8nyPLXgYNsa7VTvbISfM",
+      "metric": "temperature",
+      "min": 70,
+      "max": 80,
+      "sleep_s": 2
+    },
+    {
+      "name": "device3_level1",
+      "token": "OKV950bum6RVI7x3Do6x",
+      "metric": "level",
+      "min": 65,
+      "max": 75,
+      "sleep_s": 2
+    },
+    {
+      "name": "device3_level2",
+      "token": "2W8qDjUE3YkUas99J2cy",
+      "metric": "level",
+      "min": 65,
+      "max": 75,
+      "sleep_s": 2
+    },
+    {
+      "name": "device3_level3",
+      "token": "AbAjNaxzfS8GC8MKnSYG",
+      "metric": "level",
+      "min": 65,
+      "max": 75,
+      "sleep_s": 2
+    },
+    {
+      "name": "device3_level4",
+      "token": "pZdYAOfG962f4LNjl2Yw",
+      "metric": "level",
+      "min": 65,
+      "max": 75,
+      "sleep_s": 2
+    },
+    {
+      "name": "device4_noise1",
+      "token": "ELlhq419gwHFDRVNl4JG",
+      "metric": "noise",
+      "min": 70,
+      "max": 90,
+      "sleep_s": 2
+    },
+    {
+      "name": "device4_noise2",
+      "token": "js1YKGhrbqGbpXyxZ67w",
+      "metric": "noise",
+      "min": 70,
+      "max": 90,
+      "sleep_s": 2
+    },
+    {
+      "name": "device4_noise3",
+      "token": "LzxImNW3ZLyXxQRIkBpk",
+      "metric": "noise",
+      "min": 70,
+      "max": 90,
+      "sleep_s": 2
+    },
+    {
+      "name": "device4_noise4",
+      "token": "FOc8JdlJFBjoVjVvD2gu",
+      "metric": "noise",
+      "min": 70,
+      "max": 90,
+      "sleep_s": 2
+    },
+    {
+      "name": "device5_pressure1",
+      "token": "Xf3yHz6EVsiaRMnfYvJn",
+      "metric": "pressure",
+      "min": 0.2625,
+      "max": 0.7875,
+      "sleep_s": 2
+    },
+    {
+      "name": "device5_pressure2",
+      "token": "rm0KqfvfaZgH9OSKYm4n",
+      "metric": "pressure",
+      "min": 0.2625,
+      "max": 0.7875,
+      "sleep_s": 2
+    },
+    {
+      "name": "device5_pressure3",
+      "token": "iGZBWG0dSp4xk9Qebioj",
+      "metric": "pressure",
+      "min": 0.2625,
+      "max": 0.7875,
+      "sleep_s": 2
+    },
+    {
+      "name": "device5_pressure4",
+      "token": "yMKsAD5T8Du4xf5rRiEW",
+      "metric": "pressure",
+      "min": 0.2625,
+      "max": 0.7875,
+      "sleep_s": 2
+    },
+    {
+      "name": "device5_pressure5",
+      "token": "R5GlBV2sf01nKbbcYZwt",
+      "metric": "pressure",
+      "min": 0.2625,
+      "max": 0.7875,
+      "sleep_s": 2
+    },
+    {
+      "name": "device5_pressure6",
+      "token": "cdE4tjnKULxXcrtGSNCG",
+      "metric": "pressure",
+      "min": 0.2625,
+      "max": 0.7875,
+      "sleep_s": 2
+    }
+  ]
+}

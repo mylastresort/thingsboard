@@ -1,0 +1,27 @@
+# Single multi-stage Dockerfile for all go-toolbox units. `base` installs the
+# Go toolchain once; each unit stage installs its own binary on top. Compose
+# picks a stage via `target:`, so there's no separate base image to build
+# first and no cross-service FROM resolution to fight with BuildKit.
+FROM ubuntu:24.04 AS base
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    golang-go=2:1.22~2build1 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:$PATH
+WORKDIR /src
+COPY . .
+
+FROM base AS load
+RUN go install ./cmd/load
+CMD ["load"]
+
+FROM base AS interpreter
+RUN go install ./cmd/interpreter
+CMD ["interpreter"]
+
+FROM base AS dash
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    mosquitto-clients \
+    && rm -rf /var/lib/apt/lists/*
+RUN go install ./cmd/dash
+CMD ["dash"]
