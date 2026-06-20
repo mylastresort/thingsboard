@@ -485,7 +485,7 @@ def seed(db: Session) -> None:
     )
     if deleted:
         print(f"[seed] removed {deleted} legacy config(s).")
-
+ 
     # Step 2 — insert missing model objects
     inserted = 0
     for entry in SIM_OBJECTS:
@@ -501,24 +501,36 @@ def seed(db: Session) -> None:
         )
         db.add(obj)
         inserted += 1
-
+ 
     db.commit()
     total = len(SIM_OBJECTS)
     print(
         f"[seed] inserted {inserted} config(s) ({total - inserted} already existed). Total model objects: {total}."
     )
-
+ 
+ 
 def simpy_seed(db: Session) -> None:
-    """Similar to seed(), but for SimPy-specific configs. Currently empty as we have no SimPy-specific configs defined."""
-    # load the yaml config and save it to db
+    """
+    Idempotent seed for SimPy config:
+      1. Check if default_simpy_config already exists.
+      2. Insert if missing, skip if already present.
+    """
+    cfg_name = "default_simpy_config"
+ 
+    # Check if config already exists
+    if db.query(SimpyConfig).filter(SimpyConfig.name == cfg_name).first():
+        print(f"[simpy_seed] {cfg_name} already exists, skipping.")
+        return
+ 
+    # Load and insert config
     cfg_path = "optuna_config.yaml"
     with open(cfg_path, "r") as f:
         import yaml
-
+ 
         simpy_cfg_data = yaml.safe_load(f)
         obj = SimpyConfig(
             id=str(uuid.uuid4()),
-            name="default_simpy_config",
+            name=cfg_name,
             description="Default SimPy configuration loaded from YAML.",
             data=simpy_cfg_data,
             created_at=datetime.utcnow(),
