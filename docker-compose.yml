@@ -126,29 +126,6 @@ services:
     # no healthcheck — actuator/health not available in this build;
     # tb-web-ui-dev uses service_started below and lets the proxy retry
 
-  # Commented out — uncomment only when needed
-  # anomalies-script:
-  #   build:
-  #     context: ./send-telemetry
-  #     dockerfile: anomalies-script.Dockerfile
-  #   container_name: tb-lts43-monolith-anomalies-script
-  #   volumes:
-  #     - .:/app
-  #   depends_on:
-  #     thingsboard:
-  #       condition: service_started
-
-  # forecast-script:
-  #   build:
-  #     context: ./send-telemetry
-  #     dockerfile: forecast-script.Dockerfile
-  #   container_name: tb-lts43-monolith-forecast-script
-  #   volumes:
-  #     - .:/app
-  #   depends_on:
-  #     thingsboard:
-  #       condition: service_started
-
   ws-events:
     build:
       context: ./send-telemetry

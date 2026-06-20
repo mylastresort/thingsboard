@@ -5,13 +5,15 @@
 package interpreter
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"github.com/chzyer/readline"
 )
 
 // ponytail: units as a flat table, not a plugin system — add a row here
@@ -24,6 +26,7 @@ type unit struct {
 var units = []unit{
 	{"load", "load PdM CSVs into ThingsBoard as devices + timeseries"},
 	{"dash", "simulate devices, publishing telemetry over MQTT"},
+	{"alarm", "create/clear ThingsBoard alarms (subcommands: create, clear)"},
 }
 
 const binDir = "/tmp/pmtool-bin"
@@ -31,9 +34,12 @@ const binDir = "/tmp/pmtool-bin"
 // Run is the entrypoint: pass os.Args[1:]. With no args it loops the
 // interactive REPL forever — ponytail: exit/EOF restarts the prompt instead
 // of returning, since this process is PID 1 in the container and returning
-// would stop it. Only a real signal (Ctrl-C / docker stop) ends it.
+// would stop it. To actually leave without killing the container, detach
+// with Ctrl-P Ctrl-Q (docker attach's detach sequence); exit/Ctrl-D just
+// bounces back to a fresh prompt. docker stop / Ctrl-C ends it for real.
 func Run(args []string) {
 	if len(args) == 0 {
+		fmt.Printf("pmtool %s — interactive mode  (type 'help' or 'exit')\n", runtime.Version())
 		for {
 			runInteractive()
 		}
@@ -46,15 +52,24 @@ func Run(args []string) {
 }
 
 func runInteractive() {
-	fmt.Printf("pmtool %s — interactive mode  (type 'help' or 'exit')\n", runtime.Version())
-	scanner := bufio.NewScanner(os.Stdin)
+	rl, err := readline.New("pmtool> ")
+	if err != nil {
+		log.Fatalf("pmtool: readline: %v", err)
+	}
+	defer rl.Close()
 	for {
-		fmt.Print("pmtool> ")
-		if !scanner.Scan() { // EOF / Ctrl-D
-			fmt.Println()
+		line, err := rl.Readline()
+		if err == readline.ErrInterrupt { // Ctrl-C: clear the line, stay in the REPL
+			continue
+		}
+		if err == io.EOF { // Ctrl-D
 			return
 		}
-		args := strings.Fields(scanner.Text())
+		if err != nil {
+			log.Printf("pmtool: %v", err)
+			return
+		}
+		args := strings.Fields(line)
 		if len(args) == 0 {
 			continue
 		}
