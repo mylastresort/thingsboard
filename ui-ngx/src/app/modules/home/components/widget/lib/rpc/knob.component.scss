@@ -163,3 +163,24 @@ $minmax-container-margin-bottom-pct: percentage(.12) !default;
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-knob .knob .canvas-background {
+    background: #323638;
+  }
+  .dark-theme :host .tb-knob .knob .value-container .knob-value {
+    color: #e8e6e3;
+  }
+  .dark-theme :host .tb-knob .knob .error-container .knob-error {
+    color: #ff4428;
+  }
+  .dark-theme :host .tb-knob .knob .title-container .knob-title {
+    color: #9e9689;
+  }
+  .dark-theme :host .tb-knob .knob .minmax-container .minmax-label {
+    color: #9e9689;
+  }
+  .dark-theme :host .tb-knob .knob .top-pointer-container .top-pointer {
+    background-color: #42474a;
+    box-shadow: 1px 0 2px #030303;
+  }

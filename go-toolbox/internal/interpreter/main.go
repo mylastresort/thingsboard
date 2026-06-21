@@ -24,9 +24,10 @@ type unit struct {
 }
 
 var units = []unit{
-	{"load", "load PdM CSVs into ThingsBoard as devices + timeseries"},
-	{"dash", "simulate devices, publishing telemetry over MQTT"},
-	{"alarm", "create/clear ThingsBoard alarms (subcommands: create, clear)"},
+    {"load",      "load PdM CSVs into ThingsBoard as devices + timeseries"},
+    {"dash",      "simulate devices, publishing telemetry over MQTT"},
+    {"alarm",     "create/clear ThingsBoard alarms (subcommands: create, clear)"},
+    {"darktheme", "append .dark-theme CSS block to ui-ngx SCSS files (requires node in PATH)"},
 }
 
 const binDir = "/tmp/pmtool-bin"

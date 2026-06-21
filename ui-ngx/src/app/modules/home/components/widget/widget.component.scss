@@ -70,3 +70,29 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .tb-widget .tb-widget-error {
+    background: rgba(24, 26, 27, 0.5);
+  }
+  .dark-theme .tb-widget .tb-widget-error span {
+    color: #ff1a1a;
+  }
+  .dark-theme .tb-widget .tb-widget-no-data {
+    background: rgba(24, 26, 27, 0.75);
+  }
+  .dark-theme .tb-widget .tb-widget-no-data span {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-widget .tb-widget-loading {
+    background: rgba(24, 26, 27, 0.15);
+  }
+  .dark-theme .tb-widget .tb-widget-error-container {
+    background-color: #181a1b;
+  }
+  .dark-theme .tb-widget .tb-widget-error-msg {
+    color: #ff1a1a;
+  }
+  .dark-theme .tb-widget #widget-container canvas::selection, .dark-theme .tb-widget #widget-container canvas::-moz-selection {
+    background-color: rgba(0, 0, 0, 0);
+  }

@@ -325,3 +325,71 @@
 ::ng-deep .tb-dark .loading-overlay {
   background: rgba(0, 0, 0, 0.6);
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .tb-device-models-toolbar {
+    background: #181a1b;
+  }
+  .dark-theme .tb-device-models-toolbar .device-models-title h4 {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .device-models-content-card .table-container table {
+    background: #181a1b;
+  }
+  .dark-theme .device-models-content-card .table-container table th.mat-header-cell {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .device-models-content-card .table-container table td.mat-cell {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .device-models-content-card .table-container table .model-name-cell {
+    color: #53a7eb;
+  }
+  .dark-theme .device-models-content-card .table-container table .models-count-badge {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .device-models-content-card mat-paginator {
+    border-top: 1px solid rgba(140, 130, 115, 0.12);
+    background: #181a1b;
+  }
+  .dark-theme ::ng-deep .tb-dark .tb-device-models-toolbar {
+    background: #242729;
+  }
+  .dark-theme ::ng-deep .tb-dark .tb-device-models-toolbar .device-models-title h4 {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card {
+    background: #323638;
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card .table-container table {
+    background: #323638;
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card .table-container table th.mat-header-cell {
+    color: rgba(232, 230, 227, 0.87);
+    border-bottom-color: rgba(48, 52, 54, 0.12);
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card .table-container table td.mat-cell {
+    color: rgba(232, 230, 227, 0.87);
+    border-bottom-color: rgba(48, 52, 54, 0.12);
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card .table-container table .model-name-cell {
+    color: #62b7f6;
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card .table-container table .models-count-badge {
+    background-color: rgba(24, 26, 27, 0.12);
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card .table-container table .model-row:hover {
+    background-color: rgba(24, 26, 27, 0.08);
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card .table-container table .model-row:active {
+    background-color: rgba(24, 26, 27, 0.12);
+  }
+  .dark-theme ::ng-deep .tb-dark .device-models-content-card mat-paginator {
+    background: #323638;
+    border-top-color: rgba(48, 52, 54, 0.12);
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .loading-overlay {
+    background: rgba(24, 26, 27, 0.8);
+  }

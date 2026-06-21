@@ -194,3 +194,21 @@ shell-model: ## Open a shell in the model service
 .PHONY: prune
 prune: ## Remove stopped containers and dangling images
 	docker system prune -f
+
+# ── Add to your root Makefile ────────────────────────────────────────────────
+
+# Rebuild the JS engine when Dark Reader vendor files change.
+# Run once, commit engine.js; only re-run when modifying go-toolbox/cmd/darktheme/engine/
+.PHONY: darktheme-engine
+darktheme-engine:
+	cd go-toolbox/cmd/darktheme && npm ci && npm run build
+
+# Run dark theme generation across ui-ngx SCSS source.
+# Requires: node in PATH inside the container (darktheme image is node:22-alpine based)
+.PHONY: darktheme
+darktheme:
+# 	build the image
+	$(COMPOSE) build go-toolbox-darktheme
+	$(COMPOSE) run --rm go-toolbox-darktheme \
+		--path /ui-ngx/src \
+		--selector .dark-theme

@@ -164,3 +164,11 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .control-component .hue-alpha-range > * {
+    border: 1px solid rgba(140, 130, 115, 0.1);
+  }
+  .dark-theme :host ::ng-deep .hue-alpha-range alpha-component .pointer, .dark-theme :host ::ng-deep .hue-alpha-range hue-component .pointer {
+    border: 2px solid #303436;
+  }

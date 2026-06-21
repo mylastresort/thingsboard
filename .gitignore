@@ -40,3 +40,4 @@ rebuild-docker.sh
 **/__pycache__
 .claude
 .planning
+go-toolbox/cmd/darktheme/node_modules

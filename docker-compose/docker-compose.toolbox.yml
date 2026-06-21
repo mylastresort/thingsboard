@@ -31,6 +31,14 @@ services:
         condition: service_started
     command: /go/bin/dash
 
+  go-toolbox-darktheme:
+    build:
+      context: ./go-toolbox
+      dockerfile: Dockerfile
+      target: darktheme
+    volumes:
+      - ./ui-ngx/src:/ui-ngx/src  # adjust to your actual ui-ngx path
+
 volumes:
   go-mod-cache:
     driver: local

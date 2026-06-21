@@ -197,3 +197,33 @@
     min-width: auto;
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .alerts-header {
+    background: rgba(25, 27, 28, 0.95);
+    color: #e8e6e3;
+  }
+  .dark-theme .alerts-header .dismiss-all-btn {
+    color: #e8e6e3;
+  }
+  .dark-theme .alert-card {
+    background: rgba(25, 27, 28, 0.95);
+  }
+  .dark-theme .alert-content {
+    color: #e8e6e3;
+  }
+  .dark-theme .alert-header .alert-time {
+    color: rgba(232, 230, 227, 0.7);
+  }
+  .dark-theme .alert-header .close-btn mat-icon {
+    color: rgba(232, 230, 227, 0.7);
+  }
+  .dark-theme .alert-header .close-btn:hover mat-icon {
+    color: #e8e6e3;
+  }
+  .dark-theme .alert-body .alert-component strong, .dark-theme .alert-body .alert-probability strong, .dark-theme .alert-body .alert-severity-label strong {
+    color: rgba(232, 230, 227, 0.7);
+  }
+  .dark-theme .alert-body .severity-badge {
+    color: #e8e6e3;
+  }

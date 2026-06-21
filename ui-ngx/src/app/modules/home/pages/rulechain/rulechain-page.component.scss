@@ -401,3 +401,92 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .tb-rulechain button.mdc-icon-button.tb-fullscreen-button {
+    background: #35393b;
+    color: #a8a095;
+  }
+  .dark-theme .tb-rulechain .tb-library-node-btn:before {
+    box-shadow: -10px 0px 0 0px #264566;
+  }
+  .dark-theme .tb-rulechain .tb-library-node-btn:after {
+    box-shadow: -10px 0px 0px 0px #264566;
+  }
+  .dark-theme .tb-rulechain .tb-rulechain-library .tb-rulechain-library-panel-group .mat-expansion-panel .mat-expansion-panel-header {
+    background: #26292b;
+  }
+  .dark-theme .tb-rulechain .tb-rulechain-library .tb-rulechain-library-panel-group .mat-expansion-panel .mat-expansion-panel-header:hover {
+    background: #2d3133;
+  }
+  .dark-theme .tb-rulechain .tb-rulechain-library .tb-rulechain-library-panel-group .mat-expansion-panel.mat-expanded .mat-expansion-panel-header {
+    border-color: #4f5659;
+  }
+  .dark-theme .tb-rulechain .tb-rulechain-library .tb-rulechain-library-panel-group .fc-canvas {
+    background: #1b1e1f;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-node.fc-selected:not(.fc-edit) {
+    border: solid 3px #b30000;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-edit .fc-nodeedit, .dark-theme .tb-rulechain .fc-canvas .fc-edit .fc-nodedelete {
+    border: solid 2px #303436;
+    background: #c63204;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-nodeopen {
+    border: 1px solid #303436;
+    background: #58407a;
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-nodeopen:hover {
+    background-color: #3e2465;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-arrow-marker polygon {
+    fill: #988f81;
+    stroke: #988f81;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-arrow-marker-selected polygon {
+    fill: #ff1a1a;
+    stroke: #ff1a1a;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-edge {
+    stroke: #988f81;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-edge.fc-selected {
+    stroke: #ff1a1a;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-edge.fc-hover {
+    stroke: #988f81;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .edge-endpoint {
+    fill: #988f81;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-edge-label.fc-selected .fc-edge-label-text span {
+    color: #e8e6e3;
+    background-color: #cc0000;
+    border: solid #b30000;
+  }
+  .dark-theme .tb-rulechain .fc-canvas .fc-edge-label .fc-edge-label-text span {
+    background-color: #181a1b;
+    color: #83c7ff;
+    border: solid 2px #0069db;
+  }
+  .dark-theme .tb-rule-node-tooltip, .dark-theme .tb-rule-node-help {
+    color: #c8c3bc;
+  }
+  .dark-theme .tb-rule-node-error-tooltip {
+    color: #f32b2b;
+  }
+  .dark-theme .tb-rule-node-tooltip #tb-node-content .tb-node-description, .dark-theme .tb-rule-node-error-tooltip #tb-node-content .tb-node-description, .dark-theme .tb-rule-node-help #tb-node-content .tb-node-description {
+    color: #b2aca2;
+  }
+  .dark-theme .tb-rule-node-tooltip #tb-node-content code, .dark-theme .tb-rule-node-error-tooltip #tb-node-content code, .dark-theme .tb-rule-node-help #tb-node-content code {
+    color: #ea5967;
+    background-color: #1c1e1f;
+    border: 1px solid #373c3e;
+  }
+  .dark-theme .tb-rule-chain-context-menu.mat-mdc-menu-panel .tb-context-menu-header.tb-rulechain-header {
+    background-color: #1c3b5a;
+  }
+  .dark-theme .tb-rule-chain-context-menu.mat-mdc-menu-panel .tb-context-menu-header.tb-link-header {
+    background-color: #1c3b5a;
+  }

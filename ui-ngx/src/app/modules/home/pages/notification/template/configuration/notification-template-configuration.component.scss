@@ -70,3 +70,17 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-template-header .tb-hint-available-params {
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme :host .template-tittle tb-icon {
+    color: rgba(232, 230, 227, 0.38);
+  }
+  .dark-theme :host .tb-title.tb-error {
+    color: var(--mat-theme-error, #f54e42);
+  }
+  .dark-theme :host .tb-title.tb-error.tb-required::after {
+    color: var(--mat-theme-error, #f54e42);
+  }

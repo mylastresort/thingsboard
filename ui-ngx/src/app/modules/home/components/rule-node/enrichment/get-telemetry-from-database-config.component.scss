@@ -64,3 +64,17 @@
   }
 }
 
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .description-block {
+    border: 1px solid #363a3d;
+  }
+  .dark-theme :host .description-block .description-icon {
+    color: #d0ccc6;
+  }
+  .dark-theme :host .description-block.error {
+    color: var(--mat-theme-error, #f54e42);
+  }
+  .dark-theme :host .description-block.error .description-icon {
+    color: var(--mat-theme-error, #f54e42);
+  }

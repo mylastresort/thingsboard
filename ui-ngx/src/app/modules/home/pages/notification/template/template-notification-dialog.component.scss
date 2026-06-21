@@ -99,3 +99,14 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .mat-mdc-dialog-content {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .tb-title.tb-error {
+    color: var(--mat-theme-error, #f54e42);
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .tb-title.tb-error.tb-required::after {
+    color: var(--mat-theme-error, #f54e42);
+  }

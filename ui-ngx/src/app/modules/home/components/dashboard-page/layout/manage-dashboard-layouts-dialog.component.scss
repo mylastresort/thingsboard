@@ -213,3 +213,30 @@ $tb-warn: mat.m2-get-color-from-palette(map-get($tb-theme, warn), text);
     text-align: center;
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-layout-preview-container button.tb-fixed-layout-button {
+    background-color: rgba(0, 0, 0, 0);
+    color: #e8e6e3;
+  }
+  .dark-theme :host .tb-layout-preview-container button.tb-fixed-layout-button .mat-icon {
+    color: rgba(232, 230, 227, 0.38);
+  }
+  .dark-theme :host .tb-layout-preview-container button.tb-fixed-layout-button:hover {
+    background-color: rgba(49, 53, 55, 0.6);
+  }
+  .dark-theme :host .tb-layout-preview-container .tb-layout-preview-element .mat-icon {
+    color: rgba(232, 230, 227, 0.76);
+  }
+  .dark-theme :host .tb-layout-preview-container .tb-layout-preview-input input {
+    border: 1px solid #52585c;
+    background-color: rgba(0, 0, 0, 0);
+    color: #e8e6e3;
+  }
+  .dark-theme :host .tb-add-breakpoint-button {
+    background: #181a1b;
+    border: 2px dashed rgba(140, 130, 115, 0.08);
+  }
+  .dark-theme :host ::ng-deep .mat-button-toggle-group {
+    border: 2px solid rgba(140, 130, 115, 0.06);
+  }

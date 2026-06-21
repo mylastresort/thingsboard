@@ -25,3 +25,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 RUN go install ./cmd/dash
 CMD ["dash"]
+
+FROM base AS darktheme-build
+RUN go build -o /darktheme ./cmd/darktheme
+
+FROM node:22-alpine AS darktheme
+COPY --from=darktheme-build /darktheme /usr/local/bin/darktheme
+ENTRYPOINT ["darktheme"]

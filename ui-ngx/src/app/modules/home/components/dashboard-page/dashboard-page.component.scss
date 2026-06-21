@@ -195,3 +195,17 @@ div.tb-dashboard-page {
   }
 
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme div.tb-dashboard-page.mat-content {
+    background-color: #222426;
+  }
+  .dark-theme div.tb-dashboard-page .mat-divider-vertical.tb-toolbar-divider {
+    border-right-color: rgba(48, 52, 54, 0.75);
+  }
+  .dark-theme div.tb-dashboard-page mat-drawer-container.tb-dashboard-drawer-container mat-drawer-container.tb-dashboard-layouts #tb-main-layout .layout-filler {
+    background: repeating-linear-gradient(-16deg, #313537, #313537 3px, #2a2d2f 3px, #2a2d2f 11px);
+    border-bottom: 2px dashed #43484b;
+    border-right: 2px dashed #43484b;
+    color: #aba398;
+  }

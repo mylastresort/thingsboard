@@ -1,0 +1,17 @@
+{
+  "name": "dark-scss-engine",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "esbuild engine.ts --bundle --outfile=engine.js --platform=node --format=cjs --minify"
+  },
+  "dependencies": {
+    "postcss": "^8.4.38",
+    "postcss-nested": "^7.0.2",
+    "postcss-scss": "^4.0.9"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}

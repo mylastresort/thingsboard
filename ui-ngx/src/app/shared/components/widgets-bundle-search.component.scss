@@ -53,3 +53,26 @@
   }
 }
 
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .input-wrapper {
+    background: rgba(24, 26, 27, 0.2);
+    color: rgba(232, 230, 227, 0.84);
+  }
+  .dark-theme .input-wrapper input {
+    background-color: rgba(0, 0, 0, 0);
+    color: #e8e6e3;
+  }
+  .dark-theme .input-wrapper input::placeholder {
+    color: #e8e6e3;
+  }
+  .dark-theme .input-wrapper.focus {
+    background: #181a1b;
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .input-wrapper.focus input {
+    color: #e8e6e3;
+  }
+  .dark-theme .input-wrapper.focus .close {
+    color: #e8e6e3;
+  }

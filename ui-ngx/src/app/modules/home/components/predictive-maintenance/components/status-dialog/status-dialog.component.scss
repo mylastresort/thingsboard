@@ -240,3 +240,83 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .summary-section .summary-item .summary-label {
+    color: rgba(232, 230, 227, 0.6);
+  }
+  .dark-theme .summary-section .summary-item .summary-value.warning {
+    color: #f54e42;
+  }
+  .dark-theme .table-container {
+    border: 1px solid rgba(140, 130, 115, 0.12);
+  }
+  .dark-theme .table-container table th.mat-header-cell {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .severity-badge.severity-low {
+    background-color: rgba(61, 140, 64, 0.1);
+    color: #61ba65;
+  }
+  .dark-theme .severity-badge.severity-medium {
+    background-color: rgba(204, 122, 0, 0.1);
+    color: #ffa21a;
+  }
+  .dark-theme .severity-badge.severity-high {
+    background-color: rgba(169, 20, 9, 0.1);
+    color: #f54e42;
+  }
+  .dark-theme .severity-badge.severity-critical {
+    background-color: rgba(125, 31, 141, 0.1);
+    color: #c85ada;
+  }
+  .dark-theme .status-badge.resolved {
+    background-color: rgba(61, 140, 64, 0.1);
+    color: #61ba65;
+  }
+  .dark-theme .status-badge.unresolved {
+    background-color: rgba(169, 20, 9, 0.1);
+    color: #f54e42;
+  }
+  .dark-theme ::ng-deep .tb-dark .status-dialog {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme ::ng-deep .tb-dark .summary-section {
+    background: rgba(24, 26, 27, 0.08);
+  }
+  .dark-theme ::ng-deep .tb-dark .summary-section .summary-label {
+    color: rgba(232, 230, 227, 0.6);
+  }
+  .dark-theme ::ng-deep .tb-dark .summary-section .summary-value.warning {
+    color: #ff5353;
+  }
+  .dark-theme ::ng-deep .tb-dark .table-container {
+    border-color: rgba(48, 52, 54, 0.12);
+  }
+  .dark-theme ::ng-deep .tb-dark .table-container table th.mat-header-cell {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme ::ng-deep .tb-dark .severity-badge.severity-low {
+    background-color: rgba(61, 140, 64, 0.15);
+    color: #83c886;
+  }
+  .dark-theme ::ng-deep .tb-dark .severity-badge.severity-medium {
+    background-color: rgba(204, 122, 0, 0.15);
+    color: #ffb84f;
+  }
+  .dark-theme ::ng-deep .tb-dark .severity-badge.severity-high {
+    background-color: rgba(169, 20, 9, 0.15);
+    color: #e57272;
+  }
+  .dark-theme ::ng-deep .tb-dark .severity-badge.severity-critical {
+    background-color: rgba(125, 31, 141, 0.15);
+    color: #be70cb;
+  }
+  .dark-theme ::ng-deep .tb-dark .status-badge.resolved {
+    background-color: rgba(61, 140, 64, 0.15);
+    color: #83c886;
+  }
+  .dark-theme ::ng-deep .tb-dark .status-badge.unresolved {
+    background-color: rgba(169, 20, 9, 0.15);
+    color: #e57272;
+  }

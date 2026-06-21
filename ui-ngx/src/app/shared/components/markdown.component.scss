@@ -403,3 +403,76 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-markdown-view p, .dark-theme :host .tb-markdown-view div {
+    color: rgba(218, 215, 210, 0.8);
+  }
+  .dark-theme :host .tb-markdown-view ul {
+    color: rgba(218, 215, 210, 0.8);
+  }
+  .dark-theme :host .tb-markdown-view a {
+    color: #3b99ee;
+  }
+  .dark-theme :host .tb-markdown-view a:hover {
+    color: #3b99ee;
+  }
+  .dark-theme :host .tb-markdown-view > table {
+    border: 1px solid rgba(14, 75, 158, 0.2);
+  }
+  .dark-theme :host .tb-markdown-view > table > thead {
+    background-color: #1a1c1d;
+    color: rgba(209, 205, 199, 0.6);
+  }
+  .dark-theme :host .tb-markdown-view > table > thead > tr > th {
+    border-bottom: 1px solid rgba(14, 75, 158, 0.2);
+  }
+  .dark-theme :host .tb-markdown-view > table > tbody > tr:not(:last-child) > td {
+    border-bottom: 1px solid rgba(14, 75, 158, 0.2);
+  }
+  .dark-theme :host .tb-markdown-view > table > tbody > tr > td {
+    color: rgba(218, 215, 210, 0.8);
+  }
+  .dark-theme :host .tb-markdown-view div.divider {
+    border-bottom: 1px solid rgba(133, 123, 109, 0.1);
+  }
+  .dark-theme :host .tb-markdown-view button.tb-button {
+    color: #e8e6e3;
+    background-color: #264566;
+  }
+  .dark-theme :host .tb-markdown-view button.tb-button:hover {
+    background-color: #1e364f;
+    color: #e8e6e3;
+  }
+  .dark-theme :host .tb-markdown-view code:not([class*=language-]) {
+    color: #ec5c5c;
+  }
+  .dark-theme :host .tb-markdown-view div.code-wrapper button.clipboard-btn p {
+    color: #3b99ee;
+    background: rgba(24, 26, 27, 0.85);
+  }
+  .dark-theme :host .tb-markdown-view div.code-wrapper button.clipboard-btn div {
+    background-color: #181a1b;
+  }
+  .dark-theme :host .tb-markdown-view div.code-wrapper:hover pre[class*="language-"] {
+    border: solid 1px #0e4b9e;
+  }
+  .dark-theme :host .tb-markdown-view pre[class*="language-"] {
+    border: 1px solid rgba(14, 75, 158, 0.2);
+    color: #d1cdc7;
+  }
+  .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.atrule, .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.attr-value, .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.keyword {
+    color: #3b99ee;
+  }
+  .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.selector, .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.attr-name, .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.string, .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.char, .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.builtin, .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.inserted {
+    color: #ec5c5c;
+  }
+  .dark-theme :host .tb-markdown-view pre[class*="language-"] .token.punctuation {
+    color: #d1cdc7;
+  }
+  .dark-theme :host .tb-markdown-view pre[class*="language-"].line-numbers > code span.line-numbers-rows {
+    background: #1a1c1d;
+  }
+  .dark-theme :host .tb-markdown-view pre[class*="language-"].line-numbers > code span.line-numbers-rows > span:before {
+    color: rgba(209, 205, 199, 0.6);
+  }

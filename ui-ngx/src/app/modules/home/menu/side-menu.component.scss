@@ -72,3 +72,14 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host ::ng-deep .tb-side-menu > li {
+    border-bottom: 1px solid rgba(140, 130, 115, 0.12);
+  }
+  .dark-theme :host ::ng-deep a.mat-mdc-button.mat-mdc-button-base:hover {
+    background-color: rgba(24, 26, 27, 0.08);
+  }
+  .dark-theme :host ::ng-deep a.mat-mdc-button.mat-mdc-button-base.tb-active {
+    background-color: rgba(24, 26, 27, 0.15);
+  }

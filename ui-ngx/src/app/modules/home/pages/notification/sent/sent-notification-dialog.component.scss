@@ -233,3 +233,30 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .mat-mdc-dialog-content {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .tb-title.tb-error {
+    color: var(--mat-theme-error, #f54e42);
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .tb-title.tb-error.tb-required::after {
+    color: var(--mat-theme-error, #f54e42);
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .tb-hint-available-params {
+    background-color: rgba(38, 69, 102, 0.04);
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .preview-group.notification {
+    background-color: #1d1f20;
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .preview-group.notification tb-icon, .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .preview-group.notification .tb-form-panel-title {
+    color: rgba(232, 230, 227, 0.38);
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .preview-group .web-preview tb-notification {
+    background-color: #181a1b;
+  }
+  .dark-theme :host-context(.tb-fullscreen-dialog .mat-mdc-dialog-container) .preview-group .notification-content {
+    border: 1px solid rgba(140, 130, 115, 0.1);
+    background: #181a1b;
+  }

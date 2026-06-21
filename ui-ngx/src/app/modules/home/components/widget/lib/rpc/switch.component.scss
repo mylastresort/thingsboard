@@ -155,3 +155,21 @@ $error-height: 14px !default;
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-switch .error-container .switch-error {
+    color: #ff4428;
+  }
+  .dark-theme :host .tb-switch .onoff-container {
+    color: #9e9689;
+  }
+  .dark-theme :host .tb-switch .onoff-container .off-label {
+    color: #bab4ab;
+  }
+  .dark-theme :host .tb-switch .onoff-container .on-label {
+    color: #ff7e56;
+    text-shadow: #a02000 1px 1px 10px, #571400 1px 1px 10px;
+  }
+  .dark-theme :host .tb-switch .title-container .switch-title {
+    color: #9e9689;
+  }

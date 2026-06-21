@@ -779,3 +779,226 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .table-container .mat-mdc-table-toolbar .title-icon {
+    color: #ffa21a;
+  }
+  .dark-theme .table-container .mat-mdc-table-toolbar .stream-indicator {
+    background-color: rgba(204, 122, 0, 0.2);
+    color: #ffa21a;
+  }
+  .dark-theme .table-container .mat-mdc-table-toolbar .stream-indicator.connected {
+    background-color: rgba(61, 140, 64, 0.2);
+    color: #61ba65;
+  }
+  .dark-theme .table-container .mat-mdc-table-toolbar .stream-indicator.error {
+    background-color: rgba(169, 20, 9, 0.2);
+    color: #f54e42;
+  }
+  .dark-theme .table-container .anomalies-table .mat-mdc-header-cell .header-content .pin-button:hover {
+    background-color: rgba(24, 26, 27, 0.1);
+  }
+  .dark-theme .table-container .anomalies-table .mat-mdc-header-cell .header-content .pin-button.pinned {
+    color: #ffa21a;
+    background-color: rgba(204, 122, 0, 0.1);
+  }
+  .dark-theme .table-container .anomalies-table .mat-mdc-header-cell .header-content .pin-button.pinned .pin-icon {
+    color: #ffa21a;
+  }
+  .dark-theme .table-container .anomalies-table .mat-mdc-header-cell .header-content .pin-button.pinned:hover {
+    background-color: rgba(204, 122, 0, 0.2);
+  }
+  .dark-theme .table-container .anomalies-table .mat-mdc-header-cell.sticky-column {
+    background: var(
+          --tb-dark-app-bar,
+          var(--tb-dark-widget, #151718)
+        );
+  }
+  .dark-theme .table-container .anomalies-table .mat-mdc-header-cell.sticky-column .header-content .pin-button.pinned {
+    background-color: rgba(204, 122, 0, 0.2);
+  }
+  .dark-theme .table-container .anomalies-table .table-row:hover {
+    background-color: var(--tb-dark-hover, #1e2021);
+  }
+  .dark-theme .table-container .anomalies-table .table-row:hover .mat-mdc-cell.sticky-column {
+    background: var(--tb-dark-hover, #1e2021);
+  }
+  .dark-theme .severity-cell .severity-text.critical {
+    color: #f54e42;
+  }
+  .dark-theme .severity-cell .severity-text.major {
+    color: #ffa21a;
+  }
+  .dark-theme .severity-cell .severity-text.minor {
+    color: #33a2f4;
+  }
+  .dark-theme .error-cell .metrics-chips .metric-chip {
+    background-color: #202325;
+    color: #53a7eb;
+    border: 1px solid #074375;
+  }
+  .dark-theme .component-cell .component-icon {
+    color: #a8a095;
+  }
+  .dark-theme .device-type-cell .device-type-icon {
+    color: #a8a095;
+  }
+  .dark-theme .location-cell .location-icon {
+    color: #a8a095;
+  }
+  .dark-theme .status-cell .status-text.active {
+    color: #f54e42;
+  }
+  .dark-theme .status-cell .status-text.investigating {
+    color: #ffa21a;
+  }
+  .dark-theme .status-cell .status-text.resolved {
+    color: #61ba65;
+  }
+  .dark-theme .confidence-cell .confidence-value.high-confidence {
+    color: #d74343;
+  }
+  .dark-theme .confidence-cell .confidence-value.medium-confidence {
+    color: #ff723f;
+  }
+  .dark-theme .confidence-cell .confidence-value.low-confidence {
+    color: #ffb84f;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container mat-card {
+    background-color: #222526;
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .mat-mdc-table-toolbar {
+    background-color: #222526;
+    color: #e8e6e3;
+    border-bottom-color: #776e62;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .mat-mdc-table-toolbar .title-icon {
+    color: #ffca4b;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .table-footer {
+    background-color: #222526;
+    border-top-color: #776e62;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-header-cell {
+    background-color: #222526;
+    color: #e8e6e3;
+    border-bottom-color: #776e62;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-header-cell .header-content .pin-button:hover {
+    background-color: rgba(24, 26, 27, 0.1);
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-header-cell .header-content .pin-button.pinned {
+    color: #ffca4b;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-header-cell .header-content .pin-button.pinned .pin-icon {
+    color: #ffca4b;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-header-cell.sticky-column {
+    background: var(--tb-dark-widget, #151718);
+    border-right-color: #08599a;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-header-cell.sticky-column .header-content .pin-button.pinned {
+    background-color: rgba(121, 86, 0, 0.2);
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-cell {
+    color: #e8e6e3;
+    border-bottom-color: #776e62;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .mat-mdc-cell.sticky-column {
+    background: var(--tb-dark-widget, #151718);
+    border-right-color: #08599a;
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .table-row:hover {
+    background-color: var(--tb-dark-hover, #303436);
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container .anomalies-table .table-row:hover .mat-mdc-cell.sticky-column {
+    background: var(--tb-dark-hover, #303436);
+  }
+  .dark-theme .tb-dark .anomalies-container .table-container mat-paginator {
+    background-color: #222526;
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dark .anomalies-container .severity-text.critical {
+    color: #ff6464;
+  }
+  .dark-theme .tb-dark .anomalies-container .severity-text.major {
+    color: #ffad34;
+  }
+  .dark-theme .tb-dark .anomalies-container .severity-text.minor {
+    color: #4aacf5;
+  }
+  .dark-theme .tb-dark .anomalies-container .entity-cell .entity-name {
+    color: #62b7f6;
+  }
+  .dark-theme .tb-dark .anomalies-container .error-cell .error-name {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dark .anomalies-container .error-cell .metrics-chips .metric-chip {
+    background-color: #303436;
+    color: #e8e6e3;
+    border-color: #6c6559;
+  }
+  .dark-theme .tb-dark .anomalies-container .sensor-icon, .dark-theme .tb-dark .anomalies-container .location-icon {
+    color: #62b7f6;
+  }
+  .dark-theme .tb-dark .anomalies-container .sensor-info .sensor-name {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dark .anomalies-container .sensor-info .device-type {
+    color: #b2aca2;
+  }
+  .dark-theme .tb-dark .anomalies-container .date-icon {
+    color: #b2aca2;
+  }
+  .dark-theme .tb-dark .anomalies-container .device-type-icon {
+    color: #b2aca2;
+  }
+  .dark-theme .tb-dark .anomalies-container .status-text.active {
+    color: #ff6464;
+  }
+  .dark-theme .tb-dark .anomalies-container .status-text.investigating {
+    color: #ffad34;
+  }
+  .dark-theme .tb-dark .anomalies-container .status-text.resolved {
+    color: #71c074;
+  }
+  .dark-theme .tb-dark .anomalies-container .confidence-value.high-confidence {
+    color: #d74343;
+  }
+  .dark-theme .tb-dark .anomalies-container .confidence-value.medium-confidence {
+    color: #ff723f;
+  }
+  .dark-theme .tb-dark .anomalies-container .confidence-value.low-confidence {
+    color: #ffb84f;
+  }
+  .dark-theme .tb-dark .anomalies-container .confidence-icon {
+    color: #b2aca2;
+  }
+  .dark-theme .mat-mdc-table-toolbar .mat-icon-button:hover {
+    background-color: rgba(24, 26, 27, 0.1);
+  }
+  .dark-theme .filter-active::after {
+    background-color: #cc7a00;
+  }
+  .dark-theme .date-filter-popup .filter-header {
+    color: var(--mat-primary-color, #53a7eb);
+  }
+  .dark-theme .date-filter-popup .time-inputs .time-separator {
+    color: rgba(232, 230, 227, 0.6);
+  }
+  .dark-theme .tb-dark .filter-active::after {
+    background-color: #795600;
+    border-color: #7d7467;
+  }
+  .dark-theme .tb-dark .date-filter-popup {
+    background-color: #222526;
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dark .date-filter-popup .filter-header {
+    color: #ffca4b;
+  }
+  .dark-theme .tb-dark .date-filter-popup .time-inputs .time-separator {
+    color: rgba(232, 230, 227, 0.6);
+  }

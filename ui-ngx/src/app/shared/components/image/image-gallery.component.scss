@@ -273,3 +273,40 @@ $tb-button-selected-color: rgb(255, 110, 64) !default;
     background-position-x: -200%;
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .tb-images .tb-images-content {
+    background: #181a1b;
+  }
+  .dark-theme .tb-images .tb-images-content.tb-outlined-border {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(0, 0, 0, 0.14), 0 0 0 0 rgba(0, 0, 0, 0.12);
+    border: solid 1px #393d40;
+  }
+  .dark-theme .tb-images .tb-images-content .tb-images-view-type-toolbar {
+    background-color: rgba(0, 0, 0, 0);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-images-view-type-toolbar .tb-toolbar-button.tb-selected {
+    background-color: rgba(24, 26, 27, 0.15);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-image-card .tb-image-card-overlay .tb-image-card-overlay-buttons {
+    color: rgba(232, 230, 227, 0.78);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-image-card:hover .tb-image-preview-container .tb-image-preview-overlay {
+    background: rgba(30, 32, 33, 0.6);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-image-card .tb-image-preview-container .tb-image-preview-overlay {
+    background: rgba(30, 32, 33, 0);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-image-card .tb-image-details .tb-image-title-container .tb-image-title {
+    color: rgba(232, 230, 227, 0.76);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-image-card .tb-image-details .tb-image-title-container .tb-image-sys {
+    background: rgba(35, 38, 39, 0.64);
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-image-card .tb-image-details .tb-image-info-container {
+    color: rgba(232, 230, 227, 0.38);
+  }
+  .dark-theme .tb-images .tb-images-content .tb-image-card.loading-cell .tb-image-preview-container, .dark-theme .tb-images .tb-images-content .tb-image-card.loading-cell .tb-image-details {
+    background: linear-gradient(110deg, #232627 8%, #1e2021 18%, #232627 33%);
+  }

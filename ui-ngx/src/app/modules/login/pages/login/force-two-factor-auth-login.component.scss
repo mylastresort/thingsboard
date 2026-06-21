@@ -115,3 +115,20 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-two-factor-auth-login-content {
+    background-color: #222426;
+  }
+  .dark-theme :host ::ng-deep .tb-two-factor-auth-login-content .tb-two-factor-auth-login-card button.mat-mdc-icon-button .mat-icon {
+    color: rgba(232, 230, 227, 0.8);
+  }
+  .dark-theme :host ::ng-deep .tb-two-factor-auth-login-content .mat-mdc-form-field .mat-mdc-form-field-hint-wrapper {
+    color: rgba(232, 230, 227, 0.8);
+  }
+  .dark-theme :host ::ng-deep button.provider, .dark-theme :host ::ng-deep button.navigation {
+    color: rgba(232, 230, 227, 0.8);
+  }
+  .dark-theme :host ::ng-deep button.provider:not([disabled][disabled]), .dark-theme :host ::ng-deep button.navigation:not([disabled][disabled]) {
+    border-color: rgba(48, 52, 54, 0.8);
+  }

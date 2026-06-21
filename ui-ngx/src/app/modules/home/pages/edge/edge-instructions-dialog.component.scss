@@ -136,3 +136,14 @@
     padding: 16px 0;
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host-context(.mat-mdc-dialog-container) .mat-mdc-dialog-content {
+    border-top: 16px solid #303436;
+  }
+  .dark-theme :host ::ng-deep .tb-markdown-view div {
+    background-color: #1d1f20;
+  }
+  .dark-theme :host ::ng-deep .mat-mdc-tab-header {
+    background-color: #181a1b;
+  }

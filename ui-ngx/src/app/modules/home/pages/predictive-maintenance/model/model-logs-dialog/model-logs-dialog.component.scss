@@ -457,3 +457,124 @@ h2[mat-dialog-title] {
     opacity: 0.7;
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .dialog-header {
+    border-bottom: 1px solid rgba(140, 130, 115, 0.12);
+  }
+  .dark-theme ::ng-deep .tb-dark .dialog-header {
+    border-bottom: 1px solid rgba(48, 52, 54, 0.12);
+  }
+  .dark-theme .header-icon {
+    color: #33a2f4;
+  }
+  .dark-theme .dialog-subtitle {
+    border-bottom: 1px solid rgba(140, 130, 115, 0.06);
+  }
+  .dark-theme ::ng-deep .tb-dark .dialog-subtitle {
+    background: rgba(24, 26, 27, 0.03);
+    border-bottom: 1px solid rgba(48, 52, 54, 0.06);
+  }
+  .dark-theme .separator {
+    color: rgba(232, 230, 227, 0.38);
+  }
+  .dark-theme .filter-section {
+    border-bottom: 1px solid rgba(140, 130, 115, 0.08);
+  }
+  .dark-theme ::ng-deep .tb-dark .filter-section {
+    border-bottom: 1px solid rgba(48, 52, 54, 0.08);
+    background: rgba(24, 26, 27, 0.02);
+  }
+  .dark-theme .logs-dialog .logs-terminal {
+    color: #d4d1cb;
+  }
+  .dark-theme .logs-dialog .log-row {
+    border-bottom: 1px solid #7f7668;
+  }
+  .dark-theme .logs-dialog .log-time {
+    color: #ada59b;
+  }
+  .dark-theme .logs-dialog .log-level {
+    background: #1d2021;
+    color: #d4d1cb;
+  }
+  .dark-theme .logs-dialog .log-level.info {
+    color: #57b2ff;
+    background: #1d2021;
+  }
+  .dark-theme .logs-dialog .log-level.warn {
+    color: #f18f49;
+    background: #1d2021;
+  }
+  .dark-theme .logs-dialog .log-level.error {
+    color: #ff7369;
+    background: #1d2021;
+  }
+  .dark-theme ::ng-deep .tb-dark .logs-dialog .log-level {
+    background: #161a20;
+  }
+  .dark-theme ::ng-deep .tb-dark .logs-dialog .log-level.info {
+    color: #57b2ff;
+  }
+  .dark-theme ::ng-deep .tb-dark .logs-dialog .log-level.warn {
+    color: #f18f49;
+  }
+  .dark-theme ::ng-deep .tb-dark .logs-dialog .log-level.error {
+    color: #ff7369;
+  }
+  .dark-theme .logs-dialog .log-source {
+    color: #81c79c;
+    background: #1d2021;
+  }
+  .dark-theme ::ng-deep .tb-dark .logs-dialog .log-source {
+    color: #7ae683;
+    background: #161a20;
+  }
+  .dark-theme .logs-dialog .log-message {
+    color: #d4d1cb;
+  }
+  .dark-theme .logs-dialog .logs-container {
+    background: #1b1d1e;
+  }
+  .dark-theme .logs-dialog .log-entry {
+    background: #181a1b;
+    border-left: 4px solid #393d40;
+  }
+  .dark-theme .logs-dialog ::ng-deep .tb-dark .log-entry {
+    background: #171819;
+    border-left: 4px solid #766e61;
+  }
+  .dark-theme .logs-dialog .log-entry.info {
+    border-left-color: #095fa3;
+  }
+  .dark-theme .logs-dialog .log-entry.warn {
+    border-left-color: #b36a00;
+  }
+  .dark-theme .logs-dialog .log-entry.error {
+    border-left-color: #9d1309;
+  }
+  .dark-theme .logs-dialog .level-icon.info {
+    color: #33a2f4;
+  }
+  .dark-theme .logs-dialog .level-icon.warn {
+    color: #ffa21a;
+  }
+  .dark-theme .logs-dialog .level-icon.error {
+    color: #f54e42;
+  }
+  .dark-theme .logs-dialog ::ng-deep .tb-dark .log-level {
+    background: rgba(24, 26, 27, 0.1);
+  }
+  .dark-theme .logs-dialog .log-source {
+    background: rgba(20, 94, 168, 0.08);
+    color: #53a7eb;
+  }
+  .dark-theme .logs-dialog .dialog-actions {
+    border-top: 1px solid rgba(140, 130, 115, 0.12);
+  }
+  .dark-theme .logs-dialog ::ng-deep .tb-dark .logs-dialog .dialog-actions {
+    border-top: 1px solid rgba(48, 52, 54, 0.12);
+  }
+  .dark-theme .logs-dialog .status-icon.connected {
+    color: #61ba65;
+  }

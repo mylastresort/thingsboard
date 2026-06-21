@@ -81,3 +81,20 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-filter-text.required {
+    color: #f54e42;
+  }
+  .dark-theme :host ::ng-deep .tb-filter-text .tb-filter-entity-key, .dark-theme :host ::ng-deep .tb-filter-text .tb-filter-value, .dark-theme :host ::ng-deep .tb-filter-text .tb-filter-dynamic-source {
+    border: 1px groove rgba(140, 130, 115, 0.25);
+  }
+  .dark-theme :host ::ng-deep .tb-filter-text .tb-filter-entity-key {
+    color: #8db4d4;
+  }
+  .dark-theme :host ::ng-deep .tb-filter-text .tb-filter-value {
+    color: #ff6331;
+  }
+  .dark-theme :host ::ng-deep .tb-filter-text .tb-filter-dynamic-value .tb-filter-dynamic-source, .dark-theme :host ::ng-deep .tb-filter-text .tb-filter-dynamic-value .tb-filter-value {
+    color: #62ecf3;
+  }

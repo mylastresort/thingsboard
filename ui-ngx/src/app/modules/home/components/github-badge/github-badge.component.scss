@@ -48,3 +48,17 @@
     --mat-divider-color: var(--mat-button-outlined-label-text-color);
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .group .mdc-button {
+    background-color: rgba(24, 26, 27, 0.12);
+  }
+  .dark-theme :host .group:hover .mdc-button {
+    background-color: rgba(24, 26, 27, 0.2);
+  }
+  .dark-theme :host .group .mdc-icon-button {
+    background-color: #122334;
+  }
+  .dark-theme :host .group .mdc-icon-button:hover {
+    background-color: #b12300;
+  }

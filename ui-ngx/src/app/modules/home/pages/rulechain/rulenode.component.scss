@@ -152,3 +152,33 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .fc-node-overlay {
+    background-color: #000000;
+  }
+  .dark-theme :host :host-context(.fc-edit) .fc-nodeedit, .dark-theme :host :host-context(.fc-edit) .fc-nodedelete {
+    border: solid 2px #303436;
+    background: #c63204;
+  }
+  .dark-theme :host .tb-rule-node {
+    color: #c8c3bc;
+    background-color: #b2370b;
+    border: solid 1px #655e53;
+  }
+  .dark-theme :host .tb-rule-node.tb-rule-node-highlighted:not(.tb-rule-node-invalid) {
+    box-shadow: 0 0 10px 6px #0f7997;
+  }
+  .dark-theme :host .tb-rule-node.tb-rule-node-invalid {
+    box-shadow: 0 0 10px 6px #9c0b00;
+  }
+  .dark-theme :host .tb-rule-node.tb-input-type {
+    background-color: #16612d;
+  }
+  .dark-theme :host .tb-rule-node .fc-connector {
+    background-color: #35393b;
+    border: 1px solid #7b7265;
+  }
+  .dark-theme :host .tb-rule-node .fc-connector.fc-hover {
+    background-color: #000000;
+  }

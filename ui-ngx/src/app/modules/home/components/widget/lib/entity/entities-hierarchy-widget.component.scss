@@ -119,3 +119,11 @@
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host .tb-entities-hierarchy mat-toolbar.mat-mdc-table-toolbar:not([color="primary"]) {
+    background: rgba(0, 0, 0, 0);
+  }
+  .dark-theme :host ::ng-deep .tb-nav-tree-container.jstree-proton .jstree-anchor div.node-icon {
+    background-color: rgba(0, 0, 0, 0);
+  }
