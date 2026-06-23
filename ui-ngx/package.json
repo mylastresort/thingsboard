@@ -45,6 +45,7 @@
     "angular2-hotkeys": "^16.0.1",
     "canvas-gauges": "^2.1.7",
     "core-js": "^3.48.0",
+    "darkreader": "^4.9.125",
     "dayjs": "1.11.20",
     "echarts": "https://github.com/thingsboard/echarts/archive/5.5.2-TB.tar.gz",
     "flot": "https://github.com/thingsboard/flot.git#0.9-work",

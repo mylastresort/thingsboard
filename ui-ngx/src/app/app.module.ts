@@ -28,6 +28,7 @@ import { DashboardRoutingModule } from '@modules/dashboard/dashboard-routing.mod
 import { RouterModule, Routes } from '@angular/router';
 
 import { DefaultUrlSerializer, UrlSerializer, UrlTree } from '@angular/router';
+import { DarkThemeService } from './core/services/dark-theme.service';
 
 export default class TbUrlSerializer implements UrlSerializer {
   private _defaultUrlSerializer: DefaultUrlSerializer = new DefaultUrlSerializer();
@@ -73,7 +74,8 @@ export class PageNotFoundRoutingModule { }
     PageNotFoundRoutingModule
   ],
   providers: [
-    { provide: UrlSerializer, useClass: TbUrlSerializer }
+    { provide: UrlSerializer, useClass: TbUrlSerializer },
+    DarkThemeService
   ],
   bootstrap: [AppComponent]
 })

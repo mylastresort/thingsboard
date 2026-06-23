@@ -16,7 +16,7 @@
 
 import 'hammerjs';
 
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 import { environment as env } from '@env/environment';
 
@@ -33,6 +33,7 @@ import { svgIcons, svgIconsUrl } from '@shared/models/icon.models';
 import { ActionSettingsChangeLanguage } from '@core/settings/settings.actions';
 import { SETTINGS_KEY } from '@core/settings/settings.effects';
 import { initCustomJQueryEvents } from '@shared/models/jquery-event.models';
+import { DarkThemeService } from './core/services/dark-theme.service';
 
 @Component({
     selector: 'tb-root',
@@ -40,13 +41,18 @@ import { initCustomJQueryEvents } from '@shared/models/jquery-event.models';
     styleUrls: ['./app.component.scss'],
     standalone: false
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
+
+  ngOnInit() {
+    this.darkThemeService.restore();
+  }
 
   constructor(private store: Store<AppState>,
               private storageService: LocalStorageService,
               private translate: TranslateService,
               private matIconRegistry: MatIconRegistry,
               private domSanitizer: DomSanitizer,
+              private darkThemeService: DarkThemeService,
               private authService: AuthService) {
 
     console.log(`ThingsBoard Version: ${env.tbVersion}`);
