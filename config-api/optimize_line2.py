@@ -65,7 +65,34 @@ THINGSBOARD_SYNC_PROFILES = {
     },
 }
 THINGSBOARD_PRIVATE_SYNC_PROFILE = "pdm1"
-THINGSBOARD_PRIVATE_INTERVAL_MS = 60_000
+THINGSBOARD_PRIVATE_INTERVAL_MS: int = 60_000
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  In-memory aggregation config
+# ──────────────────────────────────────────────────────────────────────────────
+
+_DEFAULT_AGGREGATION: dict = {"mode": "range", "method": None}
+
+
+def _init_aggregation_config() -> dict[str, dict]:
+    """Seed every sensor key from THINGSBOARD_SYNC_PROFILES with range defaults."""
+    cfg: dict[str, dict] = {}
+    for profile in THINGSBOARD_SYNC_PROFILES.values():
+        prefix = profile["parameter_prefix"]
+        for key in profile["telemetry_keys"]:
+            cfg[f"{prefix}.{key}"] = dict(_DEFAULT_AGGREGATION)
+    return cfg
+
+
+AGGREGATION_CONFIG: dict[str, dict] = _init_aggregation_config()
+
+
+def get_param_aggregation(param_key: str) -> dict:
+    return AGGREGATION_CONFIG.get(param_key, _DEFAULT_AGGREGATION)
+
+
+def set_param_aggregation(updates: dict[str, dict]) -> None:
+    AGGREGATION_CONFIG.update(updates)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -405,29 +432,73 @@ def _fetch_timeseries(
     return response.json()
 
 
+# def _build_synced_parameters(
+#     prefix: str,
+#     telemetry_keys: list[str],
+#     min_payload: dict[str, Any],
+#     max_payload: dict[str, Any],
+# ) -> dict[str, Any]:
+#     synced_parameters: dict[str, Any] = {}
+#     for telemetry_key in telemetry_keys:
+#         synced_parameters[f"{prefix}.{telemetry_key}.min"] = _extract_series_value(
+#             min_payload, telemetry_key
+#         )
+#         # synced_parameters[f"{prefix}{telemetry_key}_min"] = 100000
+#         synced_parameters[f"{prefix}.{telemetry_key}.max"] = _extract_series_value(
+#             max_payload, telemetry_key
+#         )
+
+#     # Validate min/max counterparts
+#     validation_errors = _validate_min_max_parameters(synced_parameters)
+#     if validation_errors:
+#         raise ValueError(f"Invalid parameter values: {'; '.join(validation_errors)}")
+
+#     return synced_parameters
+
 def _build_synced_parameters(
     prefix: str,
     telemetry_keys: list[str],
     min_payload: dict[str, Any],
     max_payload: dict[str, Any],
+    avg_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     synced_parameters: dict[str, Any] = {}
-    for telemetry_key in telemetry_keys:
-        synced_parameters[f"{prefix}.{telemetry_key}.min"] = _extract_series_value(
-            min_payload, telemetry_key
-        )
-        # synced_parameters[f"{prefix}{telemetry_key}_min"] = 100000
-        synced_parameters[f"{prefix}.{telemetry_key}.max"] = _extract_series_value(
-            max_payload, telemetry_key
-        )
 
-    # Validate min/max counterparts
+    for telemetry_key in telemetry_keys:
+        param_key = f"{prefix}.{telemetry_key}"
+        agg = get_param_aggregation(param_key)
+
+        min_val = _extract_series_value(min_payload, telemetry_key)
+        max_val = _extract_series_value(max_payload, telemetry_key)
+
+        if agg["mode"] == "constant":
+            method = agg.get("method") or "average"
+            if method == "min":
+                lo = hi = min_val
+            elif method == "max":
+                lo = hi = max_val
+            elif method == "median":
+                # TB has no native MEDIAN — approximate as midpoint of [min, max]
+                lo = hi = (min_val + max_val) / 2.0
+            else:  # "average"
+                lo = hi = (
+                    _extract_series_value(avg_payload, telemetry_key)
+                    if avg_payload
+                    else (min_val + max_val) / 2.0
+                )
+            print(f"[agg] {param_key}: constant/{method} → {lo}")
+        else:  # "range" — default
+            lo, hi = min_val, max_val
+            print(f"[agg] {param_key}: range → [{lo}, {hi}]")
+
+        synced_parameters[f"{param_key}.min"] = lo
+        synced_parameters[f"{param_key}.max"] = hi
+
     validation_errors = _validate_min_max_parameters(synced_parameters)
     if validation_errors:
         raise ValueError(f"Invalid parameter values: {'; '.join(validation_errors)}")
 
     return synced_parameters
-
 
 def _authenticate_thingsboard(
     username: str = THINGSBOARD_USERNAME, password: str = THINGSBOARD_PASSWORD,
@@ -461,6 +532,70 @@ def _extract_latest_ts(payload: dict[str, Any], keys: list[str]) -> int | None:
     return latest_ts
 
 
+# async def sync_model_parameters_from_thingsboard(
+#         host = THINGSBOARD_HOST
+# ) -> dict[str, float] | None:
+#     sync_profile = THINGSBOARD_PRIVATE_SYNC_PROFILE
+#     interval_ms = THINGSBOARD_PRIVATE_INTERVAL_MS
+#     profile = THINGSBOARD_SYNC_PROFILES.get(sync_profile)
+#     if profile is None:
+#         raise ValueError(f"Unknown sync profile: {sync_profile}")
+
+#     telemetry_keys = profile["telemetry_keys"]
+#     token = _authenticate_thingsboard(host=host)
+#     latest_payload = _fetch_timeseries(
+#         token,
+#         profile["entity_type"],
+#         profile["entity_id"],
+#         {
+#             "keys": ",".join(telemetry_keys),
+#             "useStrictDataTypes": "false",
+#         },
+#         host
+#     )
+#     latest_ts = _extract_latest_ts(latest_payload, telemetry_keys)
+#     if latest_ts is None:
+#         raise ValueError(f"No telemetry found for profile '{sync_profile}'")
+
+#     interval_start = latest_ts - interval_ms
+#     interval_end = latest_ts + 1
+#     min_payload = _fetch_timeseries(
+#         token,
+#         profile["entity_type"],
+#         profile["entity_id"],
+#         {
+#             "keys": ",".join(telemetry_keys),
+#             "startTs": interval_start,
+#             "endTs": interval_end,
+#             "interval": interval_ms,
+#             "agg": "MIN",
+#             "orderBy": "ASC",
+#             "useStrictDataTypes": "false",
+#         },
+#         host
+#     )
+#     max_payload = _fetch_timeseries(
+#         token,
+#         profile["entity_type"],
+#         profile["entity_id"],
+#         {
+#             "keys": ",".join(telemetry_keys),
+#             "startTs": interval_start,
+#             "endTs": interval_end,
+#             "interval": interval_ms,
+#             "agg": "MAX",
+#             "orderBy": "ASC",
+#             "useStrictDataTypes": "false",
+#         },
+#         host
+#     )
+
+#     synced_parameters = _build_synced_parameters(
+#         profile["parameter_prefix"], telemetry_keys, min_payload, max_payload
+#     )
+
+#     return synced_parameters
+
 async def sync_model_parameters_from_thingsboard(
         host = THINGSBOARD_HOST
 ) -> dict[str, float] | None:
@@ -488,41 +623,27 @@ async def sync_model_parameters_from_thingsboard(
 
     interval_start = latest_ts - interval_ms
     interval_end = latest_ts + 1
-    min_payload = _fetch_timeseries(
-        token,
-        profile["entity_type"],
-        profile["entity_id"],
-        {
-            "keys": ",".join(telemetry_keys),
-            "startTs": interval_start,
-            "endTs": interval_end,
-            "interval": interval_ms,
-            "agg": "MIN",
-            "orderBy": "ASC",
-            "useStrictDataTypes": "false",
-        },
-        host
-    )
-    max_payload = _fetch_timeseries(
-        token,
-        profile["entity_type"],
-        profile["entity_id"],
-        {
-            "keys": ",".join(telemetry_keys),
-            "startTs": interval_start,
-            "endTs": interval_end,
-            "interval": interval_ms,
-            "agg": "MAX",
-            "orderBy": "ASC",
-            "useStrictDataTypes": "false",
-        },
-        host
-    )
+
+    base_params = {
+        "keys": ",".join(telemetry_keys),
+        "startTs": interval_start,
+        "endTs": interval_end,
+        "interval": interval_ms,
+        "orderBy": "ASC",
+        "useStrictDataTypes": "false",
+    }
+
+    min_payload = _fetch_timeseries(token, profile["entity_type"], profile["entity_id"],
+                                    {**base_params, "agg": "MIN"}, host)
+    max_payload = _fetch_timeseries(token, profile["entity_type"], profile["entity_id"],
+                                    {**base_params, "agg": "MAX"}, host)
+    avg_payload = _fetch_timeseries(token, profile["entity_type"], profile["entity_id"],
+                                    {**base_params, "agg": "AVG"}, host)
 
     synced_parameters = _build_synced_parameters(
-        profile["parameter_prefix"], telemetry_keys, min_payload, max_payload
+        profile["parameter_prefix"], telemetry_keys,
+        min_payload, max_payload, avg_payload
     )
-
     return synced_parameters
 
 

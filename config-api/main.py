@@ -431,3 +431,72 @@ def import_config(payload: ConfigImportRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(obj)
     return obj
+
+from pydantic import field_validator
+import optimize_line2
+
+# ---------------------------------------------------------------------------
+# Aggregation config schemas + endpoints
+# ---------------------------------------------------------------------------
+
+class ParameterAggregationItem(BaseModel):
+    mode: str = "range"
+    method: str | None = None
+
+    @field_validator("mode")
+    @classmethod
+    def _valid_mode(cls, v: str) -> str:
+        if v not in ("range", "constant"):
+            raise ValueError("mode must be 'range' or 'constant'")
+        return v
+
+    @field_validator("method")
+    @classmethod
+    def _valid_method(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("min", "max", "median", "average"):
+            raise ValueError("method must be min | max | median | average")
+        return v
+
+class AggregationConfigResponse(BaseModel):
+    interval_ms: int
+    config: dict[str, ParameterAggregationItem]
+
+
+class AggregationConfigRequest(BaseModel):
+    interval_ms: int | None = None
+    config: dict[str, ParameterAggregationItem] | None = None
+
+
+@app.get("/optimize/aggregation", response_model=AggregationConfigResponse)
+def get_aggregation_config():
+    return AggregationConfigResponse(
+        interval_ms=optimize_line2.THINGSBOARD_PRIVATE_INTERVAL_MS,
+        config={
+            k: ParameterAggregationItem(**v)
+            for k, v in optimize_line2.AGGREGATION_CONFIG.items()
+        }
+    )
+
+
+@app.post("/optimize/aggregation", response_model=AggregationConfigResponse)
+def set_aggregation_config(payload: AggregationConfigRequest):
+    if payload.interval_ms is not None:
+        if payload.interval_ms <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="interval_ms must be positive"
+            )
+        optimize_line2.THINGSBOARD_PRIVATE_INTERVAL_MS = payload.interval_ms
+
+    if payload.config is not None:
+        optimize_line2.set_param_aggregation(
+            {k: v.model_dump() for k, v in payload.config.items()}
+        )
+
+    return AggregationConfigResponse(
+        interval_ms=optimize_line2.THINGSBOARD_PRIVATE_INTERVAL_MS,
+        config={
+            k: ParameterAggregationItem(**v)
+            for k, v in optimize_line2.AGGREGATION_CONFIG.items()
+        }
+    )
