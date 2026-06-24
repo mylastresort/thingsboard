@@ -37,6 +37,7 @@ declare global {
       enable(theme: DarkReaderTheme, fixes?: DarkReaderFix): void;
       disable(): void;
       exportGeneratedCSS(): Promise<string>;
+      isEnabled(): boolean;
     };
   }
 }
@@ -48,7 +49,7 @@ export class DarkThemeService {
 
   readonly theme: DarkReaderTheme = {
     brightness: 100,
-    contrast: 100,
+    contrast: 110,
     sepia: 0,
     // darkSchemeBackgroundColor: '#080808',
     // darkSchemeTextColor: '#cdd6f4',
@@ -85,16 +86,39 @@ export class DarkThemeService {
 
   async enable(): Promise<void> {
     if (this.isEnabled()) return;
-    const css = await this.generateCSS();
-    this.inject(css);
+
+    await this.load();
+
+    window.DarkReader.enable(this.theme, this.fixes);
+
     document.documentElement.style.colorScheme = 'dark';
-    // add <meta name="darkreader-lock"> to head to prevent Dark Reader extension from overriding our styles
-    document.head.appendChild(
-      Object.assign(document.createElement('meta'), {
-        name: 'darkreader-lock',
-      })
-    );
+
+    // if (!document.querySelector('meta[name="darkreader-lock"]')) {
+    //   const meta = document.createElement('meta');
+    //   meta.name = 'darkreader-lock';
+    //   document.head.appendChild(meta);
+    // }
+
     localStorage.setItem('theme', 'dark');
+  }
+
+  async load(): Promise<void> {
+    if ((window as any).DarkReader) {
+      return;
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script');
+
+      script.src = 'assets/lib/darkreader.js';
+
+      script.onload = () => resolve();
+
+      script.onerror = () =>
+        reject(new Error('Failed to load darkreader.js'));
+
+      document.head.appendChild(script);
+    });
   }
 
   disable(): void {
@@ -104,8 +128,7 @@ export class DarkThemeService {
   }
 
   isEnabled(): boolean {
-    return this.styleSheet !== null &&
-      document.adoptedStyleSheets.includes(this.styleSheet);
+    return !!window.DarkReader && window.DarkReader.isEnabled();
   }
 
   toggle(): Promise<void> | void {
@@ -116,55 +139,10 @@ export class DarkThemeService {
     if (localStorage.getItem('theme') === 'dark') await this.enable();
   }
 
-  // re-generate after changing fixes during dev
-  async refresh(): Promise<void> {
-    this.eject();
-    const css = await this.generateCSS();
-    this.inject(css);
-  }
-
-  // ─── Internals ─────────────────────────────────────────────────────────────
-
-  private async generateCSS(): Promise<string> {
-    await this.load();
-    window.DarkReader.enable(this.theme, this.fixes);
-    await this.wait(2500);                              // let DR process all stylesheets
-    const css = await window.DarkReader.exportGeneratedCSS();
-    window.DarkReader.disable();                        // DR done, no active state left
-    if (!css) throw new Error('Dark Reader returned empty CSS');
-    return css;
-  }
-
-  // inject via adoptedStyleSheets — no DOM node, invisible to DR extension
-  private inject(css: string): void {
-    if (!this.styleSheet) {
-      this.styleSheet = new CSSStyleSheet();
-      document.adoptedStyleSheets = [...document.adoptedStyleSheets, this.styleSheet];
-    }
-    this.styleSheet.replaceSync(css);
-  }
-
   private eject(): void {
     if (!this.styleSheet) return;
     document.adoptedStyleSheets = document.adoptedStyleSheets
       .filter(s => s !== this.styleSheet);
     this.styleSheet = null;
-  }
-
-  private wait(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private async load(): Promise<void> {
-    if (window.DarkReader) return;
-    await new Promise<void>((resolve, reject) => {
-      document.head.appendChild(
-        Object.assign(document.createElement('script'), {
-          src: 'https://cdn.jsdelivr.net/npm/darkreader/darkreader.min.js',
-          onload: resolve,
-          onerror: () => reject(new Error('Failed to load Dark Reader')),
-        })
-      );
-    });
   }
 }

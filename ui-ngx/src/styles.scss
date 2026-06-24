@@ -1351,3 +1351,9 @@ pre.tb-highlight {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import './styles.css';
+
+.tb-dark {
+  --mat-tab-active-label-text-color: var(--darkreader-text--mat-tab-active-label-text-color, var(--darkreader-text-000000de, rgba(229, 224, 216, 0.87))) !important;
+}

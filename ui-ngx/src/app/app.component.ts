@@ -34,6 +34,7 @@ import { ActionSettingsChangeLanguage } from '@core/settings/settings.actions';
 import { SETTINGS_KEY } from '@core/settings/settings.effects';
 import { initCustomJQueryEvents } from '@shared/models/jquery-event.models';
 import { DarkThemeService } from './core/services/dark-theme.service';
+import { DarkThemeOverlayComponent } from './dark-theme-overlay.component';
 
 @Component({
     selector: 'tb-root',
