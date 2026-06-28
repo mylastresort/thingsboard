@@ -1,0 +1,25 @@
+services:
+  thingsboard-mcp:
+    image: thingsboard/mcp
+    restart: unless-stopped
+    environment:
+      THINGSBOARD_URL: "http://thingsboard:8080"
+ 
+      # ── authentication ───────────────────────────────────────────────────
+      # API key takes priority when the image is started; leave blank to use
+      # username/password instead.
+      THINGSBOARD_API_KEY:     "${TB_MCP_API_KEY:-}"
+      THINGSBOARD_USERNAME:    "${TB_MCP_USERNAME:-tenant@thingsboard.org}"
+      THINGSBOARD_PASSWORD:    "${TB_MCP_PASSWORD:-tenant}"
+ 
+      # ── transport: SSE HTTP service (not a STDIO subprocess) ─────────────
+      SPRING_AI_MCP_SERVER_STDIO:   "false"
+      SPRING_WEB_APPLICATION_TYPE:  servlet
+      HTTP_BIND_ADDRESS:            "0.0.0.0"
+      HTTP_BIND_PORT:               "8000"
+ 
+    ports:
+      - "${MCP_PORT:-8201}:8000"
+ 
+    depends_on:
+      - thingsboard

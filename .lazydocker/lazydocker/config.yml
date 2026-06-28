@@ -10,3 +10,4 @@ commandTemplates:
     -f docker-compose/docker-compose.config.yml
     -f docker-compose/docker-compose.toolbox.yml
     -f docker-compose/docker-compose.dev.yml
+    -f docker-compose/docker-compose.mcp.yml

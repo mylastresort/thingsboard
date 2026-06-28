@@ -4,6 +4,7 @@ WEB_SERVICE     := tb-web-ui-dev
 WEB_PROD        := tb-web-ui
 MODEL_SERVICE   := model
 CONFIG_SERVICE  := config-api
+MCP_SERVICE     := thingsboard-mcp
 POSTGRES        := postgres
 TB_PREV_VERSION ?= 4.2.2.2
 
@@ -14,7 +15,7 @@ COMPOSE_DIR := docker-compose
 CORE_FILES := -f $(COMPOSE_DIR)/docker-compose.base.yml -f $(COMPOSE_DIR)/docker-compose.db.yml \
                -f $(COMPOSE_DIR)/docker-compose.tb.yml -f $(COMPOSE_DIR)/docker-compose.gateway.yml \
                -f $(COMPOSE_DIR)/docker-compose.web.yml -f $(COMPOSE_DIR)/docker-compose.model.yml \
-               -f $(COMPOSE_DIR)/docker-compose.config.yml
+               -f $(COMPOSE_DIR)/docker-compose.config.yml -f $(COMPOSE_DIR)/docker-compose.mcp.yml
 # dev = core + angular dev server, ws-events seeder, go-toolbox
 DEV_FILES  := $(CORE_FILES) -f $(COMPOSE_DIR)/docker-compose.toolbox.yml -f $(COMPOSE_DIR)/docker-compose.dev.yml
 
@@ -212,3 +213,18 @@ darktheme:
 	$(COMPOSE) run --rm go-toolbox-darktheme \
 		--path /ui-ngx/src \
 		--selector .dark-theme
+
+# ─── logs (add alongside logs-config) ────────────────────────────────────────
+.PHONY: logs-mcp
+logs-mcp: ## Tail thingsboard-mcp (SSE) logs
+	$(COMPOSE) logs -f $(MCP_SERVICE)
+
+# ─── lifecycle (add alongside restart-model) ─────────────────────────────────
+.PHONY: restart-mcp
+restart-mcp: ## Restart only thingsboard-mcp
+	$(COMPOSE) restart $(MCP_SERVICE)
+
+# ─── shell access (add alongside shell-model) ────────────────────────────────
+.PHONY: shell-mcp
+shell-mcp: ## Open a shell in thingsboard-mcp
+	$(COMPOSE) exec $(MCP_SERVICE) sh
