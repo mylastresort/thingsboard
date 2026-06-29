@@ -28,8 +28,6 @@ export const environment = {
   defaultLang: 'en_US',
   WT_ACCESS_TOKEN: 'xxxxxx',
   phone_id: 'xxxxx',
-  host: '10.152.116.13', // 10.152.116.10,
-  default_dashboard_id: '12dbc720-661e-11ef-9061-853a958a524a',
 };
 
 /*
