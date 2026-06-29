@@ -23,3 +23,27 @@ services:
  
     depends_on:
       - thingsboard
+  
+  ollama:
+    image: ollama/ollama:0.30.11
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "ollama serve &
+       sleep 5 &&
+       ollama pull deepseek-r1:7b &&
+       wait"
+
+volumes:
+  ollama_data:
