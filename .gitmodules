@@ -1,3 +1,7 @@
 [submodule "thingsboard-mcp"]
 	path = thingsboard-mcp
 	url = git@github.com:mylastresort/thingsboard-mcp.git
+[submodule "assetopsbench"]
+	path = assetopsbench
+	url = https://github.com/mylastresort/assetopsbench
+	branch = experiment
