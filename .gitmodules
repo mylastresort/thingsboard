@@ -1,0 +1,3 @@
+[submodule "thingsboard-mcp"]
+	path = thingsboard-mcp
+	url = git@github.com:mylastresort/thingsboard-mcp.git

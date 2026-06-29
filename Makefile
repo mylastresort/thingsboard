@@ -114,6 +114,10 @@ build: ## Build / rebuild all images
 build-tb: ## Build / rebuild thingsboard image only
 	$(COMPOSE) build $(TB_SERVICE)
 
+.PHONY: build-mcp
+build-mcp: ## Build / rebuild thingsboard-mcp image only
+	$(COMPOSE) build $(MCP_SERVICE)
+
 .PHONY: build-web
 build-web: ## Build / rebuild tb-web-ui-dev image only
 	$(COMPOSE) build $(WEB_SERVICE)
@@ -154,7 +158,7 @@ logs-config: ## Tail config-api logs
 
 .PHONY: lazydocker
 lazydocker: ## Launch lazydocker pre-wired to the split compose files (project-local config, doesn't touch your global lazydocker config)
-	XDG_CONFIG_HOME="$(CURDIR)/.lazydocker" lazydocker -p tb-lts43-monolith-merge
+	XDG_CONFIG_HOME="$(CURDIR)/.lazydocker" lazydocker -p tb-lts-monolith-dev
 
 # ─── status ──────────────────────────────────────────────────────────────────
 

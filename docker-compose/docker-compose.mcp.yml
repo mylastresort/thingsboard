@@ -1,6 +1,8 @@
 services:
   thingsboard-mcp:
-    image: thingsboard/mcp
+    build:
+      context: thingsboard-mcp
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       THINGSBOARD_URL: "http://thingsboard:8080"
