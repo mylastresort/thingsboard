@@ -29,7 +29,7 @@ def load_settings() -> Settings:
     return Settings(
         ollama_base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
         ollama_model=os.environ.get("OLLAMA_MODEL", "ibm/granite3.3:8b-instruct-q8_0"),
-        ollama_num_ctx=_getenv_int("OLLAMA_NUM_CTX", 1024),
+        ollama_num_ctx=_getenv_int("OLLAMA_NUM_CTX", 16000),
         mcp_server_url=os.environ.get(
             "MCP_SERVER_URL",
             os.environ.get("MCP_SERVER_DEFAULT_URL", "http://thingsboard-mcp:8000/sse"),

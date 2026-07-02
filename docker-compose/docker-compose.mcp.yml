@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      WAIT_HOSTS: "thingsboard:8080"
       THINGSBOARD_URL: "http://thingsboard:8080"
 
       # ── authentication ───────────────────────────────────────────────────
@@ -33,6 +34,9 @@ services:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ../.ollama:/root/.ollama
+    environment:
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_KV_CACHE_TYPE: "q8_0"
     deploy:
       resources:
         reservations:
@@ -44,8 +48,13 @@ services:
     command: >
       "ollama serve &
        sleep 5 &&
-       ollama pull ibm/granite3.3:8b-instruct-q8_0 &&
+       ollama pull qwen2.5:7b &&
        wait"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
   # ai-agent:
   #   build:
@@ -54,7 +63,7 @@ services:
   #   restart: unless-stopped
   #   environment:
   #     OLLAMA_BASE_URL: "http://ollama:11434"
-  #     OLLAMA_MODEL: "${TINY_AGENT_MODEL:-ibm/granite3.3:8b-instruct-q8_0}"
+  #     OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen2.5:7b}"
   #     OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-1024}"
   #     MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
   #     MAX_STEPS: "8"
@@ -75,8 +84,8 @@ services:
     restart: unless-stopped
     environment:
       OLLAMA_BASE_URL: "http://ollama:11434"
-      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-ibm/granite3.3:8b-instruct-q8_0}"
-      OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-1024}"
+      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen2.5:7b}"
+      OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-8192}"
       MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
       MAX_STEPS: "8"
       MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
