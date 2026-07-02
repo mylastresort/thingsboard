@@ -18,7 +18,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { defaultHttpOptionsFromConfig, RequestConfig } from '@core/http/http-utils';
 import { Observable } from 'rxjs';
-import { AiModel, AiModelWithUserMsg, CheckConnectivityResult } from '@shared/models/ai-model.models';
+import { AiModel, AiModelWithUserMsg, CheckConnectivityResult, TbChatRequest, TbChatResponse } from '@shared/models/ai-model.models';
 import { PageLink } from '@shared/models/page/page-link';
 import { PageData } from '@shared/models/page/page-data';
 
@@ -49,6 +49,10 @@ export class AiModelService {
 
   public checkConnectivity(aiModelWithUserMsg: AiModelWithUserMsg, config?: RequestConfig): Observable<CheckConnectivityResult> {
     return this.http.post<CheckConnectivityResult>('/api/ai/model/chat', aiModelWithUserMsg, defaultHttpOptionsFromConfig(config));
+  }
+
+  public chat(tbChatRequest: TbChatRequest, config?: RequestConfig): Observable<TbChatResponse> {
+    return this.http.post<TbChatResponse>('/api/ai/model/chat', tbChatRequest, defaultHttpOptionsFromConfig(config));
   }
 
 }

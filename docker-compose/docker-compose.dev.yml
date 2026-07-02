@@ -20,6 +20,7 @@ services:
       - ./ui-ngx:/app
     environment:
       - GATEWAY_URL=http://gateway:80
+      - AI_AGENT_URL=http://ai-agent:8300
     command: sh ./entrypoint.sh
     ports:
       - "4200:4200"

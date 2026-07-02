@@ -1,0 +1,10 @@
+{
+	"servers": {
+		"codebase-memory-mcp": {
+			"type": "stdio",
+			"command": "codebase-memory-mcp",
+			"args": []
+		}
+	},
+	"inputs": []
+}

@@ -1,4 +1,4 @@
-PROJECT         := tb-lts43-monolith-merge
+PROJECT         := thingsboard-dev
 TB_SERVICE      := thingsboard
 WEB_SERVICE     := tb-web-ui-dev
 WEB_PROD        := tb-web-ui
@@ -223,6 +223,17 @@ darktheme:
 logs-mcp: ## Tail thingsboard-mcp (SSE) logs
 	$(COMPOSE) logs -f $(MCP_SERVICE)
 
+.PHONY: ai-agent-chat
+ai-agent-chat: ## Send Q="..." to ai-agent on localhost:8300 using qwen2.5:7b-instruct
+	@Q="$${Q:-}" MODEL="$${MODEL:-qwen2.5:7b-instruct}" python3 -c 'import json, os, sys, urllib.request; query = os.environ.get("Q", "").strip(); model = os.environ.get("MODEL", "qwen2.5:7b-instruct"); query or sys.exit("Set Q=... to query ai-agent."); payload = {"message": query, "model": model}; request = urllib.request.Request("http://localhost:8300/chat", data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}); response = urllib.request.urlopen(request, timeout=240); data = json.load(response); response.close(); print(data.get("answer") or "")'
+
+.PHONY: ai-agent-stdio
+ai-agent-stdio: ## Interactive ai-agent conversation over stdin/stdout with one session id
+	@docker compose --project-directory . -f docker-compose/docker-compose.base.yml -f docker-compose/docker-compose.db.yml -f docker-compose/docker-compose.tb.yml -f docker-compose/docker-compose.gateway.yml -f docker-compose/docker-compose.web.yml -f docker-compose/docker-compose.model.yml -f docker-compose/docker-compose.config.yml -f docker-compose/docker-compose.mcp.yml exec -T ai-agent ai-agent repl
+
+.PHONY: ai-agent-repl
+ai-agent-repl: ai-agent-stdio ## Alias for the interactive ai-agent conversation target
+
 # ─── lifecycle (add alongside restart-model) ─────────────────────────────────
 .PHONY: restart-mcp
 restart-mcp: ## Restart only thingsboard-mcp
@@ -232,3 +243,94 @@ restart-mcp: ## Restart only thingsboard-mcp
 .PHONY: shell-mcp
 shell-mcp: ## Open a shell in thingsboard-mcp
 	$(COMPOSE) exec $(MCP_SERVICE) sh
+
+.PHONY: pause unpause
+pause: ## Pause all containers
+	$(COMPOSE) pause
+
+unpause: ## Unpause all containers
+	$(COMPOSE) unpause
+
+# ─── assetopsbench ───────────────────────────────────────────────────────────
+# All targets delegate to assetopsbench/Makefile via $(MAKE) -C.
+# Override variables at the root level and they are forwarded automatically,
+# e.g.:  make assetopsbench-pull OLLAMA_MODEL=llama3.2:3b
+#        make assetopsbench-ask  AGENT=deep-agent MODEL_ID=litellm_proxy/llama3.2:3b
+#        make assetopsbench-tui-chat Q="List all failure modes of asset Chiller"
+ 
+AGENTS := $(MAKE) -C assetopsbench --no-print-directory
+ 
+.PHONY: assetopsbench-up assetopsbench-down assetopsbench-stop \
+        assetopsbench-pause assetopsbench-unpause assetopsbench-ps \
+        assetopsbench-pull assetopsbench-ask assetopsbench-examples \
+        assetopsbench-smoke assetopsbench-sync \
+        assetopsbench-tui-build assetopsbench-tui-install assetopsbench-tui \
+        assetopsbench-tui-chat assetopsbench-tui-stack-up assetopsbench-tui-stack-ps \
+        assetopsbench-tui-models assetopsbench-tui-pull assetopsbench-tui-smoke \
+        assetopsbench-tui-init
+ 
+assetopsbench-up: ## [agents] Start the assetopsbench stack
+	@$(AGENTS) up
+ 
+assetopsbench-down: ## [agents] Stop the assetopsbench stack
+	@$(AGENTS) down
+ 
+assetopsbench-stop: ## [agents] Stop assetopsbench containers
+	@$(AGENTS) stop
+ 
+assetopsbench-pause: ## [agents] Pause assetopsbench containers
+	@$(AGENTS) pause
+ 
+assetopsbench-unpause: ## [agents] Unpause assetopsbench containers
+	@$(AGENTS) unpause
+ 
+assetopsbench-ps: ## [agents] Show assetopsbench container status
+	@$(AGENTS) ps
+ 
+assetopsbench-pull: ## [agents] Pull Ollama model (OLLAMA_MODEL=...)
+	@$(AGENTS) pull
+ 
+assetopsbench-ask: ## [agents] Prompt for a query and run it (AGENT=... MODEL_ID=... AGENT_FLAGS=...)
+	@$(AGENTS) ask
+ 
+assetopsbench-ask-%: ## [agents] Run a named agent directly, e.g. assetopsbench-ask-plan-execute
+	@$(AGENTS) ask-$*
+ 
+assetopsbench-examples: ## [agents] Print canned example queries
+	@$(AGENTS) examples
+ 
+assetopsbench-smoke: ## [agents] Ping the LiteLLM proxy health endpoint
+	@$(AGENTS) smoke
+ 
+assetopsbench-sync: ## [agents] Sync uv deps on host (dev only)
+	@$(AGENTS) sync
+ 
+assetopsbench-tui-build: ## [agents] Build the assetops TUI binary
+	@$(AGENTS) tui-build
+ 
+assetopsbench-tui-install: ## [agents] Install assetops TUI to $$GOPATH/bin
+	@$(AGENTS) tui-install
+ 
+assetopsbench-tui: ## [agents] Launch the full assetops TUI
+	@$(AGENTS) tui
+ 
+assetopsbench-tui-chat: ## [agents] Streaming chat without TUI (Q="your query")
+	@$(AGENTS) tui-chat
+ 
+assetopsbench-tui-models: ## [agents] List installed Ollama models
+	@$(AGENTS) tui-models
+ 
+assetopsbench-tui-pull: ## [agents] Pull an Ollama model with progress bar (OLLAMA_MODEL=...)
+	@$(AGENTS) tui-pull
+ 
+assetopsbench-tui-stack-up: ## [agents] Start stack via TUI CLI
+	@$(AGENTS) tui-stack-up
+ 
+assetopsbench-tui-stack-ps: ## [agents] Stack status via TUI CLI
+	@$(AGENTS) tui-stack-ps
+ 
+assetopsbench-tui-smoke: ## [agents] Ping LiteLLM proxy via TUI CLI
+	@$(AGENTS) tui-smoke
+ 
+assetopsbench-tui-init: ## [agents] Write default TUI config file
+	@$(AGENTS) tui-init

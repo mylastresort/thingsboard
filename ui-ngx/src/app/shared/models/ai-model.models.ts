@@ -261,6 +261,64 @@ export interface CheckConnectivityResult {
   status: string;
   errorDetails: string;
 }
+
+export interface TbContent {
+  contentType: string;
+  text: string;
+}
+
+export interface TbUserMessage {
+  contents: TbContent[];
+}
+
+export interface TbChatRequest {
+  systemMessage?: string;
+  userMessage: TbUserMessage;
+  chatModelConfig: {
+    modelType: string;
+    provider: AiProvider;
+    providerConfig: {
+      apiKey?: string;
+      personalAccessToken?: string;
+      endpoint?: string;
+      serviceVersion?: string;
+      projectId?: string;
+      location?: string;
+      serviceAccountKey?: string;
+      fileName?: string;
+      baseUrl?: string;
+      auth?: {
+        type: AuthenticationType;
+        username?: string;
+        password?: string;
+        token?: string;
+      };
+    };
+    modelId: string;
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    frequencyPenalty?: number;
+    presencePenalty?: number;
+    maxOutputTokens?: number;
+    contextLength?: number;
+    maxRetries: number;
+    timeoutSeconds: number;
+  };
+}
+
+export interface TbChatResponseSuccess {
+  status: 'SUCCESS';
+  generatedContent: string;
+}
+
+export interface TbChatResponseFailure {
+  status: 'FAILURE';
+  errorDetails: string;
+}
+
+export type TbChatResponse = TbChatResponseSuccess | TbChatResponseFailure;
+
 export enum AuthenticationType {
   NONE = 'NONE',
   BASIC = 'BASIC',

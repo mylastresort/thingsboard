@@ -30,6 +30,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { DefaultUrlSerializer, UrlSerializer, UrlTree } from '@angular/router';
 import { DarkThemeService } from './core/services/dark-theme.service';
 import { DarkThemeOverlayComponent } from './dark-theme-overlay.component';
+import { ChatbotOverlayComponent } from './chatbot-overlay.component';
 
 export default class TbUrlSerializer implements UrlSerializer {
   private _defaultUrlSerializer: DefaultUrlSerializer = new DefaultUrlSerializer();
@@ -73,7 +74,8 @@ export class PageNotFoundRoutingModule { }
     HomeModule,
     DashboardRoutingModule,
     PageNotFoundRoutingModule,
-    DarkThemeOverlayComponent
+    DarkThemeOverlayComponent,
+    ChatbotOverlayComponent
   ],
   providers: [
     { provide: UrlSerializer, useClass: TbUrlSerializer },

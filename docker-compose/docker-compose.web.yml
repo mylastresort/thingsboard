@@ -16,3 +16,30 @@ services:
       thingsboard:
         condition: service_started
     restart: unless-stopped
+
+  assetops-client:
+    build:
+      context: ./assetopsbench/assetops-client
+      dockerfile: Dockerfile
+    container_name: assetops-client
+    restart: unless-stopped
+    environment:
+      # ASSETOPS_PROJECT_ROOT: ${ASSETOPS_PROJECT_ROOT:-${PWD}/assetopsbench}
+      OLLAMA_HOST: http://host.docker.internal:21434
+      LITELLM_BASE_URL: http://host.docker.internal:4000
+      LITELLM_API_KEY: ${LITELLM_MASTER_KEY:-sk-local}
+      # COUCHDB_URL: http://host.docker.internal:5984
+      TINY_AGENT_URL: ${TINY_AGENT_URL:-http://ai-agent:8300}
+      # UV_CACHE_DIR: /root/.cache/uv
+      # UV_LINK_MODE: copy
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    ports:
+      - "4174:4174"
+    # volumes:
+    #   - "${ASSETOPS_PROJECT_ROOT:-${PWD}../assetopsbench}:${ASSETOPS_PROJECT_ROOT:-${PWD}/assetopsbench}"
+    #   - /var/run/docker.sock:/var/run/docker.sock
+    #   - assetops-client-uv-cache:/root/.cache/uv
+
+volumes:
+  assetops-client-uv-cache:

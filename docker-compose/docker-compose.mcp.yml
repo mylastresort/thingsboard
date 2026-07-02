@@ -6,33 +6,33 @@ services:
     restart: unless-stopped
     environment:
       THINGSBOARD_URL: "http://thingsboard:8080"
- 
+
       # ── authentication ───────────────────────────────────────────────────
       # API key takes priority when the image is started; leave blank to use
       # username/password instead.
-      THINGSBOARD_API_KEY:     "${TB_MCP_API_KEY:-}"
-      THINGSBOARD_USERNAME:    "${TB_MCP_USERNAME:-tenant@thingsboard.org}"
-      THINGSBOARD_PASSWORD:    "${TB_MCP_PASSWORD:-tenant}"
- 
+      THINGSBOARD_API_KEY: "${TB_MCP_API_KEY:-}"
+      THINGSBOARD_USERNAME: "${TB_MCP_USERNAME:-tenant@thingsboard.org}"
+      THINGSBOARD_PASSWORD: "${TB_MCP_PASSWORD:-tenant}"
+
       # ── transport: SSE HTTP service (not a STDIO subprocess) ─────────────
-      SPRING_AI_MCP_SERVER_STDIO:   "false"
-      SPRING_WEB_APPLICATION_TYPE:  servlet
-      HTTP_BIND_ADDRESS:            "0.0.0.0"
-      HTTP_BIND_PORT:               "8000"
- 
+      SPRING_AI_MCP_SERVER_STDIO: "false"
+      SPRING_WEB_APPLICATION_TYPE: servlet
+      HTTP_BIND_ADDRESS: "0.0.0.0"
+      HTTP_BIND_PORT: "8000"
+
     ports:
       - "${MCP_PORT:-8201}:8000"
- 
+
     depends_on:
       - thingsboard
-  
+
   ollama:
     image: ollama/ollama:0.30.11
     restart: unless-stopped
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
-      - ollama_data:/root/.ollama
+      - ../.ollama:/root/.ollama
     deploy:
       resources:
         reservations:
@@ -44,8 +44,47 @@ services:
     command: >
       "ollama serve &
        sleep 5 &&
-       ollama pull deepseek-r1:7b &&
+       ollama pull ibm/granite3.3:8b-instruct-q8_0 &&
        wait"
 
-volumes:
-  ollama_data:
+  # ai-agent:
+  #   build:
+  #     context: ./ai-agent
+  #     dockerfile: Dockerfile
+  #   restart: unless-stopped
+  #   environment:
+  #     OLLAMA_BASE_URL: "http://ollama:11434"
+  #     OLLAMA_MODEL: "${TINY_AGENT_MODEL:-ibm/granite3.3:8b-instruct-q8_0}"
+  #     OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-1024}"
+  #     MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
+  #     MAX_STEPS: "8"
+  #     MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
+  #     MAX_ALARM_PAGES: "${TINY_AGENT_MAX_ALARM_PAGES:-1}"
+  #     MAX_OBSERVATION_CHARS: "${TINY_AGENT_MAX_OBSERVATION_CHARS:-2000}"
+  #     PORT: "8300"
+  #   ports:
+  #     - "${TINY_AGENT_PORT:-8300}:8300"
+  #   depends_on:
+  #     - thingsboard-mcp
+  #     - ollama
+
+  ai-agent-py:
+    build:
+      context: ./ai-agent
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-ibm/granite3.3:8b-instruct-q8_0}"
+      OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-1024}"
+      MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
+      MAX_STEPS: "8"
+      MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
+      MAX_ALARM_PAGES: "${TINY_AGENT_MAX_ALARM_PAGES:-1}"
+      MAX_OBSERVATION_CHARS: "${TINY_AGENT_MAX_OBSERVATION_CHARS:-2000}"
+      PORT: "8300"
+    ports:
+      - "${TINY_AGENT_PORT:-8300}:8300"
+    depends_on:
+      - thingsboard-mcp
+      - ollama
