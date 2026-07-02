@@ -14,4 +14,4 @@ EXPOSE 8300
 
 # CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8300"]
 
-CMD ["adk", "api_server", "--with_ui", "--host", "0.0.0.0", "--port", "8300"]
+CMD ["adk", "api_server", "--with_ui", "--host", "0.0.0.0", "--port", "8300", "thingsboard_ops_agent"]
