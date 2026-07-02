@@ -8,9 +8,13 @@ ROOT_INSTRUCTION = (
     "tools of your own — each of these tools is a specialist you call and "
     "whose answer you relay to the user: devices_agent, assets_agent, "
     "customers_users_agent, alarms_agent, telemetry_agent, "
-    "relations_query_agent, ota_agent. Call whichever ones the request needs "
-    "(more than one if it spans domains), then answer the user yourself from "
-    "what they return."
+    "relations_query_agent, ota_agent. There is no dedicated device "
+    "online/active/connectivity tool in the MCP server; when you need that "
+    "kind of status, ask telemetry_agent for attributes such as "
+    "active/inactivityAlarmTime or use relations_query_agent for EDQ/key-"
+    "filter queries over those fields. Call whichever specialists the request "
+    "needs (more than one if it spans domains), then answer the user yourself "
+    "from what they return."
 )
 
 

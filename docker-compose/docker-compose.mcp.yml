@@ -48,7 +48,7 @@ services:
     command: >
       "ollama serve &
        sleep 5 &&
-       ollama pull qwen2.5:7b &&
+       ollama pull qwen3:8b &&
        wait"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
@@ -63,7 +63,7 @@ services:
   #   restart: unless-stopped
   #   environment:
   #     OLLAMA_BASE_URL: "http://ollama:11434"
-  #     OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen2.5:7b}"
+  #     OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen3:8b}"
   #     OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-1024}"
   #     MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
   #     MAX_STEPS: "8"
@@ -84,7 +84,7 @@ services:
     restart: unless-stopped
     environment:
       OLLAMA_BASE_URL: "http://ollama:11434"
-      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen2.5:7b}"
+      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen3:8b}"
       OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-8192}"
       MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
       MAX_STEPS: "8"
