@@ -3,9 +3,10 @@ Core types and data structures used across the library.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 
@@ -180,14 +181,10 @@ class ForecastOutput:
                 else self.forecasted_values
             ),
             "lower_bound": (
-                self.lower_bound.tolist()
-                if isinstance(self.lower_bound, np.ndarray)
-                else None
+                self.lower_bound.tolist() if isinstance(self.lower_bound, np.ndarray) else None
             ),
             "upper_bound": (
-                self.upper_bound.tolist()
-                if isinstance(self.upper_bound, np.ndarray)
-                else None
+                self.upper_bound.tolist() if isinstance(self.upper_bound, np.ndarray) else None
             ),
             "confidence_level": self.confidence_level,
             "forecast_time": self.forecast_time.isoformat(),

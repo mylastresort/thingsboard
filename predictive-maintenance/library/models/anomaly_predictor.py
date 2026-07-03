@@ -1,88 +1,59 @@
-"""
-Anomaly Predictor Model - Predicts machine failures 24 hours in advance.
-
-This model uses 48 ML algorithms (one per sensor) to predict whether a machine
-will fail within the next 24 hours based on sensor telemetry data.
-"""
-
-# Handle both direct execution and module import
 try:
     from ..algorithms.factory import AlgorithmRegistry
     from ..core.model_interface import BaseModel
-    from ..core.types import SupervisedConfig, TaskType, AlgorithmType
+    from ..core.types import AlgorithmType, SupervisedConfig, TaskType
 except ImportError:
-    # Running as script - add parent directories to path
     import sys
     from pathlib import Path
 
     _file_path = Path(__file__).resolve()
-    _predictive_maintenance_path = (
-        _file_path.parent.parent.parent
-    )  # Go up to predictive-maintenance
+    _predictive_maintenance_path = _file_path.parent.parent.parent
     if str(_predictive_maintenance_path) not in sys.path:
         sys.path.insert(0, str(_predictive_maintenance_path))
 
     from library.algorithms.factory import AlgorithmRegistry
     from library.core.model_interface import BaseModel
-    from library.core.types import SupervisedConfig, TaskType, AlgorithmType
+    from library.core.types import AlgorithmType, SupervisedConfig, TaskType
 
 from datetime import datetime
 from pathlib import Path
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import joblib
 import numpy as np
 import pandas as pd
-from src.logger import logger  # Global logger
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+from xgboost import XGBClassifier
+
+from src.logger import logger
 
 pd.set_option("display.max_columns", None)
 
 
 class AnomalyPredictor(BaseModel):
-    """
-    Predicts machine failures 24 hours in advance using Random Forest.
-
-    Uses engineered features from the notebook:
-    - Telemetry aggregations (3h and 24h windows) - DYNAMIC based on model config
-    - Error counts (24h rolling)
-    - Component maintenance history
-    - Machine age
-    """
-
     def __init__(
         self,
         name: str = "anomaly_predictor",
         algorithm_name: str = "random_forest",
         algorithm_hyperparams: Optional[Dict[str, Any]] = None,
         data_registry=None,
-        device_id: str = None,
+        device_id: str | None = None,
         additional_info: Optional[Dict[str, Any]] = None,
         sensors: Optional[List[str]] = None,
-        train_start_date = datetime.now() - pd.Timedelta(days=365 * 2),  # Default to last 2 years
+        train_start_date=datetime.now() - pd.Timedelta(days=365 * 2),
         train_end_date=datetime.now(),
     ):
-        """
-        Initialize the anomaly predictor model.
-
-        Args:
-            name: Model name
-            algorithm_name: Which algorithm to use (random_forest, xgboost, lightgbm, catboost)
-            algorithm_hyperparams: Hyperparameters for the algorithm
-            data_registry: DataRegistry instance for database access
-        """
         super().__init__(name, data_registry=data_registry)
         self.algorithm_name = algorithm_name
         self.algorithm_hyperparams = algorithm_hyperparams or {}
-        self.feature_columns = []  # Will be set dynamically during training
+        self.feature_columns = []
         self.device_id = device_id
         self.sensors = sensors or ["volt", "rotate", "pressure", "vibration"]
         self.additional_info = additional_info or {}
         self.train_start_date = train_start_date
         self.train_end_date = train_end_date
 
-        # Algorithm will be created during training once we know the features
         self.algorithm = None
 
     def _build_feature_columns(
@@ -91,115 +62,19 @@ class AnomalyPredictor(BaseModel):
         error_keys: List[str],
         component_keys: List[str],
     ) -> List[str]:
-        """
-        Build feature column names dynamically based on available keys.
-
-        Args:
-            telemetry_keys: List of telemetry keys (e.g., ['volt', 'rotate', 'pressure', 'vibration'])
-            error_keys: List of error keys (e.g., ['error1', 'error2', ...])
-            component_keys: List of component keys (e.g., ['comp1', 'comp2', ...])
-
-        Returns:
-            List of feature column names
-        """
         features = []
 
-        # Add telemetry features (3h and 24h aggregations)
         for key in telemetry_keys:
             features.extend([f"{key}mean_3h", f"{key}sd_3h", f"{key}mean_24h", f"{key}sd_24h"])
 
-        # Add error counts
         for i in range(1, len(error_keys) + 1):
             features.append(f"error{i}count")
 
-        # Add component maintenance days
         features.extend(component_keys)
 
-        # Add machine age
         features.append("age")
 
         return features
-
-    # def fetch(self, device_id: str, **kwargs) -> pd.DataFrame:
-    #     """
-    #     Fetch training data for anomaly detection from database.
-
-    #     Args:
-    #         device_id: Device or model identifier
-    #         **kwargs: Additional parameters (days_back, etc.)
-
-    #     Returns:
-    #         DataFrame with engineered features and failure labels
-    #     """
-
-    #     logger = logging.getLogger(__name__)
-    #     # TODO: Allow configuring days_back later
-    #     # days_back = kwargs.get("days_back", 5000)
-    #     days_back = 240
-
-    #     # Use registry if available
-    #     if not self.data_registry:
-    #         logger.error("No data registry available, using synthetic data")
-    #         return self._generate_sample_data(n_samples=1000)
-    #     try:
-    #         logger.info(f"Fetching training data via registry for device {device_id}")
-
-    #         # features_df, labels = self.data_registry.fetch_anomaly_training_data(
-    #         #     device_id=device_id, days_back=days_back, include_failures=True, start_date=None
-    #         # )
-    #         features_df, labels = self.data_registry.fetch_anomaly_training_data(
-    #             device_id=device_id,
-    #             days_back=days_back,
-    #             include_failures=True,
-    #             start_date=datetime(2015, 1, 1, 6, 0, 0),
-    #         )
-
-    #         if features_df.empty:
-    #             raise ValueError(
-    #                 f"No training data available for device {device_id}. "
-    #                 "Ensure the device has telemetry data (pressure, voltage, rotation, vibration) "
-    #                 "for at least 24 hours."
-    #             )
-
-    #         # Combine features and labels
-    #         if labels is None or len(labels) == 0:
-    #             raise ValueError(
-    #                 f"No failure history found for device {device_id}. "
-    #                 "Cannot train model without labeled failure data. "
-    #                 "Please add failure records to the device_failures table with root_cause values."
-    #             )
-
-    #         training_data = features_df.copy()
-    #         training_data["failure_component"] = labels
-
-    #         # Use all data for training, including 'none' (no failure) samples
-    #         print(
-    #             f"[FETCH] Training data: {len(training_data)} samples (including 'none')",
-    #             flush=True,
-    #         )
-    #         print(
-    #             f"[FETCH] Component distribution: {training_data['failure_component'].value_counts().to_dict()}",
-    #             flush=True,
-    #         )
-
-    #         return training_data
-
-    #     except ValueError as ve:
-    #         # Re-raise ValueError to be caught by caller
-    #         raise ve
-    #     except Exception as e:
-    #         logger.error(f"Error fetching training data: {e}")
-    #         raise RuntimeError(f"Failed to fetch training data: {str(e)}")
-
-    """
-        returns: fetches data and returns dataframes of same
-        columns as the old dataframes from dataset
-        1. telemetry_df: datetime, machineID, volt, rotate, pressure, vibration
-        2. failures_df: datetime, machineID, failure
-        3. maintenance_df: datetime, machineID, comp
-        4. machines_df: machineID, model, age
-        4. errors_df: datetime, machineID, errorID
-    """
 
     def fetch(self, device_id, **kwargs):
         if not self.data_registry:
@@ -217,7 +92,7 @@ class AnomalyPredictor(BaseModel):
         telemetry_df["machineID"] = 1  # from dataset
 
         # fetch telemetry_df
-        print(f"[PREDICITON JOB] telemetry_df DataFrame", flush=True)
+        print("[PREDICITON JOB] telemetry_df DataFrame", flush=True)
         print(telemetry_df, flush=True)
         print("dataframe columns", flush=True)
         print(telemetry_df.columns, flush=True)
@@ -230,7 +105,7 @@ class AnomalyPredictor(BaseModel):
         failures_df["machineID"] = 1  # from dataset
 
         # fetch failures_df
-        print(f"[PREDICITON JOB] failures_df DataFrame", flush=True)
+        print("[PREDICITON JOB] failures_df DataFrame", flush=True)
         print(failures_df, flush=True)
         print("dataframe columns", flush=True)
         print(failures_df.columns, flush=True)
@@ -244,7 +119,7 @@ class AnomalyPredictor(BaseModel):
         maintenance_df["machineID"] = 1  # from dataset
 
         # fetch failures_df
-        print(f"[PREDICITON JOB] maintenance_df DataFrame", flush=True)
+        print("[PREDICITON JOB] maintenance_df DataFrame", flush=True)
         print(maintenance_df, flush=True)
         print("dataframe columns", flush=True)
         print(maintenance_df.columns, flush=True)
@@ -264,7 +139,7 @@ class AnomalyPredictor(BaseModel):
         errors_df["machineID"] = 1  # from dataset
 
         # fetch failures_df
-        print(f"[PREDICITON JOB] errors_df DataFrame", flush=True)
+        print("[PREDICITON JOB] errors_df DataFrame", flush=True)
         print(errors_df, flush=True)
         print("dataframe columns", flush=True)
         print(errors_df.columns, flush=True)
@@ -272,28 +147,18 @@ class AnomalyPredictor(BaseModel):
         return telemetry_df, failures_df, maintenance_df, machines_df, errors_df
 
     def fetch_latest(self, device_id, **kwargs):
-        # Fetch features WITHOUT failure labels for prediction
         if not self.data_registry:
             raise ValueError("No data registry available")
-
-        # features_df, _ = self.data_registry.fetch_anomaly_training_data(
-        #     device_id=device_id, days_back=550, include_failures=False, start_date=None
-        # )
         features_df, _ = self.data_registry.fetch_anomaly_training_data(
             device_id=device_id,
             days_back=550,
             include_failures=True,
             start_date=datetime(2015, 1, 5, 2, 0, 0),
         )
-
         if features_df.empty:
             raise ValueError(f"No data available for device {device_id}")
-
-        # Get the latest row
         latest_data = features_df.tail(1)
         latest_data = latest_data.fillna(0)
-
-        # Ensure failure_component column doesn't exist in prediction data
         if "failure_component" in latest_data.columns:
             latest_data = latest_data.drop("failure_component", axis=1)
 
@@ -306,7 +171,6 @@ class AnomalyPredictor(BaseModel):
         np.random.seed(42)
         data = {}
 
-        # Generate 48 sensor readings
         for i in range(48):
             base_values = np.random.normal(75, 10, n_samples)
             failure_indices = np.random.choice(n_samples, size=int(n_samples * 0.1), replace=False)
@@ -315,11 +179,9 @@ class AnomalyPredictor(BaseModel):
 
         sensor_avg = np.mean([data[f"sensor_{i:02d}"] for i in range(48)], axis=0)
 
-        # Multi-class target: 'none', 'comp1', 'comp2', 'comp3', 'comp4'
         failure_component = np.full(n_samples, "none", dtype=object)
         failure_indices = sensor_avg > 90
 
-        # Assign random components to failures
         component_labels = ["comp1", "comp2", "comp3", "comp4"]
         failure_component[failure_indices] = np.random.choice(
             component_labels, size=np.sum(failure_indices)
@@ -330,27 +192,14 @@ class AnomalyPredictor(BaseModel):
         return pd.DataFrame(data)
 
     def train(self, data: pd.DataFrame, **kwargs) -> Dict[str, Any]:
-        """
-        Train the model on historical machine data.
-
-        Args:
-            data: DataFrame with engineered features and 'failure_component' target
-            **kwargs: Additional training parameters
-
-        Returns:
-            Dictionary with training results
-        """
         if "failure_component" not in data.columns:
             raise ValueError("Data must contain 'failure_component' target column")
 
-        # Extract feature columns dynamically (all columns except target)
         self.feature_columns = [col for col in data.columns if col != "failure_component"]
 
         logger.info(f"Training with {len(self.feature_columns)} features: {self.feature_columns}")
 
-        # Create algorithm with dynamic features if not already created
         if self.algorithm is None:
-            # Copy hyperparameters and ensure we don't pass 'random_state' twice
             hyperparams = self.algorithm_hyperparams.copy() if self.algorithm_hyperparams else {}
             hyperparams.pop("random_state", None)
 
@@ -369,21 +218,15 @@ class AnomalyPredictor(BaseModel):
         results = {}
         training_start = datetime.now()
 
-        # Prepare data
         X = data[self.feature_columns]
         y_raw = data["failure_component"]
-
-        # Encode string labels to integers for XGBoost
 
         self.label_encoder = LabelEncoder()
         y = self.label_encoder.fit_transform(y_raw)
 
-        # Store class mapping for later use
         self.class_labels = self.label_encoder.classes_
         logger.info(f"Class mapping: {dict(enumerate(self.class_labels))}")
-        # print(f"[TRAIN] Class mapping: {dict(enumerate(self.class_labels))}", flush=True)
 
-        # Train algorithm
         metrics = self.algorithm.train(X, y)
 
         results["main"] = {
@@ -398,7 +241,6 @@ class AnomalyPredictor(BaseModel):
         self.is_trained = True
         self.last_updated = datetime.now()
 
-        # Calculate overall statistics
         results["overall"] = {
             "total_features": len(self.feature_columns),
             "feature_names": self.feature_columns,
@@ -410,45 +252,29 @@ class AnomalyPredictor(BaseModel):
         return results
 
     def predict(self, data: pd.DataFrame, threshold: float = 0.5, **kwargs) -> Dict[str, Any]:
-        """
-        Predict which component will fail within 24 hours (multi-class).
-
-        Args:
-            data: DataFrame with engineered features
-            threshold: Probability threshold for classification (not used in multi-class)
-            **kwargs: Additional parameters
-
-        Returns:
-            Dictionary with predictions and component probabilities
-        """
         if not self.is_trained:
             raise ValueError("Model must be trained before making predictions")
 
         if not self.algorithm:
             raise ValueError("Algorithm not initialized. Train the model first.")
 
-        # Ensure all feature columns are present
         missing_features = set(self.feature_columns) - set(data.columns)
         if missing_features:
             raise ValueError(f"Data missing feature columns: {missing_features}")
 
-        # Get predictions
         X = data[self.feature_columns]
         output = self.algorithm.predict(X)
 
-        predictions_encoded = output.predictions  # Integer predictions
-        probabilities = output.probabilities  # Shape: (n_samples, n_classes)
+        predictions_encoded = output.predictions
+        probabilities = output.probabilities
 
-        # Decode integer predictions back to string labels
         if hasattr(self, "label_encoder") and hasattr(self, "class_labels"):
             predictions = self.label_encoder.inverse_transform(predictions_encoded)
             classes = self.class_labels
         else:
-            # Fallback if model was trained without label encoder
             predictions = predictions_encoded
             classes = ["none", "comp1", "comp2", "comp3", "comp4"]
 
-        # Build component probabilities for each sample
         component_probs_list = []
         for i in range(len(predictions)):
             sample_probs = {}
@@ -456,13 +282,11 @@ class AnomalyPredictor(BaseModel):
                 sample_probs[str(cls)] = float(probabilities[i, j])
             component_probs_list.append(sample_probs)
 
-        # Calculate failure probability (1 - P(none))
         failure_probs = []
         for probs in component_probs_list:
             failure_prob = 1.0 - probs.get("none", 0.0)
             failure_probs.append(failure_prob)
 
-        # Exclude 'none' from predicted_components
         filtered_predictions = [str(p) for p in predictions if str(p) != "none"]
 
         return {
@@ -478,23 +302,10 @@ class AnomalyPredictor(BaseModel):
     def predict_single_machine(
         self, feature_dict: Dict[str, float], threshold: float = 0.5
     ) -> Dict[str, Any]:
-        """
-        Predict which component will fail for a single machine.
-
-        Args:
-            feature_dict: Dictionary mapping feature names to values
-            threshold: Probability threshold (not used in multi-class)
-
-        Returns:
-            Dictionary with prediction result including component probabilities
-        """
-        # Convert to DataFrame
         data = pd.DataFrame([feature_dict])
 
-        # Make prediction
         result = self.predict(data, threshold)
 
-        # If no component predicted (i.e., only 'none'), set predicted_component to None and will_fail to False
         if result["predicted_components"]:
             predicted_component = result["predicted_components"][0]
             will_fail = True
@@ -513,19 +324,8 @@ class AnomalyPredictor(BaseModel):
         }
 
     def save(self, path):
-        """
-        Save the trained model to disk.
-
-        Overrides base class to also save label_encoder for multi-class classification.
-
-        Args:
-            path: Directory path where to save the model
-        """
-
-        # Call parent save method
         super().save(path)
 
-        # Additionally save label_encoder and class_labels if they exist
         path = Path(path)
         if hasattr(self, "label_encoder") and hasattr(self, "class_labels"):
             joblib.dump(
@@ -535,68 +335,41 @@ class AnomalyPredictor(BaseModel):
                 },
                 path / "label_encoder.pkl",
             )
-            # print(
-            #     f"[SAVE] Saved label encoder with classes: {self.class_labels}",
-            #     flush=True,
-            # )
 
     def load(self, path):
-        """
-        Load the trained model from disk.
-
-        Overrides the base class method to properly restore the algorithm reference.
-
-        Args:
-            path: Directory path where the model is saved
-        """
-
         path = Path(path)
 
-        # Load metadata first
         metadata = joblib.load(path / "metadata.pkl")
         self.name = metadata["name"]
         self.is_trained = metadata["is_trained"]
         self.created_at = metadata["created_at"]
         self.last_updated = metadata.get("last_updated")
 
-        # Load the algorithm if it exists
         if "main" in metadata["algorithm_keys"]:
             algorithm_path = path / "algorithm_main.pkl"
 
-            # Load the algorithm data to get the config
             algorithm_data = joblib.load(algorithm_path)
             loaded_config = algorithm_data["config"]
 
-            # Create a new algorithm instance with the loaded config
             self.algorithm = AlgorithmRegistry.create(loaded_config)
 
-            # Now load the trained model into the algorithm
             self.algorithm.load(algorithm_path)
 
-            # Add to algorithms dict
             self.add_algorithm("main", self.algorithm)
 
-            # Restore feature columns from the config
             self.feature_columns = loaded_config.feature_columns
         else:
             raise ValueError("Algorithm 'main' not found in loaded model")
 
-        # Load label_encoder if it exists
         label_encoder_path = path / "label_encoder.pkl"
         if label_encoder_path.exists():
             encoder_data = joblib.load(label_encoder_path)
             self.label_encoder = encoder_data["label_encoder"]
             self.class_labels = encoder_data["class_labels"]
-            # print(
-            #     f"[LOAD] Loaded label encoder with classes: {self.class_labels}",
-            #     flush=True,
-            # )
         else:
-            # print(f"[LOAD] No label encoder found, using default classes", flush=True)
             pass
 
 
-# Feature engineering functions (copied/adapted)
 def create_3h_mean_features(telemetry, fields=["volt", "rotate", "pressure", "vibration"]):
     temp = []
     for col in fields:
@@ -676,29 +449,23 @@ def create_telemetry_features(telemetry, fields=["volt", "rotate", "pressure", "
 
 
 def create_error_count_features(telemetry, errors, error_classes):
-    # Defensive handling when `errors` is empty
     if errors is None or errors.empty:
-        # create zero-filled columns for all expected error classes
         error_count = telemetry[["datetime", "machineID"]].copy()
         for ec in error_classes:
             error_count[ec] = 0
         error_count["datetime"] = pd.to_datetime(error_count["datetime"])
     else:
-        # Create dummies for errorID, preserving datetime and machineID
         error_count = pd.get_dummies(
             errors.set_index("datetime"), columns=["errorID"]
         ).reset_index()
-        # Convert numeric-like columns to int where possible
         error_count = error_count.astype(int, errors="ignore")
 
-        # Normalize dummy column names: remove 'errorID' prefix if present
         cols = list(error_count.columns)
         new_cols = []
         for c in cols:
             if c == "datetime" or c == "machineID":
                 new_cols.append(c)
             else:
-                # handles names like 'errorID_error1' or 'errorIDerror1'
                 if c.startswith("errorID_"):
                     new_cols.append(c.split("errorID_", 1)[1])
                 elif c.startswith("errorID"):
@@ -708,15 +475,12 @@ def create_error_count_features(telemetry, errors, error_classes):
 
         error_count.columns = new_cols
 
-        # Ensure all expected error_classes are present; add missing ones with zeros
         for ec in error_classes:
             if ec not in error_count.columns:
                 error_count[ec] = 0
 
-        # Ensure datetime is datetime type
         error_count["datetime"] = pd.to_datetime(error_count["datetime"])
 
-        # Merge with telemetry to ensure consistent index and fill missing with zeros
         error_count = (
             telemetry[["datetime", "machineID"]]
             .merge(error_count, on=["machineID", "datetime"], how="left")
@@ -724,7 +488,6 @@ def create_error_count_features(telemetry, errors, error_classes):
         )
 
     temp = []
-    # fields expected to be named like error1..error5; fall back to provided error_classes
     fields = error_classes if error_classes else ["error%d" % i for i in range(1, 6)]
     for col in fields:
         temp.append(
@@ -743,28 +506,11 @@ def create_error_count_features(telemetry, errors, error_classes):
 
 
 def create_comp_replacement_features(telemetry, maint, components):
-    # print("create_comp_replacement_features", flush=True)
     telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
     maint["datetime"] = pd.to_datetime(maint["datetime"])
 
     comp_rep = pd.get_dummies(maint.set_index("datetime")).reset_index()
-    # comp_rep.columns is datetime, machineID, + components
     comp_rep.columns = ["datetime", "machineID"] + components
-
-    # print columns
-    # print(f"Component replacement columns before adjustment: {comp_rep.columns}", flush=True)
-
-    # Dynamically determine component columns
-    actual_cols = list(comp_rep.columns)
-    # print(f"Actual columns after get_dummies: {actual_cols}", flush=True)
-
-    # Add missing component columns
-    # for comp in expected_components:
-    #     if comp not in comp_rep.columns:
-    #         comp_rep[comp] = 0
-
-    # Reorder columns to ensure consistent order
-    # comp_rep = comp_rep[["datetime", "machineID"] + expected_components]
 
     comp_rep = (
         telemetry[["datetime", "machineID"]]
@@ -773,7 +519,6 @@ def create_comp_replacement_features(telemetry, maint, components):
         .sort_values(by=["machineID", "datetime"])
     )
 
-    # components = ["comp1", "comp2", "comp3", "comp4"]
     for comp in components:
         comp_rep.loc[comp_rep[comp] < 1, comp] = 0
         comp_rep.loc[-comp_rep[comp].isnull(), comp] = comp_rep.loc[
@@ -904,19 +649,6 @@ def split_data(labeled_features_clean: pd.DataFrame, feature_cols: list):
     if test.empty:
         raise ValueError("Not enough data to split into train, val, test sets.")
 
-    # cutoff_train = pd.to_datetime("2015-08-31 01:00:00")
-    # cutoff_val_start = pd.to_datetime("2015-09-01 01:00:00")
-    # cutoff_val_end = pd.to_datetime("2015-10-31 01:00:00")
-    # cutoff_test = pd.to_datetime("2015-11-01 01:00:00")
-    # buffer = pd.Timedelta(hours=24)
-
-    # train = labeled_features_clean[labeled_features_clean["datetime"] < (cutoff_train - buffer)]
-    # val = labeled_features_clean[
-    #     (labeled_features_clean["datetime"] >= (cutoff_val_start + buffer))
-    #     & (labeled_features_clean["datetime"] <= (cutoff_val_end - buffer))
-    # ]
-    # test = labeled_features_clean[labeled_features_clean["datetime"] >= (cutoff_test + buffer)]
-
     X_train = train[feature_cols]
     X_val = val[feature_cols]
     X_test = test[feature_cols]
@@ -925,8 +657,6 @@ def split_data(labeled_features_clean: pd.DataFrame, feature_cols: list):
 
 
 key_hours = [1, 4, 8, 12, 16, 20, 24]
-
-from xgboost import XGBClassifier
 
 
 def create_and_train_hourly_models(
@@ -941,33 +671,17 @@ def create_and_train_hourly_models(
     algorithm="random_forest",
 ):
     hourly_models = {}
-    hourly_results = {}
 
     if algorithm not in ["random_forest", "xgboost"]:
         algorithm = "random_forest"
-        # print(
-        #     f"Warning: Unsupported algorithm specified. Defaulting to 'random_forest'.",
-        #     flush=True,
-        # )
 
     for hour in key_hours:
-        # print(f"\nTraining models for Hour {hour}...")
-
         multiclass_target = f"target_hour_{hour}_multiclass"
         binary_target = f"target_hour_{hour}_binary"
 
         y_train_mc = train[multiclass_target]
-        y_val_mc = val[multiclass_target]
-        y_test_mc = test[multiclass_target]
 
         y_train_bin = train[binary_target]
-        y_val_bin = val[binary_target]
-        y_test_bin = test[binary_target]
-
-        # Debug: Print target distribution
-        # print(f"[DEBUG] Hour {hour} - y_train_mc value counts:", flush=True)
-        # print(y_train_mc.value_counts(), flush=True)
-        # print(f"[DEBUG] Hour {hour} - Unique values: {len(y_train_mc.value_counts())}", flush=True)
 
         if len(y_train_mc.value_counts()) > 1:
             if algorithm == "random_forest":
@@ -981,16 +695,8 @@ def create_and_train_hourly_models(
                     n_jobs=-1,
                 )
             elif algorithm == "xgboost":
-                # encode string labels to integers for XGBoost
                 le_mc = LabelEncoder()
                 y_train_mc_enc = le_mc.fit_transform(y_train_mc.astype(str))
-                # prepare encoded val/test if available
-                y_val_mc_enc = (
-                    le_mc.transform(y_val_mc.astype(str)) if len(y_val_mc) > 0 else y_val_mc
-                )
-                y_test_mc_enc = (
-                    le_mc.transform(y_test_mc.astype(str)) if len(y_test_mc) > 0 else y_test_mc
-                )
 
                 rf_multiclass = XGBClassifier(
                     n_estimators=100,
@@ -1006,28 +712,12 @@ def create_and_train_hourly_models(
             else:
                 raise ValueError(f"Unsupported algorithm: {algorithm}")
 
-            # fit model (use encoded labels for xgboost, raw labels for RF)
             if algorithm == "xgboost":
                 rf_multiclass.fit(X_train, y_train_mc_enc)
-                # attach encoder for decoding at predict time
                 rf_multiclass._label_encoder = le_mc
             else:
                 rf_multiclass.fit(X_train, y_train_mc)
             hourly_models[f"hour_{hour}_multiclass"] = rf_multiclass
-
-            # predictions and accuracy (compare encoded labels when using xgboost)
-            if algorithm == "xgboost":
-                y_val_pred_mc_enc = rf_multiclass.predict(X_val)
-                y_test_pred_mc_enc = rf_multiclass.predict(X_test)
-                val_acc_mc = accuracy_score(y_val_mc_enc, y_val_pred_mc_enc)
-                test_acc_mc = accuracy_score(y_test_mc_enc, y_test_pred_mc_enc)
-            else:
-                y_val_pred_mc = rf_multiclass.predict(X_val)
-                y_test_pred_mc = rf_multiclass.predict(X_test)
-                val_acc_mc = accuracy_score(y_val_mc, y_val_pred_mc)
-                test_acc_mc = accuracy_score(y_test_mc, y_test_pred_mc)
-
-            # print(f"  Multi-class - Val Acc: {val_acc_mc:.4f}, Test Acc: {test_acc_mc:.4f}")
 
         if len(y_train_bin.value_counts()) > 1:
             if algorithm == "random_forest":
@@ -1056,21 +746,6 @@ def create_and_train_hourly_models(
             rf_binary.fit(X_train, y_train_bin)
             hourly_models[f"hour_{hour}_binary"] = rf_binary
 
-            y_val_pred_bin = rf_binary.predict(X_val)
-            y_test_pred_bin = rf_binary.predict(X_test)
-
-            val_acc_bin = accuracy_score(y_val_bin, y_val_pred_bin)
-            test_acc_bin = accuracy_score(y_test_bin, y_test_pred_bin)
-
-            # print(
-            #     f"  Binary - Val Acc: {val_acc_bin:.4f}, Test Acc: {test_acc_bin:.4f}",
-            #     flush=True,
-            # )
-
-    # print(
-    #     f"\nHourly models training completed! {len(hourly_models)} models trained.",
-    #     flush=True,
-    # )
     return hourly_models
 
 
@@ -1080,21 +755,11 @@ def predict_next_24h_hourly_failures(
     if labeled_features_clean.empty:
         raise ValueError("labeled_features_clean is empty, cannot make predictions")
 
-    # sort labeled_features_clean by datetime in ascending order
     labeled_features_clean = labeled_features_clean.sort_values(by="datetime").reset_index(
         drop=True
     )
 
-    # take the last row of labeled_features_clean
     latest_row = labeled_features_clean.iloc[-1]
-
-    # print(f"[PREDICT] Latest row", flush=True)
-    # print(latest_row, flush=True)
-    #
-    # print(f"[PREDICT] Latest data datetime:", flush=True)
-    #
-    # print(latest_row["datetime"], flush=True)
-
     start_dt = latest_row["datetime"]
 
     feature_vector = {}
@@ -1148,7 +813,6 @@ def predict_next_24h_hourly_failures(
                 class_names = list(getattr(multiclass_model, "classes_", []))
 
                 component_prob_dict = {}
-                # print(f"[PREDICT] Hour {hour} - Class names: {class_names}", flush=True)
                 for i, class_name in enumerate(class_names):
                     component_prob_dict[str(class_name)] = round(float(component_probs[i]), 4)
 
@@ -1193,7 +857,11 @@ def load_models(model_path):
 
 def preprocess_data(telemetry, errors, maint, failures, machines, components, error_classes):
     print(
-        f"[PREPROCESS_DATA] telemetry.shape={telemetry.shape} errors.shape={errors.shape} maint.shape={maint.shape} failures.shape={failures.shape}",
+        (
+            f"[PREPROCESS_DATA] telemetry.shape={telemetry.shape} "
+            f"errors.shape={errors.shape} maint.shape={maint.shape} "
+            f"failures.shape={failures.shape}"
+        ),
         flush=True,
     )
     telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
@@ -1204,14 +872,11 @@ def preprocess_data(telemetry, errors, maint, failures, machines, components, er
     comp_rep = create_comp_replacement_features(telemetry, maint, components)
     labeled_features = merge_features(telemetry_feat, error_count, comp_rep, machines, failures)
 
-    # Debug: Check failure column after merge
-    print(f"\n[DEBUG] After merge_features, failure column value_counts:", flush=True)
+    print("\n[DEBUG] After merge_features, failure column value_counts:", flush=True)
     print(labeled_features["failure"].value_counts(), flush=True)
-    print(f"\n[DEBUG] Sample of labeled_features with failures:", flush=True)
+    print("\n[DEBUG] Sample of labeled_features with failures:", flush=True)
     failure_rows = labeled_features[labeled_features["failure"] != "none"]
     print(f"  Found {len(failure_rows)} rows with failures", flush=True)
-    # if len(failure_rows) > 0:
-    #     print(failure_rows[["datetime", "failure"]].head(10), flush=True)
 
     labeled_features = create_targets(labeled_features)
     labeled_features_clean, feature_cols = create_labeled_features_clean(labeled_features)
@@ -1234,7 +899,6 @@ def train_model(
     )
     print(f"Labeled features cleaned: {labeled_features_clean.shape}", flush=True)
 
-    # Debug: Check target distribution BEFORE split
     print("\n[DEBUG] Target distribution in FULL dataset (before split):", flush=True)
     for hour in [1, 4, 8, 12, 16, 20, 24]:
         target_col = f"target_hour_{hour}_multiclass"
@@ -1243,7 +907,6 @@ def train_model(
 
     train, val, test, X_train, X_val, X_test = split_data(labeled_features_clean, feature_cols)
 
-    # Debug: Check split sizes
     print(
         f"\n[DEBUG] Split sizes - train: {len(train)}, val: {len(val)}, test: {len(test)}",
         flush=True,
@@ -1270,7 +933,6 @@ def predict_failure(
     labeled_features_clean, _ = preprocess_data(
         telemetry, errors, maint, failures, machines, components, error_classes
     )
-    # end_date = pd.to_datetime("2015-03-06 02:00:00")
 
     labeled_features_clean = labeled_features_clean[
         labeled_features_clean["datetime"] <= sample_datetime
@@ -1281,14 +943,10 @@ def predict_failure(
     )
 
 
-# Test with dataset data
 if __name__ == "__main__":
-    # Load data - use absolute path from file location
-    # Find the thingsboard root by going up from this file
     _current_file = Path(__file__).resolve()
     _base_path = None
 
-    # Try to find the application directory
     for _parent in [
         _current_file.parent.parent.parent.parent,
         _current_file.parent.parent.parent,
@@ -1317,8 +975,6 @@ if __name__ == "__main__":
 
     telemetry["datetime"] = pd.to_datetime(telemetry["datetime"], errors="coerce")
     telemetry = telemetry.loc[telemetry["datetime"] > cutoff].reset_index(drop=True)
-    # print("[SCRIPT_TELEMETRY_DATA] dataframe", flush=True)
-    # print(telemetry.tail(), flush=True)
 
     errors["datetime"] = pd.to_datetime(errors["datetime"], errors="coerce")
     errors = errors.loc[errors["datetime"] > cutoff].reset_index(drop=True)
@@ -1330,30 +986,15 @@ if __name__ == "__main__":
     failures = failures.loc[failures["datetime"] > cutoff].reset_index(drop=True)
 
     end_date = pd.to_datetime("2016-01-02 02:00:00")
-    #
+
     telemetry = telemetry[telemetry["machineID"] == 1]
-    # telemetry = telemetry[telemetry["datetime"] <= end_date]
-    # print("telemetry DataFrame:", telemetry.shape, flush=True)
-    # print(telemetry.head(), flush=True)
-    #
+
     errors = errors[errors["machineID"] == 1]
-    # errors = errors[errors["datetime"] <= end_date]
-    # print("errors DataFrame:", errors.shape, flush=True)
-    # print(errors.head(), flush=True)
-    #
     maint = maint[maint["machineID"] == 1]
-    # maint = maint[maint["datetime"] <= end_date]
-    # print("maint DataFrame:", maint.shape, flush=True)
-    # print(maint.head(), flush=True)
-    #
     failures = failures[failures["machineID"] == 1]
-    # failures = failures[failures["datetime"] <= end_date]
-    # print("failures DataFrame:", failures.shape, flush=True)
-    # print(failures.head(), flush=True)
 
     machines = machines[machines["machineID"] == 1]
 
-    # Train the model
     components = ["comp1", "comp2", "comp3", "comp4"]
     error_classes = ["error1", "error2", "error3", "error4", "error5"]
     hourly_models, feature_cols, labeled_features_clean = train_model(
@@ -1367,12 +1008,6 @@ if __name__ == "__main__":
         algorithm="random_forest",
     )
 
-    # print("\nlabeled_features_clean info:", flush=True)
-    # print(f"Shape: {labeled_features_clean.shape}", flush=True)
-    # print(f"Age column: {labeled_features_clean['age'].describe()}", flush=True)
-
-    # Predict failure
-    # I take the last recent row
     sample_datetime = "2015-04-20 02:00:00"
 
     sample_telemetry = {"volt": 158, "rotate": 429, "pressure": 94, "vibration": 58}
@@ -1391,15 +1026,5 @@ if __name__ == "__main__":
         error_classes,
     )
 
-    # print(f"\nPredictions for Machine 1:")
     for hour in range(1, 25):
         hour_data = result1["hourly_predictions"][f"hour_{hour}"]
-        # print(f"\nHour {hour} ({hour_data['datetime']}):")
-        # print(f"  General failure probability: {hour_data['general_failure_probability']:.2%}")
-        # print(f"  Failure predicted: {hour_data['failure_predicted']}")
-        # print(f"  Most likely failing component: {hour_data['predicted_failing_component']}")
-
-        # if hour_data["component_failure_probabilities"]:
-        #     # print(f"  Component failure probabilities:")
-        #     for comp, prob in hour_data["component_failure_probabilities"].items():
-        #         print(f"    {comp}: {prob:.2%}")

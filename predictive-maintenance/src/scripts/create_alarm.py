@@ -1,13 +1,13 @@
-import requests
 import datetime
-import time
-import sys
 import json
+import sys
+import time
 
+import requests
 from requests.auth import HTTPBasicAuth
 
 machine_id = "03a88ca0-b63e-11ef-a198-07d41c920fc8"
-#machine_id = 'ea6210e0-6610-11ef-9061-853a958a524a'
+# machine_id = 'ea6210e0-6610-11ef-9061-853a958a524a'
 # machine_id = "120e1d10-469d-11f0-b3d7-d5827fb4609f"
 alarm = None
 host = "thingsboard"
@@ -78,12 +78,8 @@ def authenticate(username="tenant@thingsboard.org", password="tenant"):
 
 
 def send_to_sms(phones, alarm_type, alarmStartTs, alarmSeverity):
-    time_fmt = datetime.datetime.fromtimestamp(alarmStartTs / 1000).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-    sms_body = (
-        f"Alarm Created. {alarmSeverity}.\nType: {alarm_type}\nStarted at: {time_fmt}"
-    )
+    time_fmt = datetime.datetime.fromtimestamp(alarmStartTs / 1000).strftime("%Y-%m-%d %H:%M:%S")
+    sms_body = f"Alarm Created. {alarmSeverity}.\nType: {alarm_type}\nStarted at: {time_fmt}"
     try:
         for phone in phones:
             print(f"phone = {phone}")
@@ -109,7 +105,7 @@ if __name__ == "__main__":
     # phones = sys.argv[2:]
     # send_to_sms(phones, alarm["type"], alarm["startTs"], alarm["severity"])
     for i in range(1, 15):
-    # while True:
+        # while True:
         time.sleep(1)
         if alarm is None:
             sys.exit(f"Fatal: alarm value is not set. {alarm}")

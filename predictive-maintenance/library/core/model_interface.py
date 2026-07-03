@@ -3,10 +3,11 @@ Base model interface - Abstract base class for business logic models.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
-import pandas as pd
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
 
 from .algorithm_interface import BaseAlgorithm
 
@@ -180,9 +181,7 @@ class BaseModel(ABC):
             "name": self.name,
             "is_trained": self.is_trained,
             "created_at": self.created_at.isoformat(),
-            "last_updated": (
-                self.last_updated.isoformat() if self.last_updated else None
-            ),
+            "last_updated": (self.last_updated.isoformat() if self.last_updated else None),
             "algorithms": {
                 key: {"type": algo.__class__.__name__, "is_trained": algo.is_trained}
                 for key, algo in self.algorithms.items()

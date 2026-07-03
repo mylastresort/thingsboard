@@ -2,32 +2,25 @@
 Shared utilities and constants for model services
 """
 
-from datetime import datetime
 import os
-from pathlib import Path
 import threading
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+
 from library import AnomalyPredictor, ForecastModel
 from library.core.data_registry import DataRegistry
+from library.models.anomaly_predictor import save_models, train_model
+from src.logger import logger
+from src.model.utils import active_jobs, get_job_status, get_or_create_job_status, job_lock
 from src.settings import settings
-from src.logger import logger  # Global logger
-from library.models.anomaly_predictor import train_model, save_models
-from src.model.utils import get_job_status, get_or_create_job_status
-import pandas as pd
 
 
 def get_data_registry() -> DataRegistry:
-    """
-    Get or create DataRegistry instance.
-
-    Returns:
-        DataRegistry instance configured with database URL and telemetry keys
-    """
-    # Get database URL from settings or environment
     database_url = os.getenv(
         "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/thingsboard"
     )
-
-    # Get telemetry configuration from settings
 
     return DataRegistry(
         database_url=database_url,
@@ -81,7 +74,6 @@ def _update_training_progress_impl(model_id: str, progress: dict, rand_id: str =
         progress: Dictionary with progress information (step, message, progress percentage)
         rand_id: Random ID for tracking
     """
-    from src.model.job import active_jobs, job_lock, notify_job_status_update
 
     logger.info(
         f"{rand_id} - Updating training progress for model_id={model_id}: {progress}",
@@ -101,6 +93,8 @@ def _update_training_progress_impl(model_id: str, progress: dict, rand_id: str =
             job["training_progress"] = progress
 
     # Notify subscribers after updating
+    from src.model.job import notify_job_status_update
+
     notify_job_status_update(model_id)
 
 
@@ -123,13 +117,13 @@ def update_training_progress(model_id: str, progress: dict, rand_id: str = None)
 def train_and_save_model(
     model_id: str,
     model_type: str,
-    device_id: str = None,
-    algorithm: str = None,
-    hyperparams: dict = None,
-    data_registry: DataRegistry = None,
-    sensors: list = None,
-    group_by_ms_per_sensor: dict = None,
-    aggregation_funcs: dict = None,
+    device_id: str | None = None,
+    algorithm: str | None = None,
+    hyperparams: dict | None = None,
+    data_registry: DataRegistry | None = None,
+    sensors: list | None = None,
+    group_by_ms_per_sensor: dict | None = None,
+    aggregation_funcs: dict | None = None,
     progress_callback=None,
     **kwargs,
 ) -> dict:
@@ -151,11 +145,6 @@ def train_and_save_model(
     Raises:
         ValueError: If model_type is not recognized
     """
-    # Get model class and defaults from map
-    # if model_type not in MODEL_TYPE_MAP:
-    #     raise ValueError(
-    #         f"Unknown model_type: {model_type}. Supported types: {list(MODEL_TYPE_MAP.keys())}"
-    #     )
 
     ModelClass, default_algorithm, default_hyperparams = (
         MODEL_TYPE_MAP_CLASS[model_type]["model_name"],
@@ -163,30 +152,23 @@ def train_and_save_model(
         MODEL_TYPE_MAP_CLASS[model_type]["default_hyperparams"],
     )
 
-    # Use defaults if not provided
     algorithm = algorithm or default_algorithm
     hyperparams = hyperparams or default_hyperparams
     device_id = device_id or model_id
 
-    # Create data registry if not provided
     if data_registry is None:
         data_registry = get_data_registry()
 
-    # Create model directory
     path = settings.models_path
     model_dir = Path(path) / model_id
     model_dir.mkdir(parents=True, exist_ok=True)
 
     rand_id = os.urandom(4).hex()
 
-    # Create active job entry for training progress tracking
-    from src.model.job import active_jobs, job_lock
-
     logger.info(
         f"{rand_id} - Creating active job entry for model_id={model_id} if not exists",
         extra={"rand_id": rand_id},
     )
-    # Lock is acquired inside get_or_create_job_status, no need to acquire it here
     get_or_create_job_status(
         model_id,
         {
@@ -204,12 +186,10 @@ def train_and_save_model(
         rand_id=rand_id,
     )
 
-    # Train model
     if model_type == "AnomalyPredictor":
-        # Initialize model with data registry
         train_start_date = kwargs.get(
             "train_start_date",
-            datetime.now() - pd.Timedelta(days=365 * 2),  # Default to last 2 years
+            datetime.now() - pd.Timedelta(days=365 * 2),
         )
         train_end_date = kwargs.get("train_end_date", datetime.now())
         model = ModelClass(

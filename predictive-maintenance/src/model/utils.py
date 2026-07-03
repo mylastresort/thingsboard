@@ -1,13 +1,14 @@
-from src.logger import logger
 import threading
 from typing import Dict
+
+from src.logger import logger
 
 # Global job registry: {model_id: {status, thread, start_time, etc}}
 active_jobs: Dict[str, dict] = {}
 job_lock = threading.Lock()
 
 
-def get_job_status(model_id: str = None, rand_id: int = None) -> dict | None:
+def get_job_status(model_id: str | None = None, rand_id: int | None = None) -> dict | None:
     """Get status of jobs"""
     logger.info(
         f"{rand_id} - Acquiring job_lock for model_id={model_id}", extra={"rand_id": rand_id}
@@ -19,7 +20,11 @@ def get_job_status(model_id: str = None, rand_id: int = None) -> dict | None:
     return None
 
 
-def get_or_create_job_status(model_id: str, merge_object=None, rand_id: int = None) -> dict:
+def get_or_create_job_status(
+    model_id: str,
+    merge_object=None,
+    rand_id: int | str | None = None,
+) -> dict:
     """Get or create job status entry"""
     logger.info(
         f"{rand_id} - Acquiring job_lock for model_id={model_id}", extra={"rand_id": rand_id}

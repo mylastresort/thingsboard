@@ -2,9 +2,15 @@
 Algorithm factory - Registry for creating algorithm instances.
 """
 
-from typing import Dict, Type, Optional
+from typing import Dict, Type
+
 from ..core.algorithm_interface import BaseAlgorithm
 from ..core.types import AlgorithmConfig
+from .supervised import (
+    RandomForestAdapter,
+    XGBoostAdapter,
+)
+from .timeseries import XGBoostTimeSeriesAdapter
 
 
 class AlgorithmRegistry:
@@ -76,26 +82,12 @@ class AlgorithmRegistry:
 def _auto_register_algorithms():
     """Automatically register all algorithm implementations"""
     try:
-        from .supervised import (
-            RandomForestAdapter,
-            XGBoostAdapter,
-            LightGBMAdapter,
-            CatBoostAdapter,
-            LogisticRegressionAdapter,
-        )
-
         AlgorithmRegistry.register("random_forest", RandomForestAdapter)
         AlgorithmRegistry.register("xgboost", XGBoostAdapter)
-        AlgorithmRegistry.register("lightgbm", LightGBMAdapter)
-        AlgorithmRegistry.register("catboost", CatBoostAdapter)
-        AlgorithmRegistry.register("logistic_regression", LogisticRegressionAdapter)
     except ImportError:
         pass  # Supervised algorithms not yet implemented
 
     try:
-        from .timeseries import ProphetAdapter, XGBoostTimeSeriesAdapter
-
-        AlgorithmRegistry.register("prophet", ProphetAdapter)
         AlgorithmRegistry.register("xgboost_ts", XGBoostTimeSeriesAdapter)
     except ImportError:
         pass  # Time series algorithms not yet implemented

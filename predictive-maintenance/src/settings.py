@@ -1,7 +1,8 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator, ValidationInfo
-from typing import List, Union
 import os
+from typing import List, Union
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):

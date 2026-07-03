@@ -6,19 +6,12 @@ from .factory import AlgorithmRegistry
 from .supervised import (
     RandomForestAdapter,
     XGBoostAdapter,
-    LightGBMAdapter,
-    CatBoostAdapter,
-    LogisticRegressionAdapter,
 )
-from .timeseries import ProphetAdapter, XGBoostTimeSeriesAdapter
+from .timeseries import XGBoostTimeSeriesAdapter
 
 __all__ = [
     "AlgorithmRegistry",
     "RandomForestAdapter",
     "XGBoostAdapter",
-    "LightGBMAdapter",
-    "CatBoostAdapter",
-    "LogisticRegressionAdapter",
-    "ProphetAdapter",
     "XGBoostTimeSeriesAdapter",
 ]

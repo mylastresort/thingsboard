@@ -2,17 +2,17 @@
 Core module - Base interfaces and types for the library
 """
 
-from .algorithm_interface import BaseAlgorithm, AlgorithmType, TaskType
+from .algorithm_interface import AlgorithmType, BaseAlgorithm, TaskType
 from .model_interface import BaseModel
 from .types import (
+    AlgorithmCapabilities,
     AlgorithmConfig,
-    SupervisedConfig,
-    TimeSeriesConfig,
+    ForecastOutput,
     NeuralNetworkConfig,
     PredictionOutput,
+    SupervisedConfig,
+    TimeSeriesConfig,
     TrainingMetrics,
-    ForecastOutput,
-    AlgorithmCapabilities,
 )
 
 __all__ = [

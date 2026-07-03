@@ -59,11 +59,7 @@ export class PredictiveModelsService {
     return this.http.post<any>('/api/models/saveLoadConfig', config, {});
   }
 
-  private baseUrl = '/api/v1/forecast'; // Base URL for your API
-
   private baseUrlModels = '/api/v1/models'; // Base URL for your API
-
-  private fastApiForecastBaseUrl = '/api/v1/forecast';
 
   constructor(private http: HttpClient) {}
 
@@ -73,7 +69,7 @@ export class PredictiveModelsService {
     config?: RequestConfig
   ): Observable<PageData<any>> {
     return this.http.get<PageData<Order>>(
-      `${this.baseUrl}${pageLink.toQuery()}`,
+      `${this.baseUrlModels}${pageLink.toQuery()}`,
       defaultHttpOptionsFromConfig(config)
     );
   }
@@ -135,7 +131,7 @@ export class PredictiveModelsService {
     config?: RequestConfig
   ): Observable<Forecast> {
     return this.http.get<Forecast>(
-      `${this.baseUrl}/${forecastId}`,
+      `${this.baseUrlModels}/${forecastId}`,
       defaultHttpOptionsFromConfig(config)
     );
   }
@@ -146,7 +142,7 @@ export class PredictiveModelsService {
     config?: RequestConfig
   ): Observable<any> {
     return this.http.post<Forecast>(
-      this.fastApiForecastBaseUrl,
+      this.baseUrlModels,
       forecast,
       defaultHttpOptionsFromConfig(config)
     ).pipe(map(() => ({ success: true } as any)));
@@ -156,20 +152,8 @@ export class PredictiveModelsService {
   updatePredictiveModel(forecast: any, config?: RequestConfig): Observable<Forecast> {
     const forecastId = forecast.id?.id || forecast.id;
     return this.http.post<Forecast>(
-      `${this.baseUrl}/${forecastId}`,
+      `${this.baseUrlModels}/${forecastId}`,
       forecast,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
-
-  // Activate a predictive model
-  activatePredictiveModel(
-    forecastId: string,
-    config?: RequestConfig
-  ): Observable<void> {
-    return this.http.patch<void>(
-      `${this.baseUrl}/${forecastId}/activate`,
-      {},
       defaultHttpOptionsFromConfig(config)
     );
   }
@@ -177,7 +161,7 @@ export class PredictiveModelsService {
   // Delete a predictive model by its ID
   deletePredictiveModel(forecastId: string, config?: RequestConfig): Observable<void> {
     return this.http.delete<void>(
-      `${this.baseUrl}/${forecastId}`,
+      `${this.baseUrlModels}/${forecastId}`,
       defaultHttpOptionsFromConfig(config)
     );
   }
@@ -187,7 +171,7 @@ export class PredictiveModelsService {
     config?: RequestConfig
   ): Observable<{ forecast_id: string; status: string }> {
     return this.http.get<{ forecast_id: string; status: string }>(
-      `${this.baseUrl}/${forecastId}/status`,
+      `${this.baseUrlModels}/${forecastId}/status`,
       defaultHttpOptionsFromConfig(config)
     );
   }
@@ -198,7 +182,7 @@ export class PredictiveModelsService {
     config?: RequestConfig
   ): Observable<PageData<any>> {
     return this.http.get<PageData<any>>(
-      `${this.baseUrl}/device/${deviceId}`,
+      `${this.baseUrlModels}/device/${deviceId}`,
       defaultHttpOptionsFromConfig(config)
     );
   }

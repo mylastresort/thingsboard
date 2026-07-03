@@ -5,12 +5,14 @@ This class handles all database operations for fetching training data from Thing
 Models should use this registry instead of direct database calls.
 """
 
-from typing import Tuple, Optional, List, Dict, Any
-import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+
 from src.logger import logger  # Global logger
 
 

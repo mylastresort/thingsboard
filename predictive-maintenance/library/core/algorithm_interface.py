@@ -3,19 +3,19 @@ Base algorithm interface - Abstract base class for all ML algorithms.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Dict
-import pandas as pd
-import numpy as np
 from pathlib import Path
+from typing import Any, Dict, Optional
+
+import pandas as pd
 
 from .types import (
-    AlgorithmConfig,
-    PredictionOutput,
-    TrainingMetrics,
-    ForecastOutput,
     AlgorithmCapabilities,
+    AlgorithmConfig,
     AlgorithmType,
+    ForecastOutput,
+    PredictionOutput,
     TaskType,
+    TrainingMetrics,
 )
 
 
@@ -155,6 +155,4 @@ class BaseAlgorithm(ABC):
 
     def __repr__(self) -> str:
         status = "trained" if self.is_trained else "untrained"
-        return (
-            f"{self.__class__.__name__}(name='{self.config.name}', status='{status}')"
-        )
+        return f"{self.__class__.__name__}(name='{self.config.name}', status='{status}')"

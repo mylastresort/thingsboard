@@ -8,6 +8,13 @@ typeCheckingMode = "basic"
 line-length = 100
 target-version = "py312"
 
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+split-on-trailing-comma = true
+
 [tool.black]
 line-length = 100
 target-version = ['py312']

@@ -9,25 +9,25 @@ sys.path.append("..")
 import json
 import threading
 import time
-import uuid
-from pathlib import Path
-from datetime import datetime, timedelta
-from collections import deque
-import pandas as pd
-from typing import Dict, Callable, Set, Union
-
-from scipy.sparse import data
-from library import AnomalyPredictor, ForecastModel
-from src.settings import settings
-from src.logger import logger  # Global logger
-import numpy as np
-from library.models.anomaly_predictor import predict_failure, feature_cols, load_models
-from .shared import get_data_registry
 import traceback
-from sqlalchemy import text
-from src.scripts.create_alarm import create_alarm, authenticate
-from src.model.utils import get_job_status, job_lock, active_jobs, get_or_create_job_status
+import uuid
+from collections import deque
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Callable, Dict, Set, Union
 
+import numpy as np
+import pandas as pd
+from sqlalchemy import text
+
+from library import AnomalyPredictor, ForecastModel
+from library.models.anomaly_predictor import feature_cols, load_models, predict_failure
+from src.logger import logger  # Global logger
+from src.model.utils import active_jobs, get_job_status, get_or_create_job_status, job_lock
+from src.scripts.create_alarm import authenticate, create_alarm
+from src.settings import settings
+
+from .shared import get_data_registry
 
 # Log storage: {model_id: deque of log entries}
 model_logs: Dict[str, deque] = {}
@@ -90,7 +90,9 @@ def add_model_log(model_id: str, level: str, message: JSONValue) -> None:
         "type": (
             "forecast"
             if "forecast" in model_id
-            else "anomaly" if "anomaly" in model_id else "system"
+            else "anomaly"
+            if "anomaly" in model_id
+            else "system"
         ),
         "source": source,
     }
@@ -137,7 +139,6 @@ def prediction_job_worker(
     add_model_log(model_id, "info", f"Prediction job started for {model_type}")
     data_registry = get_data_registry()
     try:
-
         auth_token = authenticate()
 
         # print(f"[PREDICTION JOB] {model_id} - Initializing model worker", flush=True)
@@ -374,7 +375,9 @@ def anomaly_predict_model(
                 severity=(
                     "CRITICAL"
                     if confidence_score > 0.8
-                    else "MAJOR" if confidence_score > 0.5 else "MINOR"
+                    else "MAJOR"
+                    if confidence_score > 0.5
+                    else "MINOR"
                 ),
             )
             print(

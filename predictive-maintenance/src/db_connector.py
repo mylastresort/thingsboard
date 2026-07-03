@@ -6,13 +6,15 @@ All write operations are handled by ThingsBoard Java backend.
 This module only fetches data for ML model training.
 """
 
+import os
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
-import os
-import pandas as pd
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple
+
 from src.logger import logger  # Global logger
 
 # Database configuration
@@ -427,7 +429,8 @@ def setup_model_database():
     """
     with get_db_connection() as conn:
         # Predictive Maintenance Config Table
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE IF NOT EXISTS predictive_maintenance_config (
                 id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
                 name varchar(255) NOT NULL,
@@ -444,10 +447,12 @@ def setup_model_database():
                 view_preferences jsonb,
                 additional_data jsonb
             );
-        """))
+        """)
+        )
 
         # Model Logs Table
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE IF NOT EXISTS model_logs (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 created_time BIGINT NOT NULL,
@@ -461,13 +466,16 @@ def setup_model_database():
                 metadata JSONB,
                 created_at TIMESTAMP DEFAULT NOW()
             );
-        """))
+        """)
+        )
 
         # Predictive Model Load Model Config Table
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE IF NOT EXISTS predictive_model_load_model_config (
                 name VARCHAR(255) PRIMARY KEY,
                 config JSONB
             );
-        """))
+        """)
+        )
         conn.commit()

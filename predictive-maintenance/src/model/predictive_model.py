@@ -3,8 +3,6 @@ PredictiveModel class to manage overall model status for predictive maintenance 
 Tracks the lifecycle status of a predictive model: inactive -> pending -> active
 """
 
-import asyncio
-import json
 import threading
 from datetime import datetime
 from enum import Enum
@@ -79,8 +77,7 @@ class PredictiveModel:
                 self.error_message = message
 
             logger.info(
-                f"PredictiveModel status changed for {self.forecast_id}: "
-                f"{old_status} -> {status}"
+                f"PredictiveModel status changed for {self.forecast_id}: {old_status} -> {status}"
             )
 
         # Notify subscribers outside the lock

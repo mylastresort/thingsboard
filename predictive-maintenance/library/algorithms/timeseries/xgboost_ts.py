@@ -2,22 +2,23 @@
 XGBoost-based time series forecasting adapter.
 """
 
-from typing import Optional
-import pandas as pd
-import numpy as np
-import xgboost as xgb
-from datetime import datetime, timedelta
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import time
+from datetime import datetime, timedelta
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
 
 from ...core.algorithm_interface import BaseAlgorithm
 from ...core.types import (
-    TimeSeriesConfig,
-    PredictionOutput,
-    TrainingMetrics,
-    ForecastOutput,
     AlgorithmCapabilities,
+    ForecastOutput,
+    PredictionOutput,
+    TimeSeriesConfig,
+    TrainingMetrics,
 )
 
 
@@ -43,9 +44,7 @@ class XGBoostTimeSeriesAdapter(BaseAlgorithm):
             handles_categorical=False,
         )
 
-    def _create_lagged_features(
-        self, df: pd.DataFrame, n_lags: int = 24
-    ) -> pd.DataFrame:
+    def _create_lagged_features(self, df: pd.DataFrame, n_lags: int = 24) -> pd.DataFrame:
         """
         Create lagged features for time series forecasting.
 
@@ -178,11 +177,7 @@ class XGBoostTimeSeriesAdapter(BaseAlgorithm):
             periods: Number of time periods to forecast
             freq: Frequency of forecasts ('H' for hourly, 'D' for daily, etc.)
         """
-        if (
-            not self.is_trained
-            or self.last_values is None
-            or self.last_timestamp is None
-        ):
+        if not self.is_trained or self.last_values is None or self.last_timestamp is None:
             raise ValueError("Model must be trained before forecasting")
 
         n_lags = self.config.hyperparameters.get("n_lags", 24)
@@ -211,16 +206,12 @@ class XGBoostTimeSeriesAdapter(BaseAlgorithm):
 
             # Lag features
             for i in range(1, n_lags + 1):
-                features[f"lag_{i}"] = (
-                    recent_values[-i] if i <= len(recent_values) else 0
-                )
+                features[f"lag_{i}"] = recent_values[-i] if i <= len(recent_values) else 0
 
             # Rolling statistics
             for window in [6, 12, 24]:
                 if len(recent_values) >= window:
-                    features[f"rolling_mean_{window}"] = np.mean(
-                        recent_values[-window:]
-                    )
+                    features[f"rolling_mean_{window}"] = np.mean(recent_values[-window:])
                     features[f"rolling_std_{window}"] = np.std(recent_values[-window:])
                 else:
                     features[f"rolling_mean_{window}"] = np.mean(recent_values)

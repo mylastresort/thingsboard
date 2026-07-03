@@ -1,17 +1,12 @@
-import os
-from fastapi import APIRouter, Body, HTTPException
-import requests
 import datetime
-from dotenv import load_dotenv
+import os
 
-import os
-from fastapi import Body, HTTPException
-from src.forecast.forecast import router as forecast_router
-from src.db_connector import SessionLocal
-from sqlalchemy import text
 import requests
-import datetime
 from dotenv import load_dotenv
+from fastapi import APIRouter, Body, HTTPException
+from sqlalchemy import text
+
+from src.db_connector import SessionLocal
 
 # Load environment variables from .env file
 load_dotenv()

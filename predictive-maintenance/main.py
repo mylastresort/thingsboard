@@ -15,22 +15,23 @@
 #
 
 import os
-from fastapi import FastAPI
-from src.forecast.forecast import router as forecast_router
-from src.model.model import router as model_router
-from src.notify import router as notify_router
-from dotenv import load_dotenv
-from src.settings import settings
-from src.logger import logger  # Global logger
-import pandas as pd
-from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-from src.model.shared import get_data_registry
-from src.model.job import start_prediction_job, add_model_log
-from sqlalchemy import text
-from library.core.data_registry import DataRegistry
 import traceback
+from pathlib import Path
+
+import pandas as pd
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+
+from library.core.data_registry import DataRegistry
 from src.db_connector import setup_model_database
+from src.logger import logger  # Global logger
+from src.model.job import add_model_log, start_prediction_job
+from src.model.model import router as model_router
+from src.model.shared import get_data_registry
+from src.notify import router as notify_router
+from src.settings import settings
 
 pd.set_option("display.max_columns", None)
 # Load environment variables from .env file
@@ -59,12 +60,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(forecast_router)
 app.include_router(model_router)
 app.include_router(notify_router)
 
 # Log startup with current log level
-logger.info(f"Predictive Maintenance Service Starting")
+logger.info("Predictive Maintenance Service Starting")
 
 
 @app.on_event("startup")
@@ -145,7 +145,8 @@ async def startup_event():
                 print(f"STARTUP: Found trained forecast model at {forecast_model_dir}", flush=True)
                 print(f"STARTUP:   - has metadata.json: {has_metadata}", flush=True)
                 print(
-                    f"STARTUP:   - has model files: {has_model_files} ({len(model_files) if has_model_files else 0} files)",
+                    f"STARTUP:   - has model files: {has_model_files} "
+                    f"({len(model_files) if has_model_files else 0} files)",
                     flush=True,
                 )
                 logger.info(f"STARTUP: Found trained forecast model at {forecast_model_dir}")
@@ -209,7 +210,7 @@ async def startup_event():
                 logger.info(f"STARTUP: No trained anomaly model found for {config_id}")
 
         # Also scan the models directory for ANY trained models not in config
-        print(f"STARTUP: Scanning models directory for additional trained models...", flush=True)
+        print("STARTUP: Scanning models directory for additional trained models...", flush=True)
         print(f"STARTUP: Models path: {models_path}", flush=True)
         if models_path.exists():
             for config_dir in models_path.iterdir():
@@ -247,12 +248,16 @@ async def startup_event():
                         if success:
                             started_jobs.append(f"{forecast_model_id} (ForecastModel, orphaned)")
                             print(
-                                f"STARTUP: ✓ Started prediction job for orphaned model {forecast_model_id}",
+                                (
+                                    f"STARTUP: ✓ Started prediction job for orphaned model "
+                                    f"{forecast_model_id}"
+                                ),
                                 flush=True,
                             )
                     except Exception as e:
                         print(
-                            f"STARTUP: Failed to start orphaned model {forecast_model_id}: {str(e)}",
+                            f"STARTUP: Failed to start orphaned model {forecast_model_id}: "
+                            f"{str(e)}",
                             flush=True,
                         )
                         skipped_jobs.append(f"{forecast_model_id} (error: {str(e)})")
@@ -278,12 +283,14 @@ async def startup_event():
                                     f"{anomaly_model_id} (AnomalyPredictor, orphaned)"
                                 )
                                 print(
-                                    f"STARTUP: ✓ Started prediction job for orphaned model {anomaly_model_id}",
+                                    f"STARTUP: ✓ Started prediction job for "
+                                    f"orphaned model {anomaly_model_id}",
                                     flush=True,
                                 )
                         except Exception as e:
                             print(
-                                f"STARTUP: Failed to start orphaned model {anomaly_model_id}: {str(e)}",
+                                f"STARTUP: Failed to start orphaned model "
+                                f"{anomaly_model_id}: {str(e)}",
                                 flush=True,
                             )
                             skipped_jobs.append(f"{anomaly_model_id} (error: {str(e)})")
@@ -381,9 +388,9 @@ def health_check():
             status["database"]["error"] = str(e)
             status["status"] = "degraded"
     else:
-        status["database"][
-            "url"
-        ] = "postgresql://postgres:postgres@localhost:5432/thingsboard (default)"
+        status["database"]["url"] = (
+            "postgresql://postgres:postgres@localhost:5432/thingsboard (default)"
+        )
 
     return status
 

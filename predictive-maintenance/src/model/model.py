@@ -18,6 +18,7 @@ Usage:
 """
 
 from fastapi import APIRouter
+
 from src.model.api import router as api_router
 from src.model.ws import router as ws_router
 
