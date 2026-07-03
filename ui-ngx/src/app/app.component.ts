@@ -35,6 +35,7 @@ import { SETTINGS_KEY } from '@core/settings/settings.effects';
 import { initCustomJQueryEvents } from '@shared/models/jquery-event.models';
 import { DarkThemeService } from './core/services/dark-theme.service';
 import { DarkThemeOverlayComponent } from './dark-theme-overlay.component';
+import { environment } from '@env/environment';
 
 @Component({
     selector: 'tb-root',
@@ -45,7 +46,9 @@ import { DarkThemeOverlayComponent } from './dark-theme-overlay.component';
 export class AppComponent implements OnInit {
 
   ngOnInit() {
-    this.darkThemeService.restore();
+    if (environment.darkMode) {
+      this.darkThemeService.enable();
+    }
   }
 
   constructor(private store: Store<AppState>,

@@ -34,6 +34,7 @@ import { RouterTabsComponent } from '@home/components/router-tabs.component';
 import { FormBuilder } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { isDefined, isDefinedAndNotNull } from '@core/utils';
+import { DarkThemeService } from '@core/services/dark-theme.service';
 
 @Component({
     selector: 'tb-home',
@@ -67,6 +68,7 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
   textSearch = this.fb.control('', {nonNullable: true});
 
   hideLoadingBar = false;
+  darkModeToggleInProgress = false;
 
   private destroy$ = new Subject<void>();
 
@@ -74,6 +76,7 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
               @Inject(WINDOW) private window: Window,
               private activeComponentService: ActiveComponentService,
               private fb: FormBuilder,
+              private darkThemeService: DarkThemeService,
               public breakpointObserver: BreakpointObserver) {
     super(store);
   }
@@ -132,6 +135,22 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
 
   goBack() {
     this.window.history.back();
+  }
+
+  async toggleDarkMode() {
+    if (this.darkModeToggleInProgress) {
+      return;
+    }
+    this.darkModeToggleInProgress = true;
+    try {
+      await Promise.resolve(this.darkThemeService.toggle());
+    } finally {
+      this.darkModeToggleInProgress = false;
+    }
+  }
+
+  isDarkMode() {
+    return this.darkThemeService.isEnabled();
   }
 
   activeComponentChanged(activeComponent: any) {

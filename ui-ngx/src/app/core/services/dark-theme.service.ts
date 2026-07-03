@@ -123,12 +123,16 @@ export class DarkThemeService {
 
   disable(): void {
     this.eject();
+    if (!window.DarkReader) return;
+    window.DarkReader.disable();
     document.documentElement.style.colorScheme = 'light';
     localStorage.setItem('theme', 'light');
   }
 
   isEnabled(): boolean {
-    return !!window.DarkReader && window.DarkReader.isEnabled();
+    const a = !!window.DarkReader && window.DarkReader.isEnabled();
+    // console.log('DarkThemeService.isEnabled():', a);
+    return a;
   }
 
   toggle(): Promise<void> | void {

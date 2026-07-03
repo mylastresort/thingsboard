@@ -28,6 +28,7 @@ export const environment = {
   defaultLang: 'en_US',
   WT_ACCESS_TOKEN: 'xxxxxx',
   phone_id: 'xxxxx',
+  darkMode: true,
 };
 
 /*
