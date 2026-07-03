@@ -40,6 +40,9 @@ services:
       - WAIT_HOSTS=postgres:5432,model-postgres:5432
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
       - THINGSBOARD_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - TB_HOST=${TB_HOST:-http://thingsboard:8080}
+      - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
+      - TB_PASSWORD=${TB_PASSWORD:-tenant}
       - MODELS_PATH=/models
       - AUTO_START_PREDICTION_JOBS=${AUTO_START_PREDICTION_JOBS:-false}
       - ENABLE_FILE_WATCH=false

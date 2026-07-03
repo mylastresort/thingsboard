@@ -127,25 +127,6 @@ def train_and_save_model(
     progress_callback=None,
     **kwargs,
 ) -> dict:
-    """
-    Unified function to train and save any model type.
-
-    Args:
-        model_id: Unique identifier for the model
-        model_type: Type of model ("AnomalyPredictor" or "ForecastModel")
-        device_id: Device identifier (optional, uses model_id if not provided)
-        algorithm: Algorithm name (optional, uses default for model type)
-        hyperparams: Hyperparameters (optional, uses default for model type)
-        data_registry: DataRegistry instance for database access (optional)
-        **kwargs: Additional parameters passed to model.fetch()
-
-    Returns:
-        Dictionary with training results
-
-    Raises:
-        ValueError: If model_type is not recognized
-    """
-
     ModelClass, default_algorithm, default_hyperparams = (
         MODEL_TYPE_MAP_CLASS[model_type]["model_name"],
         MODEL_TYPE_MAP_CLASS[model_type]["default_algorithm"],
