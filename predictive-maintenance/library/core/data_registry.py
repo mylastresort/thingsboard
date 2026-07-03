@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from functools import reduce
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -188,40 +189,12 @@ class DataRegistry:
     def fetch_telemetry_data(
         self, device_id: str, start_date=None, end_date=None, **kwargs
     ) -> pd.DataFrame:
-        start_ts = int(start_date.timestamp() * 1000) if start_date else 0
-        end_ts = (
-            int(end_date.timestamp() * 1000) if end_date else int(datetime.now().timestamp() * 1000)
-        )
-
-        client = get_client()
-        keys = client.get_timeseries_keys(entity_type="DEVICE", entity_id=device_id)
+        keys = get_client().get_timeseries_keys(entity_type="DEVICE", entity_id=device_id)
         if not keys:
             return pd.DataFrame()
 
-        result = client.get_timeseries_history(
-            entity_type="DEVICE",
-            entity_id=device_id,
-            start_ts=start_ts,
-            end_ts=end_ts,
-            keys=",".join(keys),
-            agg="NONE",
-            order_by="ASC",
-            limit=str(1_000_000),
-        )
-
-        rows = [
-            {"datetime": pd.to_datetime(p.ts, unit="ms"), "key": key, "value": float(p.value)}
-            for key, points in result.items()
-            for p in points
-            if p.ts is not None and p.value is not None
-        ]
-        if not rows:
-            return pd.DataFrame()
-
-        return (
-            pd.DataFrame(rows)
-            .pivot_table(index="datetime", columns="key", values="value")
-            .reset_index()
+        return self.api_fetch_time_series_data(
+            device_id, keys, start_date=start_date, end_date=end_date, desc=False
         )
 
     def fetch_maintenance_data(
@@ -470,60 +443,16 @@ class DataRegistry:
             telemetry_keys = self.fetch_model_telemetry_keys(device_id)
             logger.info(f"Using telemetry keys for {device_id}: {telemetry_keys}")
 
-            telemetry_key_ids = self._get_key_ids(telemetry_keys)
-            if not telemetry_key_ids:
-                logger.error(f"No valid key IDs found for telemetry keys: {telemetry_keys}")
+            telemetry_pivot = self.api_fetch_time_series_data(
+                device_id, telemetry_keys, start_date=cutoff_date, desc=False
+            )
+            if telemetry_pivot.empty:
+                logger.warning(f"No telemetry data found for device {device_id}")
                 return pd.DataFrame(), None
 
-            key_id_to_name = dict(zip(telemetry_key_ids, telemetry_keys))
-            logger.info(f"Using telemetry key IDs: {key_id_to_name}")
+            telemetry_pivot = telemetry_pivot.set_index("datetime")
 
             with self.engine.connect() as conn:
-                telemetry_keys_sql = ", ".join([str(kid) for kid in telemetry_key_ids])
-
-                telemetry_query = text(
-                    f"""
-                    SELECT
-                        ts,
-                        key,
-                        COALESCE(dbl_v, long_v, str_v::float) as value
-                    FROM ts_kv
-                    WHERE entity_id = :device_id
-                    AND ts >= :cutoff_ts
-                    AND key IN ({telemetry_keys_sql})
-                    ORDER BY ts
-                """
-                )
-
-                telemetry_result = conn.execute(
-                    telemetry_query,
-                    {
-                        "device_id": device_id,
-                        "cutoff_ts": int(cutoff_date.timestamp() * 1000),
-                    },
-                )
-
-                telemetry_data = []
-                for row in telemetry_result:
-                    key_name = key_id_to_name.get(row.key, f"key_{row.key}")
-                    telemetry_data.append(
-                        {
-                            "datetime": pd.to_datetime(row.ts, unit="ms"),
-                            "key": key_name,
-                            "value": row.value,
-                        }
-                    )
-
-                if len(telemetry_data) == 0:
-                    logger.warning(f"No telemetry data found for device {device_id}")
-                    return pd.DataFrame(), None
-
-                telemetry_df = pd.DataFrame(telemetry_data)
-                telemetry_pivot = telemetry_df.pivot_table(
-                    index="datetime", columns="key", values="value"
-                ).reset_index()
-
-                telemetry_pivot.set_index("datetime", inplace=True)
                 telemetry_3h = telemetry_pivot.resample("3h").agg(["mean", "std"]).reset_index()
 
                 telemetry_3h.columns = [
@@ -850,17 +779,23 @@ class DataRegistry:
     def api_fetch_time_series_data(
         self,
         device_id: str,
-        sensor_key: str,
+        sensor_key: str | List[str],
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         limit: int | None = None,
         desc: bool = True,
         group_by: Optional[str] = None,
     ) -> pd.DataFrame:
-        """Fetch time series data via ThingsBoard API, DB-fetch-compatible schema."""
-        if sensor_key is None:
+        """Fetch time series data via ThingsBoard API, DB-fetch-compatible schema.
+
+        sensor_key accepts one key or many (list, or comma-separated string) —
+        multiple keys are still fetched in a single TB API call.
+        """
+        keys = sensor_key if isinstance(sensor_key, list) else (sensor_key or "").split(",")
+        keys = [k.strip() for k in keys if k.strip()]
+        if not keys:
             logger.error("Sensor key is required for fetching time series data")
-            return pd.DataFrame(columns=["datetime", sensor_key])
+            return pd.DataFrame(columns=["datetime"])
 
         start_date = start_date or datetime(1970, 1, 1)
         end_date = end_date or datetime.now()
@@ -874,23 +809,33 @@ class DataRegistry:
             limit=str(
                 limit or 200_000
             ),  # ponytail: TB API defaults to 100 if omitted; 200k mirrors DB path's "unbounded"
-            keys=sensor_key,
+            keys=",".join(keys),
         )
-        records = ts.get(sensor_key, [])
-        logger.info(
-            f"Fetched {len(records)} rows from ThingsBoard API for device {device_id}, sensor {sensor_key}"
-        )
-
-        if not records:
-            return pd.DataFrame(columns=["datetime", sensor_key])
 
         def _row(record):
             if isinstance(record, dict):
-                return record.get("ts"), float(record.get("value", 0))
-            return record.ts, float(record.value)
+                return record.get("ts"), record.get("value")
+            return record.ts, record.value
 
-        tss, values = zip(*(_row(r) for r in records))
-        df = pd.DataFrame({"datetime": pd.to_datetime(tss, unit="ms"), sensor_key: values})
+        dfs = []
+        for key in keys:
+            records = ts.get(key, [])
+            logger.info(
+                f"Fetched {len(records)} rows from ThingsBoard API for device {device_id}, sensor {key}"
+            )
+            if not records:
+                continue
+            tss, values = zip(*(_row(r) for r in records))
+            dfs.append(
+                pd.DataFrame(
+                    {"datetime": pd.to_datetime(tss, unit="ms"), key: [float(v) for v in values]}
+                )
+            )
+
+        if not dfs:
+            return pd.DataFrame(columns=["datetime"] + keys)
+
+        df = reduce(lambda left, right: left.merge(right, on="datetime", how="outer"), dfs)
         return (
             df.drop_duplicates(subset=["datetime"], keep="last")
             .sort_values("datetime")
@@ -901,19 +846,7 @@ class DataRegistry:
         logger.info(f"Fetching available sensors for device {device_id}")
 
         try:
-            query = text(
-                """
-                SELECT DISTINCT key
-                FROM ts_kv
-                WHERE entity_id = :device_id
-                ORDER BY key
-            """
-            )
-
-            with self.engine.connect() as conn:
-                result = conn.execute(query, {"device_id": device_id})
-                sensors = [row[0] for row in result]
-
+            sensors = get_client().get_timeseries_keys(entity_type="DEVICE", entity_id=device_id)
             logger.info(f"Found {len(sensors)} sensors for device {device_id}")
             return sensors
 
@@ -954,32 +887,20 @@ class DataRegistry:
     ) -> pd.DataFrame:
         logger.info(f"Fetching all data for sensor key '{sensor_key}'")
 
-        try:
-            sensor_key_id = self._get_key_id(sensor_key)
-            if not sensor_key_id:
-                logger.error(f"Sensor key '{sensor_key}' not found in key_dictionary")
-                return pd.DataFrame(columns=["datetime", "value"])
-            query = text(
-                """
-                SELECT
-                    ts as datetime,
-                    COALESCE(dbl_v, long_v, str_v::float) as value
-                FROM ts_kv
-                WHERE key = :sensor_key_id
-                ORDER BY ts DESC
-                LIMIT :limit
-            """
-            )
-            params = {"sensor_key_id": sensor_key_id, "limit": limit}
-            with self.engine.connect() as conn:
-                result = conn.execute(query, params)
-                df = pd.DataFrame(result.fetchall(), columns=result.keys())
-                df["datetime"] = pd.to_datetime(df["datetime"], unit="ms")
-                df.rename(columns={"value": sensor_key}, inplace=True)
-                df = df.sort_values("datetime").reset_index(drop=True)
-                return df
-
+        # ponytail: original SQL never filtered by device_id (likely a pre-existing bug);
+        # the TB API is entity-scoped, so device_id is now required to fetch anything.
+        if not device_id:
+            logger.error(f"device_id is required to fetch sensor '{sensor_key}' via the TB API")
             return pd.DataFrame(columns=["datetime", sensor_key])
+
+        try:
+            return self.api_fetch_time_series_data(
+                device_id=device_id,
+                sensor_key=sensor_key,
+                start_date=start_date,
+                limit=limit,
+                desc=True,
+            )
 
         except Exception as e:
             logger.error(f"Error fetching sensor data: {e}")
@@ -988,34 +909,35 @@ class DataRegistry:
     def _fetch_failure_labels(
         self, device_id: str, start_ts: int, end_ts: int, index: pd.Index
     ) -> pd.Series:
-        query = text(
-            """
-            SELECT 
-                ts,
-                CASE 
-                    WHEN bool_v = true THEN 1
-                    WHEN str_v = 'true' THEN 1
-                    WHEN long_v = 1 THEN 1
-                    ELSE 0
-                END as failure
-            FROM ts_kv
-            WHERE entity_id = :device_id
-                AND ts BETWEEN :start_ts AND :end_ts
-                AND key = 'failure_within_24h'
-            ORDER BY ts
-        """
+        key = "failure_within_24h"
+        ts = get_client().get_timeseries_history(
+            entity_type="DEVICE",
+            entity_id=device_id,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            order_by="ASC",
+            limit=str(1_000_000),
+            keys=key,
         )
+        records = ts.get(key, [])
 
-        with self.engine.connect() as conn:
-            result = conn.execute(
-                query, {"device_id": device_id, "start_ts": start_ts, "end_ts": end_ts}
+        def _row(record):
+            return (
+                (record.get("ts"), record.get("value"))
+                if isinstance(record, dict)
+                else (record.ts, record.value)
             )
 
-            failures = []
-            for row in result:
-                failures.append({"timestamp": pd.to_datetime(row[0], unit="ms"), "failure": row[1]})
+        # ponytail: replicates the old bool_v/str_v/long_v CASE — any of true/"true"/1 counts as a failure
+        def _is_failure(value) -> int:
+            return int(str(value).strip().lower() in ("true", "1", "1.0"))
 
-        if len(failures) == 0:
+        failures = [
+            {"timestamp": pd.to_datetime(ts_ms, unit="ms"), "failure": _is_failure(value)}
+            for ts_ms, value in (_row(r) for r in records)
+        ]
+
+        if not failures:
             # No failure data found, create synthetic labels
             logger.warning("No failure labels found, creating synthetic labels")
             return pd.Series(np.zeros(len(index)), index=index, name="failure_within_24h")
