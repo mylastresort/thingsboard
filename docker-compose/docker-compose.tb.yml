@@ -1,4 +1,50 @@
 services:
+  # Optional on a single node — see note above. Kept for forward-compat
+  # if you add a second tb-node later; drop it and unset CACHE_TYPE if not.
+  redis:
+    image: "redis:7.2-alpine"
+    container_name: tb-lts43-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Single-node KRaft mode — no Zookeeper needed.
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: tb-lts43-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Required overrides for a 1-broker cluster — Kafka defaults these to 3
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # CLUSTER_ID intentionally omitted — a single-broker node doesn't need one set explicitly; the image generates and logs one on first boot 
+    volumes:
+      - ./kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/9092' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   thingsboard:
     # restart: always
     image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
@@ -23,14 +69,21 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/thingsboard
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      TB_QUEUE_TYPE: in-memory
+
+      # Cache — remove these 3 lines to fall back to Caffeine
+      CACHE_TYPE: redis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+
+      # Queue — was in-memory
+      TB_QUEUE_TYPE: kafka
+      TB_KAFKA_SERVERS: kafka:9092
+
       FASTAPI_BASE_URL: http://model:8000/api/v1/
       FASTAPI_WS_URL: ws://model:8000/models/ws/unified
-      LOGGING_LEVEL_ORG_THINGSBOARD: INFO # base: no more DEBUG floods
-      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG # keep REST controller detail
-      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_TRANSPORT: DEBUG # keep MQTT/CoAP detail
-
-      # Silence the worst offenders explicitly
+      LOGGING_LEVEL_ORG_THINGSBOARD: INFO
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG
+      LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_TRANSPORT: DEBUG
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_SERVICE_QUEUE: WARN
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_SERVICE: WARN
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_RULECHAIN: WARN
@@ -39,9 +92,11 @@ services:
         condition: service_healthy
       model-postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
       # model:
       #   condition: service_healthy
     env_file:
       - .env
-    # no healthcheck — actuator/health not available in this build;
-    # tb-web-ui-dev uses service_started below and lets the proxy retry

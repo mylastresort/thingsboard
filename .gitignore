@@ -42,3 +42,5 @@ rebuild-docker.sh
 .planning
 go-toolbox/cmd/darktheme/node_modules
 node_modules/
+redis-data
+kafka-data
