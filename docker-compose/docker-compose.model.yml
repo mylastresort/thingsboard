@@ -44,13 +44,8 @@ services:
       - AUTO_START_PREDICTION_JOBS=${AUTO_START_PREDICTION_JOBS:-false}
       - ENABLE_FILE_WATCH=false
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - AccountSid=${ACCOUNT_SID:-defaultSid}
-      - AccountToken=${ACCOUNT_TOKEN:-defaultToken}
-      - TwilioSmsFrom=${TWILIO_SMS_FROM:-+1234567890}
       - PhoneNumberID=${PHONE_NUMBER_ID:-123456789}
       - WB_TOKEN=${WB_TOKEN:-defaultWBToken}
-      - EMAIL_ADDRESS=${EMAIL_ADDRESS:-test@example.com}
-      - APP_PASSWORD=${APP_PASSWORD:-defaultPassword}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 2m
