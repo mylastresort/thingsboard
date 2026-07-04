@@ -232,6 +232,17 @@
       <mat-icon>bug_report</mat-icon>
       <span>Anomalies</span>
     </button>
+    <button
+      type="button"
+      class="dashboard-tab failure-mode-tab"
+      role="tab"
+      [class.active]="activeDashboardTab === 'failure-mode'"
+      [attr.aria-selected]="activeDashboardTab === 'failure-mode'"
+      (click)="activeDashboardTab = 'failure-mode'"
+    >
+      <mat-icon>precision_manufacturing</mat-icon>
+      <span>Failure Mode</span>
+    </button>
   </div>
 
   <!-- Tab Panels -->
@@ -240,7 +251,7 @@
     <div
       class="tab-panel"
       role="tabpanel"
-      *ngIf="activeDashboardTab === 'forecast' || !(shouldShowAnomalies() && isWidgetVisible('anomalies'))"
+      *ngIf="activeDashboardTab === 'forecast'"
     >
       <div class="widgets-grid-container">
         <ng-container *ngFor="let attribute of attributes">
@@ -262,7 +273,9 @@
                 [modelId]="trueId"
                 [title]="attribute.key"
                 [timewindow]="timewindowsPerSensor[attribute.key] || timewindow"
-                (timewindowChange)="onChildTimewindowChange(attribute.key, $event)"
+                (timewindowChange)="
+                  onChildTimewindowChange(attribute.key, $event)
+                "
                 [viewPreferences]="currentViewPreferences"
                 (viewPreferencesChange)="onViewPreferencesChanged($event)"
                 [attributes]="attributes"
@@ -279,7 +292,11 @@
     <div
       class="tab-panel"
       role="tabpanel"
-      *ngIf="activeDashboardTab === 'anomalies' && shouldShowAnomalies() && isWidgetVisible('anomalies')"
+      *ngIf="
+        activeDashboardTab === 'anomalies' &&
+        shouldShowAnomalies() &&
+        isWidgetVisible('anomalies')
+      "
     >
       <div class="widgets-grid-container">
         <div class="chart-section anomalies-section">
@@ -325,6 +342,28 @@
         </div>
       </div>
     </div>
+
+    <!-- Failure Mode Tab -->
+    <div
+      class="tab-panel"
+      role="tabpanel"
+      *ngIf="activeDashboardTab === 'failure-mode'"
+    >
+      <div class="widgets-grid-container">
+        <div class="chart-section anomalies-section failure-mode-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              <mat-icon class="section-icon">precision_manufacturing</mat-icon>
+              Failure Mode
+            </h3>
+          </div>
+          <div class="chart-content">
+            <tb-failure-mode [modelId]="trueId" [deviceId]="deviceId">
+            </tb-failure-mode>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -345,10 +384,15 @@
 
     <!-- Widgets Visibility (Collapsible) -->
     <div class="color-config-section" (click)="$event.stopPropagation()">
-      <div class="section-header clickable" (click)="widgetsExpanded = !widgetsExpanded">
+      <div
+        class="section-header clickable"
+        (click)="widgetsExpanded = !widgetsExpanded"
+      >
         <mat-icon>widgets</mat-icon>
         <span>Widgets</span>
-        <mat-icon class="expand-icon">{{ widgetsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+        <mat-icon class="expand-icon">{{
+          widgetsExpanded ? "expand_less" : "expand_more"
+        }}</mat-icon>
       </div>
       <div class="sensor-colors-content" *ngIf="widgetsExpanded">
         <div class="widget-visibility-item" *ngFor="let sensor of attributes">
@@ -378,16 +422,21 @@
 
     <!-- Sensor Colors Configuration (Collapsible) -->
     <div class="color-config-section" (click)="$event.stopPropagation()">
-      <div class="section-header clickable" (click)="sensorColorsExpanded = !sensorColorsExpanded">
+      <div
+        class="section-header clickable"
+        (click)="sensorColorsExpanded = !sensorColorsExpanded"
+      >
         <mat-icon>palette</mat-icon>
         <span>Sensor Colors</span>
-        <mat-icon class="expand-icon">{{ sensorColorsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+        <mat-icon class="expand-icon">{{
+          sensorColorsExpanded ? "expand_less" : "expand_more"
+        }}</mat-icon>
       </div>
       <div class="sensor-colors-content" *ngIf="sensorColorsExpanded">
         <div class="sensor-color-item" *ngFor="let sensor of attributes">
           <div class="sensor-color-label">
-            <div 
-              class="color-preview" 
+            <div
+              class="color-preview"
               [style.background-color]="getSensorColor(sensor.key)"
             ></div>
             <span>{{ sensor.key | titlecase }}</span>
@@ -403,7 +452,11 @@
               [matTooltip]="color"
               matTooltipPosition="above"
             >
-              <mat-icon *ngIf="getSensorColor(sensor.key) === color" class="check-icon">check</mat-icon>
+              <mat-icon
+                *ngIf="getSensorColor(sensor.key) === color"
+                class="check-icon"
+                >check</mat-icon
+              >
             </button>
           </div>
         </div>

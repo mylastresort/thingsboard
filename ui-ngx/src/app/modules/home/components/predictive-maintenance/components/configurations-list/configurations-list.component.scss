@@ -10,6 +10,51 @@
   display: flex;
   flex-direction: column;
 
+  .page-hidden {
+    display: none !important;
+  }
+
+  .page-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.75rem 1rem 0;
+    flex-shrink: 0;
+
+    .page-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.58);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border-radius: 6px 6px 0 0;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &:hover {
+        color: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      &.active {
+        color: #fff;
+        border-bottom-color: #3f51b5;
+      }
+    }
+  }
+
   .tb-configurations-toolbar {
     .mat-mdc-table-toolbar {
       height: 64px;
@@ -64,22 +109,44 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: #050707;
+    box-shadow: none;
 
     .container {
       display: flex;
       flex-direction: column;
       height: 100%;
+      min-height: 0;
+      background: #050707;
 
       .table-container {
         flex: 1;
         overflow: auto;
+        min-height: 0;
+        background: #050707;
 
         table {
           width: 100%;
+          // min-height: 100%;
+          background: #050707;
+          box-shadow: none;
+
+          .mat-mdc-header-row {
+            background: #050707;
+          }
+
+          .mat-mdc-row {
+            background: #101415;
+          }
+
+          .mat-mdc-row:nth-child(odd) {
+            background: #050707;
+          }
 
           th,
           td {
             padding: 8px 16px;
+            border-bottom-color: rgba(255, 255, 255, 0.04);
           }
 
           .mat-column-select {
@@ -101,7 +168,21 @@
           }
         }
       }
+
+      mat-paginator {
+        flex-shrink: 0;
+        background: #050707;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.78);
+      }
     }
+  }
+
+  .failure-mode-page {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0 1rem 1rem;
   }
 }
 
@@ -123,10 +204,51 @@
   }
 }
 
+:host ::ng-deep {
+  .tb-configurations-page .configurations-content-card {
+    .mat-mdc-paginator,
+    .mat-mdc-paginator-container {
+      background: #050707;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .mat-mdc-paginator-container {
+      min-height: 64px;
+    }
+
+    .mat-mdc-paginator-page-size,
+    .mat-mdc-paginator-range-actions {
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .mat-mdc-paginator-icon {
+      fill: rgba(255, 255, 255, 0.62);
+    }
+
+    .mat-mdc-icon-button:not(:disabled):hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+
+    .mat-mdc-select-value,
+    .mat-mdc-select-arrow {
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .mat-mdc-text-field-wrapper {
+      background: #070a0a;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+  }
+}
+
 // Auto-generated dark theme — do not edit manually
-  .dark-theme ::ng-deep .tb-dark .tb-configurations-page {
-    border-color: rgba(48, 52, 54, 0.12);
-  }
-  .dark-theme ::ng-deep .tb-dark .tb-configurations-page .clickable-row:hover {
-    background-color: rgba(24, 26, 27, 0.08);
-  }
+.dark-theme ::ng-deep .tb-dark .tb-configurations-page {
+  border-color: rgba(48, 52, 54, 0.12);
+}
+.dark-theme ::ng-deep .tb-dark .tb-configurations-page .clickable-row:hover {
+  background-color: rgba(24, 26, 27, 0.08);
+}

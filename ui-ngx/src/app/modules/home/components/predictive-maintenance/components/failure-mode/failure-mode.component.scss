@@ -1,0 +1,170 @@
+:host {
+  display: block;
+}
+
+.failure-mode-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--tb-dark-dialog-background, #fff);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.failure-mode-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.9rem;
+  }
+}
+
+.failure-mode-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.title-icon {
+  color: #ff7043;
+}
+
+.loading-state,
+.error-state,
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.error-state {
+  color: #d32f2f;
+}
+
+.failure-mode-tabs {
+  flex: 1;
+  min-height: 0;
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+:host ::ng-deep {
+  .failure-mode-tabs {
+    .mat-mdc-tab-body-wrapper {
+      flex: 1;
+      min-height: 0;
+      transition: none !important;
+    }
+
+    .mat-mdc-tab-body,
+    .mat-mdc-tab-body-content {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      animation: none !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    .mat-mdc-tab-header,
+    .mat-mdc-tab-label-container,
+    .mat-mdc-tab-list,
+    .mat-mdc-tab-labels {
+      transition: none !important;
+    }
+  }
+}
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 1rem 0.25rem 0.75rem;
+  overflow: auto;
+}
+
+.failure-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0 0 0.75rem;
+
+  .failure-mode-search {
+    flex: 1 1 20rem;
+    min-width: min(100%, 16rem);
+  }
+
+  .failure-mode-device-filter {
+    flex: 0 1 16rem;
+    min-width: min(100%, 12rem);
+  }
+
+  ::ng-deep {
+    .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+
+    .mat-mdc-text-field-wrapper {
+      min-height: 40px;
+    }
+
+    .mat-mdc-form-field-infix {
+      min-height: 40px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+  }
+}
+
+.failure-mode-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+
+  th {
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  th,
+  td {
+    padding: 0.9rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.rotating {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

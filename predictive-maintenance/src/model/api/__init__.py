@@ -4,15 +4,19 @@ REST API __init__ - Combines all REST endpoints
 
 import json
 import traceback
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
+from uuid import UUID
 
+import pandas as pd
 from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, model_validator
 from sqlalchemy import text
 
 from src.db_connector import get_db_connection
 from src.logger import logger  # Global logger
-from src.model.shared import MODEL_TYPE_MAP
+from src.model.shared import MODEL_TYPE_MAP, get_data_registry
 
 # Create main REST API router
 router = APIRouter(
@@ -225,6 +229,69 @@ def _row_to_dict(row) -> dict:
     }
 
 
+def _serialize_timestamp(value):
+    if value is None:
+        return None
+
+    timestamp = pd.to_datetime(value, errors="coerce")
+    if pd.isna(timestamp):
+        try:
+            return None if pd.isna(value) else str(value)
+        except (TypeError, ValueError):
+            return str(value)
+
+    return timestamp.isoformat()
+
+
+def _serialize_value(value):
+    if value is None:
+        return None
+
+    if isinstance(value, (pd.Timestamp, datetime, date)):
+        return _serialize_timestamp(value)
+
+    if isinstance(value, UUID):
+        return str(value)
+
+    if isinstance(value, Decimal):
+        return float(value)
+
+    if isinstance(value, dict):
+        return {key: _serialize_value(item) for key, item in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [_serialize_value(item) for item in value]
+
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+
+    if hasattr(value, "item"):
+        try:
+            return _serialize_value(value.item())
+        except (TypeError, ValueError):
+            pass
+
+    return value
+
+
+def _serialize_records(frame: pd.DataFrame, timestamp_column: str) -> list[dict]:
+    if frame.empty:
+        return []
+
+    records: list[dict] = []
+    for _, row in frame.iterrows():
+        record = {
+            key: _serialize_timestamp(value) if key == timestamp_column else _serialize_value(value)
+            for key, value in row.to_dict().items()
+        }
+        records.append(record)
+
+    return records
+
+
 @router.get("", summary="List forecast configs with pagination")
 async def list_forecasts(
     pageSize: int = Query(10, ge=1, le=1000),
@@ -272,6 +339,135 @@ async def list_forecasts(
         "totalElements": total,
         "hasNext": (offset + pageSize) < total,
     }
+
+
+@router.get("/failure-mode-history/{model_id}", summary="Fetch failure mode history")
+async def get_failure_mode_history(
+    model_id: str,
+    startTs: int | None = None,
+    endTs: int | None = None,
+):
+    try:
+        data_registry = get_data_registry()
+        config = data_registry.fetch_predictive_model_config(model_id)
+        device_id = config["device_id"]
+
+        start_date = datetime.fromtimestamp(startTs / 1000) if startTs else None
+        end_date = datetime.fromtimestamp(endTs / 1000) if endTs else None
+
+        maintenance_df = data_registry.fetch_maintenance_data(
+            device_id=device_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        error_df = data_registry.fetch_error_data(
+            device_id=device_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        failure_df = data_registry.fetch_failure_data(
+            device_id=device_id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        maintenance = _serialize_records(maintenance_df, "datetime")
+        errors = _serialize_records(error_df, "datetime")
+        failures = _serialize_records(failure_df, "datetime")
+
+        return {
+            "modelId": model_id,
+            "deviceId": device_id,
+            "maintenance": maintenance,
+            "errors": errors,
+            "failures": failures,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Failed to fetch failure mode history for %s: %s", model_id, exc)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to fetch failure mode history")
+
+
+@router.get("/failure-mode-history", summary="Fetch failure mode history for all devices")
+async def get_failure_mode_history_all_devices(
+    startTs: int | None = None,
+    endTs: int | None = None,
+    limit: int = 1000,
+):
+    try:
+        start_date = datetime.fromtimestamp(startTs / 1000) if startTs else None
+        end_date = datetime.fromtimestamp(endTs / 1000) if endTs else None
+
+        with get_db_connection() as conn:
+            maintenance_sql = """
+                SELECT
+                    dm.maintenance_date AS datetime,
+                    d.id AS device_id,
+                    d.name AS device_name,
+                    d.type AS device_type,
+                    dm.description,
+                    dm.parts_replaced
+                FROM device_maintenance dm
+                LEFT JOIN device d ON d.id = dm.device_id
+                WHERE 1 = 1
+            """
+            error_sql = """
+                SELECT
+                    de.error_time AS datetime,
+                    d.id AS device_id,
+                    d.name AS device_name,
+                    d.type AS device_type,
+                    de.error_code
+                FROM device_errors de
+                LEFT JOIN device d ON d.id = de.device_id
+                WHERE 1 = 1
+            """
+            failure_sql = """
+                SELECT
+                    df.failure_time AS datetime,
+                    d.id AS device_id,
+                    d.name AS device_name,
+                    d.type AS device_type,
+                    df.root_cause
+                FROM device_failures df
+                LEFT JOIN device d ON d.id = df.device_id
+                WHERE 1 = 1
+            """
+            params: dict[str, object] = {"limit": limit}
+
+            if start_date:
+                maintenance_sql += " AND dm.maintenance_date >= :start_time"
+                error_sql += " AND de.error_time >= :start_time"
+                failure_sql += " AND df.failure_time >= :start_time"
+                params["start_time"] = start_date
+
+            if end_date:
+                maintenance_sql += " AND dm.maintenance_date <= :end_time"
+                error_sql += " AND de.error_time <= :end_time"
+                failure_sql += " AND df.failure_time <= :end_time"
+                params["end_time"] = end_date
+
+            maintenance_sql += " ORDER BY dm.maintenance_date DESC LIMIT :limit"
+            error_sql += " ORDER BY de.error_time DESC LIMIT :limit"
+            failure_sql += " ORDER BY df.failure_time DESC LIMIT :limit"
+
+            maintenance_df = pd.read_sql(text(maintenance_sql), conn, params=params)
+            error_df = pd.read_sql(text(error_sql), conn, params=params)
+            failure_df = pd.read_sql(text(failure_sql), conn, params=params)
+
+        return {
+            "modelId": None,
+            "deviceId": None,
+            "maintenance": _serialize_records(maintenance_df, "datetime"),
+            "errors": _serialize_records(error_df, "datetime"),
+            "failures": _serialize_records(failure_df, "datetime"),
+        }
+    except Exception as exc:
+        logger.error("Failed to fetch all-device failure mode history: %s", exc)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Failed to fetch failure mode history")
 
 
 @router.get("/{forecast_id}", summary="Get forecast config by id")

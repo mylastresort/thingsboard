@@ -23,6 +23,36 @@ export interface AvailableModelsResponse {
   ForecastModel?: { model_name: string }[];
   AnomalyPredictor?: { model_name: string }[];
 }
+
+export interface FailureModeHistoryResponse {
+  modelId: string | null;
+  deviceId: string | null;
+  maintenance: Array<{
+    datetime: string;
+    description?: string;
+    parts_replaced?: string;
+    comp?: string;
+    device_id?: string;
+    device_name?: string;
+    device_type?: string;
+  }>;
+  errors: Array<{
+    datetime: string;
+    errorID?: string;
+    error_code?: string;
+    device_id?: string;
+    device_name?: string;
+    device_type?: string;
+  }>;
+  failures: Array<{
+    datetime: string;
+    failure?: string;
+    root_cause?: string;
+    device_id?: string;
+    device_name?: string;
+    device_type?: string;
+  }>;
+}
 import { defaultHttpOptionsFromConfig, RequestConfig } from './http-utils'; // Import utility functions if available
 import { PageData, PageLink } from '@app/shared/public-api';
 import { Order } from '@app/modules/home/models/predictive-maintenance.models';
@@ -104,6 +134,48 @@ export class PredictiveModelsService {
 
     return this.http.get<{ predictions: any[]; totalCount: number; limit: number }>(
       `${this.baseUrlModels}/anomaly-history-predictions/${modelId}/${predictionType}?${params}`,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  getFailureModeHistory(
+    modelId: string,
+    startTs?: number,
+    endTs?: number,
+    config?: RequestConfig
+  ): Observable<FailureModeHistoryResponse> {
+    let params = '';
+    if (startTs) {
+      params += `startTs=${startTs}`;
+    }
+    if (endTs) {
+      params += `${params ? '&' : ''}endTs=${endTs}`;
+    }
+
+    const query = params ? `?${params}` : '';
+
+    return this.http.get<FailureModeHistoryResponse>(
+      `${this.baseUrlModels}/failure-mode-history/${modelId}${query}`,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  getAllDevicesFailureModeHistory(
+    startTs?: number,
+    endTs?: number,
+    limit: number = 1000,
+    config?: RequestConfig
+  ): Observable<FailureModeHistoryResponse> {
+    const params: string[] = [`limit=${limit}`];
+    if (startTs) {
+      params.push(`startTs=${startTs}`);
+    }
+    if (endTs) {
+      params.push(`endTs=${endTs}`);
+    }
+
+    return this.http.get<FailureModeHistoryResponse>(
+      `${this.baseUrlModels}/failure-mode-history?${params.join('&')}`,
       defaultHttpOptionsFromConfig(config)
     );
   }

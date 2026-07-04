@@ -1,0 +1,282 @@
+<mat-card class="failure-mode-card">
+  <div class="failure-mode-header">
+    <div>
+      <div class="failure-mode-title-row">
+        <mat-icon class="title-icon">precision_manufacturing</mat-icon>
+        <h3>Failure Mode</h3>
+      </div>
+      <p>
+        <span *ngIf="allDevicesMode; else singleDeviceCopy">
+          Device maintenance, error, and failure records across all devices
+        </span>
+        <ng-template #singleDeviceCopy>
+          Device maintenance, error, and failure records
+          <span *ngIf="deviceId">for {{ deviceId }}</span>
+        </ng-template>
+      </p>
+    </div>
+
+    <button
+      mat-icon-button
+      (click)="refresh()"
+      [disabled]="isLoading"
+      matTooltip="Refresh failure mode history"
+      matTooltipPosition="below"
+    >
+      <mat-icon [class.rotating]="isLoading">refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="loading-state" *ngIf="isLoading">
+    <mat-progress-spinner
+      diameter="32"
+      mode="indeterminate"
+    ></mat-progress-spinner>
+    <span>Loading failure mode history...</span>
+  </div>
+
+  <div class="error-state" *ngIf="!isLoading && errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <mat-tab-group
+    *ngIf="!isLoading && !errorMessage"
+    class="failure-mode-tabs"
+    animationDuration="0ms"
+  >
+    <mat-tab [label]="'Maintenance (' + maintenanceRows.length + ')'">
+      <div class="tab-panel">
+        <div class="failure-mode-controls">
+          <mat-form-field appearance="outline" class="failure-mode-search">
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              matInput
+              placeholder="Search maintenance"
+              [value]="maintenanceSearch"
+              (input)="updateSearch('maintenance', $any($event.target).value)"
+            />
+            <button
+              *ngIf="maintenanceSearch"
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="clearSearch('maintenance')"
+              aria-label="Clear maintenance search"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <mat-form-field
+            *ngIf="allDevicesMode && maintenanceDeviceOptions.length > 1"
+            appearance="outline"
+            class="failure-mode-device-filter"
+          >
+            <mat-label>Device</mat-label>
+            <mat-select
+              [value]="maintenanceDeviceFilter"
+              (selectionChange)="updateDeviceFilter('maintenance', $event.value)"
+            >
+              <mat-option [value]="allDevicesFilter">All devices</mat-option>
+              <mat-option
+                *ngFor="let device of maintenanceDeviceOptions"
+                [value]="device.id"
+              >
+                {{ device.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <table
+          mat-table
+          [dataSource]="maintenanceDataSource"
+          class="failure-mode-table"
+        >
+          <ng-container matColumnDef="datetime">
+            <th mat-header-cell *matHeaderCellDef>Time</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.datetime | date: "short" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="deviceName">
+            <th mat-header-cell *matHeaderCellDef>Device</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.deviceName || "N/A" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef>Description</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.description || "N/A" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="partsReplaced">
+            <th mat-header-cell *matHeaderCellDef>Parts Replaced</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.partsReplaced || "N/A" }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="maintenanceColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: maintenanceColumns"></tr>
+        </table>
+
+        <div class="empty-state" *ngIf="getFilteredCount('maintenance') === 0">
+          {{ getEmptyStateMessage("maintenance") }}
+        </div>
+      </div>
+    </mat-tab>
+
+    <mat-tab [label]="'Errors (' + errorRows.length + ')'">
+      <div class="tab-panel">
+        <div class="failure-mode-controls">
+          <mat-form-field appearance="outline" class="failure-mode-search">
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              matInput
+              placeholder="Search errors"
+              [value]="errorSearch"
+              (input)="updateSearch('errors', $any($event.target).value)"
+            />
+            <button
+              *ngIf="errorSearch"
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="clearSearch('errors')"
+              aria-label="Clear error search"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <mat-form-field
+            *ngIf="allDevicesMode && errorDeviceOptions.length > 1"
+            appearance="outline"
+            class="failure-mode-device-filter"
+          >
+            <mat-label>Device</mat-label>
+            <mat-select
+              [value]="errorDeviceFilter"
+              (selectionChange)="updateDeviceFilter('errors', $event.value)"
+            >
+              <mat-option [value]="allDevicesFilter">All devices</mat-option>
+              <mat-option
+                *ngFor="let device of errorDeviceOptions"
+                [value]="device.id"
+              >
+                {{ device.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <table mat-table [dataSource]="errorDataSource" class="failure-mode-table">
+          <ng-container matColumnDef="datetime">
+            <th mat-header-cell *matHeaderCellDef>Time</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.datetime | date: "short" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="deviceName">
+            <th mat-header-cell *matHeaderCellDef>Device</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.deviceName || "N/A" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="errorCode">
+            <th mat-header-cell *matHeaderCellDef>Error Code</th>
+            <td mat-cell *matCellDef="let row">{{ row.errorCode || "N/A" }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="errorColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: errorColumns"></tr>
+        </table>
+
+        <div class="empty-state" *ngIf="getFilteredCount('errors') === 0">
+          {{ getEmptyStateMessage("errors") }}
+        </div>
+      </div>
+    </mat-tab>
+
+    <mat-tab [label]="'Failures (' + failureRows.length + ')'">
+      <div class="tab-panel">
+        <div class="failure-mode-controls">
+          <mat-form-field appearance="outline" class="failure-mode-search">
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              matInput
+              placeholder="Search failures"
+              [value]="failureSearch"
+              (input)="updateSearch('failures', $any($event.target).value)"
+            />
+            <button
+              *ngIf="failureSearch"
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="clearSearch('failures')"
+              aria-label="Clear failure search"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <mat-form-field
+            *ngIf="allDevicesMode && failureDeviceOptions.length > 1"
+            appearance="outline"
+            class="failure-mode-device-filter"
+          >
+            <mat-label>Device</mat-label>
+            <mat-select
+              [value]="failureDeviceFilter"
+              (selectionChange)="updateDeviceFilter('failures', $event.value)"
+            >
+              <mat-option [value]="allDevicesFilter">All devices</mat-option>
+              <mat-option
+                *ngFor="let device of failureDeviceOptions"
+                [value]="device.id"
+              >
+                {{ device.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <table mat-table [dataSource]="failureDataSource" class="failure-mode-table">
+          <ng-container matColumnDef="datetime">
+            <th mat-header-cell *matHeaderCellDef>Time</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.datetime | date: "short" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="deviceName">
+            <th mat-header-cell *matHeaderCellDef>Device</th>
+            <td mat-cell *matCellDef="let row">
+              {{ row.deviceName || "N/A" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="rootCause">
+            <th mat-header-cell *matHeaderCellDef>Root Cause</th>
+            <td mat-cell *matCellDef="let row">{{ row.rootCause || "N/A" }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="failureColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: failureColumns"></tr>
+        </table>
+
+        <div class="empty-state" *ngIf="getFilteredCount('failures') === 0">
+          {{ getEmptyStateMessage("failures") }}
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-card>

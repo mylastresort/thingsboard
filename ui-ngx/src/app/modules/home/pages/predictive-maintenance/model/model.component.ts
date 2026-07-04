@@ -74,6 +74,7 @@ import { mergeMap, Observable } from 'rxjs';
 import { distinctUntilChanged, filter, tap, share } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AnomalyAlertsComponent } from '../../../components/predictive-maintenance/components/anomaly-alerts/anomaly-alerts.component';
+import { FailureModeComponent } from '../../../components/predictive-maintenance/components/failure-mode/failure-mode.component';
 
 @Component({
   selector: 'tb-forecast',
@@ -89,6 +90,7 @@ import { AnomalyAlertsComponent } from '../../../components/predictive-maintenan
     TimeSeriesTelemetryComponent,
     AnomaliesComponent,
     AnomalyAlertsComponent,
+    FailureModeComponent,
     MatTooltipModule,
     MatCheckboxModule,
     TranslateModule,
@@ -113,7 +115,7 @@ import { AnomalyAlertsComponent } from '../../../components/predictive-maintenan
   ],
 })
 export class ModelComponent extends PageComponent implements Order, OnDestroy {
-  activeDashboardTab: 'forecast' | 'anomalies' = 'forecast';
+  activeDashboardTab: 'forecast' | 'anomalies' | 'failure-mode' = 'forecast';
   // Timewindow config for telemetry chart
   timewindow: Timewindow = {
     displayValue: '',
@@ -298,6 +300,9 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
       this.hiddenWidgets.delete(widgetKey);
     } else {
       this.hiddenWidgets.add(widgetKey);
+      if (widgetKey === 'anomalies' && this.activeDashboardTab === 'anomalies') {
+        this.activeDashboardTab = 'forecast';
+      }
     }
     this.saveViewPreferences();
   }
