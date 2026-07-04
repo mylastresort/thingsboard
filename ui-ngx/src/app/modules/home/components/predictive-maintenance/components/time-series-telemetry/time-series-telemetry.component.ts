@@ -620,6 +620,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
   }
 
   private assignColorsToSensors(): void {
+    return;
     // First, load colors from view preferences if available
     if (this.viewPreferences?.sensorColors) {
       Object.entries(this.viewPreferences.sensorColors).forEach(([sensor, color]) => {

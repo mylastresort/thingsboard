@@ -1860,7 +1860,17 @@ export class ModelComponent extends PageComponent implements Order, OnDestroy {
    * Get the current color for a sensor
    */
   getSensorColor(sensor: string): string {
-    return this.currentViewPreferences?.sensorColors?.[sensor] || this.availableColors[0];
+     const explicit = this.currentViewPreferences?.sensorColors?.[sensor];
+     if (explicit) {
+       return explicit;
+     }
+     // Deterministic pick so the same label always gets the same color across
+     // every chart, without every unset sensor collapsing onto availableColors[0].
+     let hash = 0;
+     for (let i = 0; i < sensor.length; i++) {
+       hash = (hash * 31 + sensor.charCodeAt(i)) | 0;
+     }
+     return this.availableColors[Math.abs(hash) % this.availableColors.length];
   }
 
   /**
