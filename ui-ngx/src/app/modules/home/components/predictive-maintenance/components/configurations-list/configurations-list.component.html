@@ -15,32 +15,33 @@
     limitations under the License.
 
 -->
-<div class="tb-configurations-page mat-content">
-  <div class="page-tabs" role="tablist">
-    <button
-      type="button"
-      class="page-tab"
-      role="tab"
-      [class.active]="activePageTab === 'models'"
-      [attr.aria-selected]="activePageTab === 'models'"
-      (click)="activePageTab = 'models'"
-    >
-      <mat-icon>sensors</mat-icon>
-      <span>Predictive Models</span>
-    </button>
-    <button
-      type="button"
-      class="page-tab"
-      role="tab"
-      [class.active]="activePageTab === 'failure-mode'"
-      [attr.aria-selected]="activePageTab === 'failure-mode'"
-      (click)="activePageTab = 'failure-mode'"
-    >
-      <mat-icon>precision_manufacturing</mat-icon>
-      <span>Failure Mode</span>
-    </button>
-  </div>
 
+<div class="page-tabs" role="tablist">
+  <button
+    type="button"
+    class="page-tab"
+    role="tab"
+    [class.active]="activePageTab === 'models'"
+    [attr.aria-selected]="activePageTab === 'models'"
+    (click)="activePageTab = 'models'"
+  >
+    <mat-icon>sensors</mat-icon>
+    <span>Predictive Models</span>
+  </button>
+  <button
+    type="button"
+    class="page-tab"
+    role="tab"
+    [class.active]="activePageTab === 'failure-mode'"
+    [attr.aria-selected]="activePageTab === 'failure-mode'"
+    (click)="activePageTab = 'failure-mode'"
+  >
+    <mat-icon>precision_manufacturing</mat-icon>
+    <span>Failure Mode</span>
+  </button>
+</div>
+
+<div class="tb-configurations-page mat-content">
   <section
     class="tb-configurations-toolbar mat-elevation-z1"
     [class.page-hidden]="activePageTab !== 'models'"
@@ -307,7 +308,10 @@
     </div>
   </mat-card>
 
-  <div class="failure-mode-page" [class.page-hidden]="activePageTab !== 'failure-mode'">
+  <div
+    class="failure-mode-page"
+    [class.page-hidden]="activePageTab !== 'failure-mode'"
+  >
     <tb-failure-mode [allDevicesMode]="true"></tb-failure-mode>
   </div>
 </div>

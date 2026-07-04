@@ -88,45 +88,47 @@
           </mat-form-field>
         </div>
 
-        <table
-          mat-table
-          [dataSource]="maintenanceDataSource"
-          class="failure-mode-table"
-        >
-          <ng-container matColumnDef="datetime">
-            <th mat-header-cell *matHeaderCellDef>Time</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.datetime | date: "short" }}
-            </td>
-          </ng-container>
+        <div class="failure-mode-table-container">
+          <table
+            mat-table
+            [dataSource]="maintenanceDataSource"
+            class="failure-mode-table"
+          >
+            <ng-container matColumnDef="datetime">
+              <th mat-header-cell *matHeaderCellDef>Time</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.datetime | date: "short" }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="deviceName">
-            <th mat-header-cell *matHeaderCellDef>Device</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.deviceName || "N/A" }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="deviceName">
+              <th mat-header-cell *matHeaderCellDef>Device</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.deviceName || "N/A" }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="description">
-            <th mat-header-cell *matHeaderCellDef>Description</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.description || "N/A" }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>Description</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.description || "N/A" }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="partsReplaced">
-            <th mat-header-cell *matHeaderCellDef>Parts Replaced</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.partsReplaced || "N/A" }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="partsReplaced">
+              <th mat-header-cell *matHeaderCellDef>Parts Replaced</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.partsReplaced || "N/A" }}
+              </td>
+            </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="maintenanceColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: maintenanceColumns"></tr>
-        </table>
+            <tr mat-header-row *matHeaderRowDef="maintenanceColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: maintenanceColumns"></tr>
+          </table>
 
-        <div class="empty-state" *ngIf="getFilteredCount('maintenance') === 0">
-          {{ getEmptyStateMessage("maintenance") }}
+          <div class="empty-state" *ngIf="getFilteredCount('maintenance') === 0">
+            {{ getEmptyStateMessage("maintenance") }}
+          </div>
         </div>
       </div>
     </mat-tab>
@@ -175,32 +177,34 @@
           </mat-form-field>
         </div>
 
-        <table mat-table [dataSource]="errorDataSource" class="failure-mode-table">
-          <ng-container matColumnDef="datetime">
-            <th mat-header-cell *matHeaderCellDef>Time</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.datetime | date: "short" }}
-            </td>
-          </ng-container>
+        <div class="failure-mode-table-container">
+          <table mat-table [dataSource]="errorDataSource" class="failure-mode-table">
+            <ng-container matColumnDef="datetime">
+              <th mat-header-cell *matHeaderCellDef>Time</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.datetime | date: "short" }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="deviceName">
-            <th mat-header-cell *matHeaderCellDef>Device</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.deviceName || "N/A" }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="deviceName">
+              <th mat-header-cell *matHeaderCellDef>Device</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.deviceName || "N/A" }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="errorCode">
-            <th mat-header-cell *matHeaderCellDef>Error Code</th>
-            <td mat-cell *matCellDef="let row">{{ row.errorCode || "N/A" }}</td>
-          </ng-container>
+            <ng-container matColumnDef="errorCode">
+              <th mat-header-cell *matHeaderCellDef>Error Code</th>
+              <td mat-cell *matCellDef="let row">{{ row.errorCode || "N/A" }}</td>
+            </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="errorColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: errorColumns"></tr>
-        </table>
+            <tr mat-header-row *matHeaderRowDef="errorColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: errorColumns"></tr>
+          </table>
 
-        <div class="empty-state" *ngIf="getFilteredCount('errors') === 0">
-          {{ getEmptyStateMessage("errors") }}
+          <div class="empty-state" *ngIf="getFilteredCount('errors') === 0">
+            {{ getEmptyStateMessage("errors") }}
+          </div>
         </div>
       </div>
     </mat-tab>
@@ -249,32 +253,34 @@
           </mat-form-field>
         </div>
 
-        <table mat-table [dataSource]="failureDataSource" class="failure-mode-table">
-          <ng-container matColumnDef="datetime">
-            <th mat-header-cell *matHeaderCellDef>Time</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.datetime | date: "short" }}
-            </td>
-          </ng-container>
+        <div class="failure-mode-table-container">
+          <table mat-table [dataSource]="failureDataSource" class="failure-mode-table">
+            <ng-container matColumnDef="datetime">
+              <th mat-header-cell *matHeaderCellDef>Time</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.datetime | date: "short" }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="deviceName">
-            <th mat-header-cell *matHeaderCellDef>Device</th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.deviceName || "N/A" }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="deviceName">
+              <th mat-header-cell *matHeaderCellDef>Device</th>
+              <td mat-cell *matCellDef="let row">
+                {{ row.deviceName || "N/A" }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="rootCause">
-            <th mat-header-cell *matHeaderCellDef>Root Cause</th>
-            <td mat-cell *matCellDef="let row">{{ row.rootCause || "N/A" }}</td>
-          </ng-container>
+            <ng-container matColumnDef="rootCause">
+              <th mat-header-cell *matHeaderCellDef>Root Cause</th>
+              <td mat-cell *matCellDef="let row">{{ row.rootCause || "N/A" }}</td>
+            </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="failureColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: failureColumns"></tr>
-        </table>
+            <tr mat-header-row *matHeaderRowDef="failureColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: failureColumns"></tr>
+          </table>
 
-        <div class="empty-state" *ngIf="getFilteredCount('failures') === 0">
-          {{ getEmptyStateMessage("failures") }}
+          <div class="empty-state" *ngIf="getFilteredCount('failures') === 0">
+            {{ getEmptyStateMessage("failures") }}
+          </div>
         </div>
       </div>
     </mat-tab>

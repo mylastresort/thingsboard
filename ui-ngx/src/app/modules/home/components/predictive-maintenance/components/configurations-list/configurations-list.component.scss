@@ -1,61 +1,70 @@
 :host {
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.page-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.75rem 1rem 0;
+  flex-shrink: 0;
+
+  .page-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.58);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    border-radius: 6px 6px 0 0;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    &.active {
+      color: #fff;
+      border-bottom-color: #3f51b5;
+    }
+  }
 }
 
 .tb-configurations-page {
   border: solid 1px var(--tb-dark-mat-800);
+  padding: 1rem;
   border-radius: 4px;
-  height: 100%;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   .page-hidden {
     display: none !important;
   }
 
-  .page-tabs {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.75rem 1rem 0;
-    flex-shrink: 0;
-
-    .page-tab {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 0;
-      border-bottom: 2px solid transparent;
-      background: transparent;
-      color: rgba(255, 255, 255, 0.58);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-      padding: 10px 14px;
-      border-radius: 6px 6px 0 0;
-
-      mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-      }
-
-      &:hover {
-        color: rgba(255, 255, 255, 0.85);
-        background: rgba(255, 255, 255, 0.04);
-      }
-
-      &.active {
-        color: #fff;
-        border-bottom-color: #3f51b5;
-      }
-    }
-  }
-
   .tb-configurations-toolbar {
+    flex: 0 0 auto;
+
     .mat-mdc-table-toolbar {
       height: 64px;
 
@@ -105,9 +114,10 @@
   }
 
   .configurations-content-card {
-    flex: 1;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
+    min-height: 0;
     overflow: hidden;
     background: #050707;
     box-shadow: none;
