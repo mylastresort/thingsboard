@@ -23,12 +23,11 @@ import {
 } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { AttributeService, DeviceService } from '@app/core/public-api';
-import { DevicesDataSource } from '@app/modules/home/models/datasource/device-datasource';
 import { DeviceInfo } from '@shared/models/device.models';
 import { PageLink } from '@shared/models/page/page-link';
-import { Observable, of, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, of, Subject } from 'rxjs';
 import { AvailableModelsResponse, PredictiveModelsService } from '@app/core/http/forecast.service';
-import { map, startWith, takeUntil } from 'rxjs/operators';
+import { catchError, debounceTime, distinctUntilChanged, map, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
 // Import necessary Angular Material modules
 import { CommonModule } from '@angular/common';
@@ -75,7 +74,9 @@ import { startCase } from 'lodash';
 export class AddModelDialogComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
-  devicesDataSource: DevicesDataSource;
+  private readonly deviceSearchPageSize = 10;
+
+  private devicesSubject = new BehaviorSubject<DeviceInfo[]>([]);
 
   selectedDevice: DeviceInfo | null = null;
 
@@ -94,6 +95,8 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
   noTelemetryMessage: string | null = null; // Message to show if no telemetry is available
 
   isDevicesPrefetched = false; // Track if devices have been prefetched
+
+  isLoadingDevices = false;
 
   @ViewChild(MatAutocompleteTrigger, { static: false }) autocompleteTrigger: MatAutocompleteTrigger;
 
@@ -166,8 +169,6 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
     private attributeService: AttributeService,
     private predictiveModelsService: PredictiveModelsService
   ) {
-    this.devicesDataSource = new DevicesDataSource(this.deviceService);
-
     // Check if we're in edit mode
     if (data && data.isEdit) {
       this.isEditMode = true;
@@ -219,44 +220,44 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
     this.anomaliesStartDate.setDate(this.anomaliesStartDate.getDate() - 60);
     this.anomaliesStartDate.setHours(0, 0, 0, 0); // Set to start of day
 
-    // Subscribe to the devices$ observable to populate devicesList
-    this.devicesDataSource.devices$.subscribe((devices) => {
+    this.filteredDevices = this.devicesSubject.asObservable();
+
+    this.myControl.valueChanges.pipe(
+      startWith(''),
+      debounceTime(250),
+      map((value) => (typeof value === 'string' ? value : value?.name || '')),
+      distinctUntilChanged(),
+      switchMap((searchText) => this.fetchTenantDevices(searchText)),
+      takeUntil(this.destroy$)
+    ).subscribe((devices) => {
       this.devicesList = devices;
+      this.devicesSubject.next(devices);
+      this.isDevicesPrefetched = true;
 
-      // keep only devices with name like 'PdM-Machine%'
-      this.devicesList = this.devicesList.filter(device => device.name && device.name.startsWith('PdM-Machine'));
+      const currentValue = this.myControl.value;
+      const exactDevice = this.findDeviceByName(currentValue);
+      if (exactDevice && typeof currentValue === 'string') {
+        this.myControl.setValue(exactDevice);
+      }
 
-      // If in edit mode, populate the form after devices are loaded
-      if (this.isEditMode && this.editingForecast) {
+      if (this.isEditMode && this.editingForecast && !this.selectedDevice) {
         this.populateFormForEdit();
       }
     });
 
-    // Load first page of devices immediately on dialog open
-    this.prefetchFirstPage();
-
-    // If in edit mode, load all devices immediately
-    if (this.isEditMode) {
-      this.prefetchAllDevices();
-    }
-
-    // Set up filtered devices observable based on user input
-    this.filteredDevices = this.myControl.valueChanges.pipe(
-      startWith(''),
-      map((value) => (typeof value === 'string' ? value : value?.name)),
-      map((name) =>
-        name ? this._filterDevices(name) : this.devicesList.slice()
-      )
-    );
-
     // Clear fields when device changes (only in add mode)
-    this.myControl.valueChanges.subscribe((device) => {
-      if (!this.isEditMode) {
-        this.fields = []; // Clear fields when a new device is selected
+    this.myControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((device) => {
+      const selectedDevice = typeof device === 'object' ? device : this.findDeviceByName(device);
+      const didDeviceChange = selectedDevice?.id?.id !== this.selectedDevice?.id?.id;
+
+      if (!this.isEditMode && didDeviceChange) {
+        this.fields = [];
       }
-      this.selectedDevice = typeof device === 'object' ? device : null;
-      this.noTelemetryMessage = null; // Reset the message
-      if (this.selectedDevice && !this.isEditMode) {
+
+      this.selectedDevice = selectedDevice || null;
+      this.noTelemetryMessage = null;
+
+      if (this.selectedDevice && didDeviceChange) {
         this.onDeviceSelected(this.selectedDevice);
       }
     });
@@ -264,28 +265,24 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
 
   // Prefetch first page of devices when input is focused
   onDeviceInputFocus(): void {
-    console.log('Device input focused, prefetched:', this.isDevicesPrefetched);
-    // Don't auto-open in edit mode
-    if (!this.isDevicesPrefetched && !this.isEditMode) {
-      this.prefetchFirstPage();
+    if (!this.isDevicesPrefetched) {
+      this.loadTenantDevices();
     }
   }
 
   // Handle click event to ensure autocomplete opens
   onDeviceInputClick(event: Event): void {
-    console.log('Device input clicked');
     // In edit mode, don't auto-open - let user manually trigger it
     if (this.isEditMode) {
       return;
     }
 
     if (!this.isDevicesPrefetched) {
-      this.prefetchFirstPage();
+      this.loadTenantDevices('', true);
     } else {
       // If already prefetched, just open the panel
       setTimeout(() => {
         if (this.autocompleteTrigger) {
-          console.log('Opening panel on click');
           this.autocompleteTrigger.openPanel();
         }
       }, 0);
@@ -294,106 +291,73 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
 
   // Event when autocomplete is opened
   onAutocompleteOpened(): void {
-    console.log('Autocomplete panel opened');
     // If not prefetched yet, fetch devices
     if (!this.isDevicesPrefetched) {
-      this.prefetchFirstPage();
+      this.loadTenantDevices();
     }
   }
 
   // Handle arrow down key to prefetch and open autocomplete
   onArrowDown(event: KeyboardEvent): void {
-    console.log('Arrow down pressed');
     if (!this.isDevicesPrefetched) {
-      this.prefetchFirstPage();
+      this.loadTenantDevices('', true);
     }
     // Don't prevent default - let autocomplete handle it naturally
   }
 
-  // Prefetch first page of devices (10 devices)
-  private prefetchFirstPage(): void {
-    console.log('Prefetching first page of devices...');
-    console.log('Autocomplete trigger available:', !!this.autocompleteTrigger);
+  private loadTenantDevices(searchText = '', openPanel = false): void {
+    this.fetchTenantDevices(searchText).pipe(takeUntil(this.destroy$)).subscribe((devices) => {
+      this.devicesList = devices;
+      this.devicesSubject.next(devices);
+      this.isDevicesPrefetched = true;
 
-    const firstPageLink = new PageLink(10, 0, null, {
-      property: 'createdTime',
-      direction: Direction.DESC,
-    });
-
-    this.devicesDataSource.loadDevices(firstPageLink);
-    this.isDevicesPrefetched = true;
-
-    // Don't auto-open the panel in edit mode
-    if (this.isEditMode) {
-      console.log('Edit mode: skipping auto-open of autocomplete panel');
-      return;
-    }
-
-    // Wait for devices to load, then open panel
-    const subscription = this.devicesDataSource.devices$.subscribe((devices) => {
-      console.log('Devices loaded:', devices.length);
-      if (devices.length > 0) {
-        // Try multiple times with increasing delays to ensure trigger is available
-        const attempts = [100, 200, 300];
-        attempts.forEach((delay) => {
-          setTimeout(() => {
-            if (this.autocompleteTrigger) {
-              console.log('Opening autocomplete panel (attempt at ' + delay + 'ms)');
-              try {
-                this.autocompleteTrigger.openPanel();
-              } catch (error) {
-                console.error('Error opening panel:', error);
-              }
-            } else {
-              console.warn('Autocomplete trigger not available yet at ' + delay + 'ms');
-            }
-          }, delay);
-        });
-        subscription.unsubscribe();
+      if (this.isEditMode && this.editingForecast && !this.selectedDevice) {
+        this.populateFormForEdit();
+      }
+      if (openPanel && !this.isEditMode) {
+        this.openAutocompletePanel();
       }
     });
   }
 
-  // Prefetch all devices (used in edit mode or when user starts typing)
-  private prefetchAllDevices(): void {
-    // Load the first page with only one device to get the total count
-    const firstPageLink = new PageLink(1, 0, null, {
-      property: 'createdTime',
-      direction: Direction.DESC,
+  private fetchTenantDevices(searchText = ''): Observable<DeviceInfo[]> {
+    this.isLoadingDevices = true;
+
+    const pageLink = new PageLink(this.deviceSearchPageSize, 0, searchText || null, {
+      property: 'name',
+      direction: Direction.ASC,
     });
 
-    // Load the first page of devices
-    this.devicesDataSource.fetchTotalElements(firstPageLink);
-
-    // Subscribe to the total number of devices once the first request completes
-    this.devicesDataSource.totalElements$.pipe(
-      takeUntil(this.destroy$)
-    ).subscribe((totalElements) => {
-      console.log('Total number of devices:', totalElements);
-
-      // Once we know the total number of devices, fetch all of them
-      const fullPageLink = new PageLink(totalElements, 0, null, {
-        property: 'createdTime',
-        direction: Direction.DESC,
-      });
-
-      // Fetch the full list of devices
-      this.devicesDataSource.loadDevices(fullPageLink);
-    });
+    return this.deviceService.getTenantDeviceInfos(pageLink).pipe(
+      map((pageData) => pageData.data || []),
+      catchError((error) => {
+        console.error('Error fetching devices:', error);
+        return of([]);
+      }),
+      map((devices) => {
+        this.isLoadingDevices = false;
+        return devices;
+      })
+    );
   }
 
-  // Function to filter devices based on user input
-  private _filterDevices(name: string): DeviceInfo[] {
-    const filterValue = name.toLowerCase();
+  private openAutocompletePanel(): void {
+    setTimeout(() => {
+      this.autocompleteTrigger?.openPanel();
+    }, 0);
+  }
 
-    // If user starts typing and we only have first page, load all devices
-    if (this.isDevicesPrefetched && !this.isEditMode && this.devicesList.length <= 10) {
-      this.prefetchAllDevices();
+  private findDeviceByName(value: string | DeviceInfo | null): DeviceInfo | null {
+    if (!value || typeof value !== 'string') {
+      return null;
     }
 
-    return this.devicesList.filter((option) =>
-      option.name.toLowerCase().includes(filterValue)
-    );
+    const normalizedName = value.trim().toLowerCase();
+    if (!normalizedName) {
+      return null;
+    }
+
+    return this.devicesList.find((device) => device.name.toLowerCase() === normalizedName) || null;
   }
 
   // Get hint text showing device names

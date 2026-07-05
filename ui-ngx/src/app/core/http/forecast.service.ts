@@ -18,6 +18,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable, Subject } from 'rxjs';
+import { defaultHttpOptionsFromConfig, defaultHttpUploadOptions, RequestConfig } from './http-utils'; // Import utility functions if available
+import { PageData, PageLink } from '@app/shared/public-api';
+import { Order } from '@app/modules/home/models/predictive-maintenance.models';
+import { Forecast, ForecastCreate } from '@app/shared/models/forecast.models';
+import { AnomalyReport } from '@app/modules/home/components/predictive-maintenance/components/anomalies/anomalies.component';
 
 export interface AvailableModelsResponse {
   ForecastModel?: { model_name: string }[];
@@ -28,6 +33,7 @@ export interface FailureModeHistoryResponse {
   modelId: string | null;
   deviceId: string | null;
   maintenance: Array<{
+    id?: string;
     datetime: string;
     description?: string;
     parts_replaced?: string;
@@ -37,6 +43,7 @@ export interface FailureModeHistoryResponse {
     device_type?: string;
   }>;
   errors: Array<{
+    id?: string;
     datetime: string;
     errorID?: string;
     error_code?: string;
@@ -45,6 +52,7 @@ export interface FailureModeHistoryResponse {
     device_type?: string;
   }>;
   failures: Array<{
+    id?: string;
     datetime: string;
     failure?: string;
     root_cause?: string;
@@ -53,11 +61,18 @@ export interface FailureModeHistoryResponse {
     device_type?: string;
   }>;
 }
-import { defaultHttpOptionsFromConfig, RequestConfig } from './http-utils'; // Import utility functions if available
-import { PageData, PageLink } from '@app/shared/public-api';
-import { Order } from '@app/modules/home/models/predictive-maintenance.models';
-import { Forecast, ForecastCreate } from '@app/shared/models/forecast.models';
-import { AnomalyReport } from '@app/modules/home/components/predictive-maintenance/components/anomalies/anomalies.component';
+
+export type FailureModeRecordType = 'maintenance' | 'errors' | 'failures';
+
+export interface FailureModeRecordPayload {
+  type: FailureModeRecordType;
+  device_id: string;
+  datetime: string;
+  description?: string;
+  parts_replaced?: string;
+  error_code?: string;
+  root_cause?: string;
+}
 // import { Order } from '../components/forecast/forcast-page.component'; // Adjust import path as needed
 
 @Injectable({
@@ -89,7 +104,8 @@ export class PredictiveModelsService {
     return this.http.post<any>('/api/models/saveLoadConfig', config, {});
   }
 
-  private baseUrlModels = '/api/v1/models'; // Base URL for your API
+  private baseUrlModels = '/api/v1/models'; // Model service API
+  private baseUrlFailureMode = '/api/models'; // Quarkus failure-mode API
 
   constructor(private http: HttpClient) {}
 
@@ -155,7 +171,7 @@ export class PredictiveModelsService {
     const query = params ? `?${params}` : '';
 
     return this.http.get<FailureModeHistoryResponse>(
-      `${this.baseUrlModels}/failure-mode-history/${modelId}${query}`,
+      `${this.baseUrlFailureMode}/failure-mode-history/${modelId}${query}`,
       defaultHttpOptionsFromConfig(config)
     );
   }
@@ -175,8 +191,68 @@ export class PredictiveModelsService {
     }
 
     return this.http.get<FailureModeHistoryResponse>(
-      `${this.baseUrlModels}/failure-mode-history?${params.join('&')}`,
+      `${this.baseUrlFailureMode}/failure-mode-history?${params.join('&')}`,
       defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  createFailureModeRecord(
+    record: FailureModeRecordPayload,
+    config?: RequestConfig
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.baseUrlFailureMode}/failure-mode-records`,
+      record,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  createFailureModeRecords(
+    records: FailureModeRecordPayload[],
+    config?: RequestConfig
+  ): Observable<{ records: any[]; createdCount: number }> {
+    return this.http.post<{ records: any[]; createdCount: number }>(
+      `${this.baseUrlFailureMode}/failure-mode-records/batch`,
+      records,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  updateFailureModeRecord(
+    recordType: FailureModeRecordType,
+    recordId: string,
+    record: FailureModeRecordPayload,
+    config?: RequestConfig
+  ): Observable<any> {
+    return this.http.put<any>(
+      `${this.baseUrlFailureMode}/failure-mode-records/${recordType}/${recordId}`,
+      record,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  deleteFailureModeRecord(
+    recordType: FailureModeRecordType,
+    recordId: string,
+    config?: RequestConfig
+  ): Observable<{ deletedCount: number }> {
+    return this.http.delete<{ deletedCount: number }>(
+      `${this.baseUrlFailureMode}/failure-mode-records/${recordType}/${recordId}`,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  importFailureModeRecords(
+    recordType: FailureModeRecordType,
+    file: File,
+    config?: RequestConfig
+  ): Observable<{ importedCount: number; errors: Array<{ row: number; message: string }> }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<{ importedCount: number; errors: Array<{ row: number; message: string }> }>(
+      `${this.baseUrlFailureMode}/failure-mode-records/import?recordType=${recordType}`,
+      formData,
+      defaultHttpUploadOptions(config?.ignoreLoading, config?.ignoreErrors, config?.resendRequest)
     );
   }
 

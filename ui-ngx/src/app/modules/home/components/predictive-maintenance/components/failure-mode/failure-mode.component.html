@@ -43,6 +43,7 @@
     *ngIf="!isLoading && !errorMessage"
     class="failure-mode-tabs"
     animationDuration="0ms"
+    (selectedIndexChange)="setActiveView($event)"
   >
     <mat-tab [label]="'Maintenance (' + maintenanceRows.length + ')'">
       <div class="tab-panel">
@@ -86,6 +87,33 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <span class="failure-mode-control-spacer"></span>
+          <input
+            #maintenanceCsvInput
+            class="csv-file-input"
+            type="file"
+            accept=".csv,text/csv"
+            (change)="uploadCsv('maintenance', $event)"
+          />
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Import maintenance CSV"
+            matTooltipPosition="above"
+            (click)="maintenanceCsvInput.click()"
+          >
+            <mat-icon>upload_file</mat-icon>
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="openAddRecordDialog('maintenance')"
+          >
+            <mat-icon>add</mat-icon>
+            <span>Add</span>
+          </button>
         </div>
 
         <div class="failure-mode-table-container">
@@ -119,6 +147,31 @@
               <th mat-header-cell *matHeaderCellDef>Parts Replaced</th>
               <td mat-cell *matCellDef="let row">
                 {{ row.partsReplaced || "N/A" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let row">
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Edit maintenance record"
+                  matTooltipPosition="above"
+                  (click)="openEditRecordDialog('maintenance', row)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  type="button"
+                  matTooltip="Delete maintenance record"
+                  matTooltipPosition="above"
+                  (click)="deleteRecord('maintenance', row)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
               </td>
             </ng-container>
 
@@ -175,6 +228,33 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <span class="failure-mode-control-spacer"></span>
+          <input
+            #errorsCsvInput
+            class="csv-file-input"
+            type="file"
+            accept=".csv,text/csv"
+            (change)="uploadCsv('errors', $event)"
+          />
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Import errors CSV"
+            matTooltipPosition="above"
+            (click)="errorsCsvInput.click()"
+          >
+            <mat-icon>upload_file</mat-icon>
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="openAddRecordDialog('errors')"
+          >
+            <mat-icon>add</mat-icon>
+            <span>Add</span>
+          </button>
         </div>
 
         <div class="failure-mode-table-container">
@@ -196,6 +276,31 @@
             <ng-container matColumnDef="errorCode">
               <th mat-header-cell *matHeaderCellDef>Error Code</th>
               <td mat-cell *matCellDef="let row">{{ row.errorCode || "N/A" }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let row">
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Edit error record"
+                  matTooltipPosition="above"
+                  (click)="openEditRecordDialog('errors', row)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  type="button"
+                  matTooltip="Delete error record"
+                  matTooltipPosition="above"
+                  (click)="deleteRecord('errors', row)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="errorColumns"></tr>
@@ -251,6 +356,33 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <span class="failure-mode-control-spacer"></span>
+          <input
+            #failuresCsvInput
+            class="csv-file-input"
+            type="file"
+            accept=".csv,text/csv"
+            (change)="uploadCsv('failures', $event)"
+          />
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Import failures CSV"
+            matTooltipPosition="above"
+            (click)="failuresCsvInput.click()"
+          >
+            <mat-icon>upload_file</mat-icon>
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="openAddRecordDialog('failures')"
+          >
+            <mat-icon>add</mat-icon>
+            <span>Add</span>
+          </button>
         </div>
 
         <div class="failure-mode-table-container">
@@ -272,6 +404,31 @@
             <ng-container matColumnDef="rootCause">
               <th mat-header-cell *matHeaderCellDef>Root Cause</th>
               <td mat-cell *matCellDef="let row">{{ row.rootCause || "N/A" }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let row">
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Edit failure record"
+                  matTooltipPosition="above"
+                  (click)="openEditRecordDialog('failures', row)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  type="button"
+                  matTooltip="Delete failure record"
+                  matTooltipPosition="above"
+                  (click)="deleteRecord('failures', row)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="failureColumns"></tr>

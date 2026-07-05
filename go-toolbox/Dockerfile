@@ -2,9 +2,9 @@
 # Go toolchain once; each unit stage installs its own binary on top. Compose
 # picks a stage via `target:`, so there's no separate base image to build
 # first and no cross-service FROM resolution to fight with BuildKit.
-FROM ubuntu:24.04 AS base
+FROM golang:1.25-bookworm AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    golang-go=2:1.22~2build1 ca-certificates \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:$PATH

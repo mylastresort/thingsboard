@@ -12,3 +12,35 @@ services:
         condition: service_started
       model:
         condition: service_healthy
+      tb-quarkus:
+        condition: service_healthy
+
+  tb-quarkus:
+    build:
+      context: ./tb-quarkus
+      dockerfile: ${TB_QUARKUS_DOCKERFILE:-src/main/docker/Dockerfile.jvm}
+    container_name: tb-lts43-monolith-tb-quarkus
+    environment:
+      - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-thingsboard}?currentSchema=tb_quarkus
+      - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - tb-quarkus-cache:/deployments/cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8083:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8081/q/openapi >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  tb-quarkus-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./tb_quarkus_cache

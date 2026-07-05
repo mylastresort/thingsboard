@@ -119,7 +119,7 @@ class DataRegistry:
                         forecast_end_date,
                         anomaly_start_date,
                         anomaly_end_date
-                    FROM predictive_maintenance_config 
+                    FROM tb_quarkus_pdm.predictive_maintenance_config 
                     WHERE id = :model_id
                 """
                 )
@@ -215,7 +215,7 @@ class DataRegistry:
                         maintenance_date,
                         description,
                         parts_replaced
-                    FROM device_maintenance
+                    FROM tb_quarkus_pdm.device_maintenance
                     WHERE device_id = :device_id
                     AND maintenance_date >= :cutoff_time
                     AND maintenance_date <= :end_time
@@ -234,7 +234,7 @@ class DataRegistry:
                         maintenance_date,
                         description,
                         parts_replaced
-                    FROM device_maintenance
+                    FROM tb_quarkus_pdm.device_maintenance
                     WHERE device_id = :device_id
                     AND maintenance_date >= :cutoff_time
                     ORDER BY maintenance_date
@@ -283,7 +283,7 @@ class DataRegistry:
                     SELECT
                         error_time,
                         error_code
-                    FROM device_errors
+                    FROM tb_quarkus_pdm.device_errors
                     WHERE device_id = :device_id
                     AND error_time >= :cutoff_time
                     AND error_time <= :end_time
@@ -301,7 +301,7 @@ class DataRegistry:
                     SELECT
                         error_time,
                         error_code
-                    FROM device_errors
+                    FROM tb_quarkus_pdm.device_errors
                     WHERE device_id = :device_id
                     AND error_time >= :cutoff_time
                     ORDER BY error_time
@@ -348,7 +348,7 @@ class DataRegistry:
                 SELECT
                     failure_time,
                     root_cause
-                FROM device_failures
+                FROM tb_quarkus_pdm.device_failures
                 WHERE device_id = :device_id
                 AND failure_time >= :cutoff_time
                 AND failure_time <= :end_time
@@ -491,7 +491,7 @@ class DataRegistry:
                         error_time,
                         error_code,
                         1 as value
-                    FROM device_errors
+                    FROM tb_quarkus_pdm.device_errors
                     WHERE device_id = :device_id
                     AND error_time >= :cutoff_time
                     ORDER BY error_time
@@ -547,7 +547,7 @@ class DataRegistry:
                         maintenance_date,
                         description,
                         parts_replaced
-                    FROM device_maintenance
+                    FROM tb_quarkus_pdm.device_maintenance
                     WHERE device_id = :device_id
                     AND maintenance_date >= :cutoff_time
                     ORDER BY maintenance_date
@@ -648,7 +648,7 @@ class DataRegistry:
                         SELECT
                             failure_time,
                             root_cause
-                        FROM device_failures
+                        FROM tb_quarkus_pdm.device_failures
                         WHERE device_id = :device_id
                         AND failure_time >= :cutoff_time
                         ORDER BY failure_time

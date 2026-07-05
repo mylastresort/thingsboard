@@ -1,0 +1,13 @@
+.gradle/
+build/
+out/
+
+.git/
+.gitignore
+.mcp.json
+AGENTS.md
+CLAUDE.md
+README.md
+
+**/.DS_Store
+**/*.iml

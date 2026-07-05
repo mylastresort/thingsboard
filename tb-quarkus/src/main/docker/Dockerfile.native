@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1.7
+
+FROM quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-21 AS build
+
+WORKDIR /workspace
+
+COPY --chown=quarkus:quarkus gradlew gradlew.bat settings.gradle build.gradle gradle.properties ./
+COPY --chown=quarkus:quarkus gradle ./gradle
+COPY --chown=quarkus:quarkus src ./src
+
+USER quarkus
+RUN --mount=type=cache,target=/home/quarkus/.gradle,uid=1001,gid=0 \
+    chmod +x ./gradlew \
+    && ./gradlew --no-daemon build -Dquarkus.native.enabled=true -x test
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
+
+WORKDIR /work/
+RUN microdnf install -y curl-minimal \
+    && microdnf clean all \
+    && chown 1001 /work \
+    && chmod "g+rwX" /work \
+    && chown 1001:root /work
+
+COPY --from=build --chown=1001:root --chmod=0755 /workspace/build/*-runner /work/application
+
+EXPOSE 8081
+USER 1001
+
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.http.port=8081"]

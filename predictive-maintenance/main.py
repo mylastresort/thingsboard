@@ -103,7 +103,7 @@ async def startup_event():
         with data_registry.engine.connect() as conn:
             query = text("""
                 SELECT id, name, device_id, forecast_algorithm, anomaly_algorithm, additional_data
-                FROM predictive_maintenance_config
+                FROM tb_quarkus_pdm.predictive_maintenance_config
                 ORDER BY created_time DESC
                 """)
             result = conn.execute(query)

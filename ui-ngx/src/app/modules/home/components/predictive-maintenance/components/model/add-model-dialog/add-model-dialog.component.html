@@ -106,11 +106,20 @@
         (opened)="onAutocompleteOpened()"
         (optionSelected)="onDeviceSelected($event.option.value)"
       >
+        <mat-option *ngIf="isLoadingDevices" disabled>
+          Loading devices...
+        </mat-option>
         <mat-option
           *ngFor="let device of filteredDevices | async"
           [value]="device"
         >
           {{ device.name }}
+        </mat-option>
+        <mat-option
+          *ngIf="!isLoadingDevices && isDevicesPrefetched && devicesList.length === 0"
+          disabled
+        >
+          No devices found
         </mat-option>
       </mat-autocomplete>
       <mat-hint *ngIf="devicesList.length > 0">

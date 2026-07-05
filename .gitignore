@@ -44,3 +44,5 @@ go-toolbox/cmd/darktheme/node_modules
 node_modules/
 redis-data
 kafka-data
+tb_quarkus_cache/
+tb_quarkus_dev_cache/

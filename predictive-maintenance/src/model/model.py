@@ -19,14 +19,12 @@ Usage:
 
 from fastapi import APIRouter
 
-from src.model.api import router as api_router
 from src.model.ws import router as ws_router
 
 # Create main router that combines all sub-routers
 router = APIRouter()
 
 # Include REST API routes
-router.include_router(api_router)
 
 # Include WebSocket routes
 router.include_router(ws_router)

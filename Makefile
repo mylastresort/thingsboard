@@ -6,7 +6,14 @@ MODEL_SERVICE   := model
 CONFIG_SERVICE  := config-api
 MCP_SERVICE     := thingsboard-mcp
 POSTGRES        := postgres
+TB_QUARKUS      := tb-quarkus
+TB_QUARKUS_DEV  := tb-quarkus-dev
 TB_PREV_VERSION ?= 4.2.2.2
+TB_QUARKUS_CACHE_DIR ?= ./tb_quarkus_cache
+TB_QUARKUS_CACHE_DEV_DIR ?= ./tb_quarkus_dev_cache
+TB_QUARKUS_DOCKERFILE ?= src/main/docker/Dockerfile.jvm
+TB_QUARKUS_SMOKE_URL ?= http://localhost:8081/models/failure-mode-history?limit=1
+TB_QUARKUS_DEV_SMOKE_URL ?= http://localhost:8082/models/failure-mode-history?limit=1
 
 # ─── compose file sets ───────────────────────────────────────────────────────
 COMPOSE_DIR := docker-compose
@@ -22,7 +29,7 @@ DEV_FILES  := $(CORE_FILES) -f $(COMPOSE_DIR)/docker-compose.toolbox.yml -f $(CO
 # --project-directory pins relative paths (volumes, build context, .env) to the repo
 # root regardless of where the -f files live — run `make` from repo root.
 # override with `make COMPOSE="docker compose --project-directory . $(CORE_FILES)" <target>`
-COMPOSE := docker compose --project-directory . $(DEV_FILES)
+COMPOSE := docker compose --project-directory . $(DEV_FILES) -p $(PROJECT)
 
 .DEFAULT_GOAL  := help
 
@@ -118,6 +125,9 @@ build-tb: ## Build / rebuild thingsboard image only
 build-mcp: ## Build / rebuild thingsboard-mcp image only
 	$(COMPOSE) build $(MCP_SERVICE)
 
+.PHONY: build-tb-quarkus
+build-tb-quarkus: tb-quarkus-build ## Build / rebuild tb-quarkus image only
+
 .PHONY: build-web
 build-web: ## Build / rebuild tb-web-ui-dev image only
 	$(COMPOSE) build $(WEB_SERVICE)
@@ -156,9 +166,17 @@ logs-model: ## Tail predictive-maintenance model logs
 logs-config: ## Tail config-api logs
 	$(COMPOSE) logs -f $(CONFIG_SERVICE)
 
+.PHONY: logs-tb-quarkus
+logs-tb-quarkus: ## Tail tb-quarkus logs
+	$(COMPOSE) logs -f $(TB_QUARKUS)
+
+.PHONY: logs-tb-quarkus-dev
+logs-tb-quarkus-dev: ## Tail tb-quarkus dev logs
+	$(COMPOSE) logs -f $(TB_QUARKUS_DEV)
+
 .PHONY: lazydocker
 lazydocker: ## Launch lazydocker pre-wired to the split compose files (project-local config, doesn't touch your global lazydocker config)
-	XDG_CONFIG_HOME="$(CURDIR)/.lazydocker" lazydocker -p tb-lts-monolith-dev
+	XDG_CONFIG_HOME="$(CURDIR)/.lazydocker" lazydocker -p $(PROJECT)
 
 # ─── status ──────────────────────────────────────────────────────────────────
 
@@ -193,6 +211,99 @@ shell-pg: ## Open a psql shell in postgres
 .PHONY: shell-model
 shell-model: ## Open a shell in the model service
 	$(COMPOSE) exec $(MODEL_SERVICE) bash
+
+.PHONY: shell-tb-quarkus
+shell-tb-quarkus: ## Open a shell in tb-quarkus
+	$(COMPOSE) exec $(TB_QUARKUS) sh
+
+.PHONY: shell-tb-quarkus-dev
+shell-tb-quarkus-dev: ## Open a shell in tb-quarkus dev
+	$(COMPOSE) exec $(TB_QUARKUS_DEV) bash
+
+# ─── tb-quarkus ──────────────────────────────────────────────────────────────
+
+.PHONY: tb-quarkus-cache
+tb-quarkus-cache: ## Create tb-quarkus host cache directory
+	mkdir -p $(TB_QUARKUS_CACHE_DIR)/gradle $(TB_QUARKUS_CACHE_DIR)/runtime
+
+.PHONY: tb-quarkus-preflight
+tb-quarkus-preflight: tb-quarkus-cache ## Check tb-quarkus Docker build prerequisites
+	@test -d tb-quarkus/src/main/docker || (echo "Missing tb-quarkus Dockerfiles"; exit 1)
+	@test -f tb-quarkus/gradlew || (echo "Missing tb-quarkus Gradle wrapper"; exit 1)
+
+.PHONY: tb-quarkus-build
+tb-quarkus-build: tb-quarkus-preflight ## Build tb-quarkus Docker image
+	TB_QUARKUS_DOCKERFILE=$(TB_QUARKUS_DOCKERFILE) $(COMPOSE) build $(TB_QUARKUS)
+
+.PHONY: tb-quarkus-build-native
+tb-quarkus-build-native: ## Build tb-quarkus native Docker image
+	$(MAKE) TB_QUARKUS_DOCKERFILE=src/main/docker/Dockerfile.native tb-quarkus-build
+
+.PHONY: tb-quarkus-up
+tb-quarkus-up: tb-quarkus-cache ## Start tb-quarkus without recreating shared stack dependencies
+	$(COMPOSE) up -d --no-deps $(TB_QUARKUS)
+
+.PHONY: tb-quarkus-up-with-deps
+tb-quarkus-up-with-deps: tb-quarkus-cache ## Start postgres and tb-quarkus
+	$(COMPOSE) up -d $(POSTGRES) $(TB_QUARKUS)
+
+.PHONY: tb-quarkus-wait
+tb-quarkus-wait: ## Wait until tb-quarkus is healthy
+	@cid="$$($(COMPOSE) ps -q $(TB_QUARKUS))"; \
+	if [ -z "$$cid" ]; then echo "$(TB_QUARKUS) is not running"; exit 1; fi; \
+	for i in $$(seq 1 60); do \
+		status="$$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$$cid")"; \
+		echo "$(TB_QUARKUS) health: $$status"; \
+		if [ "$$status" = "healthy" ]; then exit 0; fi; \
+		if [ "$$status" = "exited" ] || [ "$$status" = "dead" ]; then $(COMPOSE) logs --tail=120 $(TB_QUARKUS); exit 1; fi; \
+		sleep 2; \
+	done; \
+	$(COMPOSE) logs --tail=120 $(TB_QUARKUS); \
+	exit 1
+
+.PHONY: tb-quarkus-curl
+tb-quarkus-curl: ## Curl tb-quarkus smoke endpoint
+	curl -fsS "$(TB_QUARKUS_SMOKE_URL)"
+
+.PHONY: tb-quarkus-smoke
+tb-quarkus-smoke: tb-quarkus-build tb-quarkus-up tb-quarkus-wait tb-quarkus-curl ## Build, run, wait, and curl tb-quarkus
+
+.PHONY: tb-quarkus-dev-cache
+tb-quarkus-dev-cache: ## Create tb-quarkus-dev host cache directory
+	mkdir -p $(TB_QUARKUS_CACHE_DEV_DIR)/gradle $(TB_QUARKUS_CACHE_DEV_DIR)/runtime
+
+.PHONY: tb-quarkus-dev-up
+tb-quarkus-dev-up: tb-quarkus-dev-cache ## Start tb-quarkus dev container with mounted source
+	$(COMPOSE) up -d --no-deps $(TB_QUARKUS_DEV)
+
+.PHONY: tb-quarkus-dev-up-with-deps
+tb-quarkus-dev-up-with-deps: tb-quarkus-dev-cache ## Start postgres and tb-quarkus dev container
+	$(COMPOSE) up -d $(POSTGRES) $(TB_QUARKUS_DEV)
+
+.PHONY: tb-quarkus-dev-wait
+tb-quarkus-dev-wait: ## Wait until tb-quarkus dev is healthy
+	@cid="$$($(COMPOSE) ps -q $(TB_QUARKUS_DEV))"; \
+	if [ -z "$$cid" ]; then echo "$(TB_QUARKUS_DEV) is not running"; exit 1; fi; \
+	for i in $$(seq 1 60); do \
+		status="$$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$$cid")"; \
+		echo "$(TB_QUARKUS_DEV) health: $$status"; \
+		if [ "$$status" = "healthy" ]; then exit 0; fi; \
+		if [ "$$status" = "exited" ] || [ "$$status" = "dead" ]; then $(COMPOSE) logs --tail=120 $(TB_QUARKUS_DEV); exit 1; fi; \
+		sleep 2; \
+	done; \
+	$(COMPOSE) logs --tail=120 $(TB_QUARKUS_DEV); \
+	exit 1
+
+.PHONY: tb-quarkus-dev-curl
+tb-quarkus-dev-curl: ## Curl tb-quarkus dev smoke endpoint
+	curl -fsS "$(TB_QUARKUS_DEV_SMOKE_URL)"
+
+.PHONY: tb-quarkus-dev-smoke
+tb-quarkus-dev-smoke: tb-quarkus-dev-up tb-quarkus-dev-wait tb-quarkus-dev-curl ## Run, wait, and curl tb-quarkus dev
+
+.PHONY: tb-quarkus-gen-openapi
+tb-quarkus-gen-openapi:
+	$(COMPOSE) run --rm $(TB_QUARKUS_DEV) ./gradlew openApiGenerate
 
 # ─── cleanup ─────────────────────────────────────────────────────────────────
 
@@ -334,3 +445,6 @@ assetopsbench-tui-smoke: ## [agents] Ping LiteLLM proxy via TUI CLI
  
 assetopsbench-tui-init: ## [agents] Write default TUI config file
 	@$(AGENTS) tui-init
+
+tb-quarkus-dev:
+	@cd tb-quarkus && ./gradlew quarkusDev

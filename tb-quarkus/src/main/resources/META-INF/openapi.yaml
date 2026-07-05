@@ -1,0 +1,841 @@
+openapi: 3.0.3
+info:
+  title: Quarkus PdM API
+  version: 0.1.0
+  description: |
+    This API provides endpoints for managing failure mode history and records. The API is designed to facilitate predictive maintenance by providing insights into device failures and maintenance history.
+servers:
+  - url: /api/v1
+paths:
+  /models/available:
+    get:
+      operationId: getAvailableModels
+      summary: Get available model types to train
+      responses:
+        "200":
+          description: Available model types and algorithms
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/saveLoadConfig:
+    post:
+      operationId: saveLoadModelConfig
+      summary: Save predictive maintenance load model configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Saved load model configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/loadModelConfig:
+    get:
+      operationId: getLoadModelConfigs
+      summary: Get predictive maintenance load model configurations
+      responses:
+        "200":
+          description: Load model configurations by name
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/anomaly-history-predictions/{model_id}/{prediction_type}:
+    get:
+      operationId: getAnomalyHistoryPredictions
+      summary: Fetch anomaly history predictions
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: prediction_type
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/StartTs"
+        - $ref: "#/components/parameters/EndTs"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Prediction history
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/anomaly-history-predictions/{model_id}:
+    delete:
+      operationId: deleteAnomalyHistoryPredictions
+      summary: Delete anomaly history predictions
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: predictionType
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted prediction count
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          $ref: "#/components/responses/Error"
+  /models:
+    get:
+      operationId: getPredictiveModelsByPage
+      summary: List forecast configs with pagination
+      parameters:
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/SortProperty"
+        - $ref: "#/components/parameters/SortOrder"
+        - $ref: "#/components/parameters/TextSearch"
+      responses:
+        "200":
+          description: Forecast config page
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createForecast
+      summary: Create a forecast config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200": # was 201 — impl returns default 200, no explicit status override
+          description: Created forecast config
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/{forecast_id}:
+    get:
+      operationId: getForecast
+      summary: Get forecast config by id
+      parameters:
+        - $ref: "#/components/parameters/ForecastId"
+      responses:
+        "200":
+          description: Forecast config
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: updateForecast
+      summary: Update a forecast config
+      parameters:
+        - $ref: "#/components/parameters/ForecastId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Updated forecast config
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteForecast
+      summary: Delete a forecast config
+      parameters:
+        - $ref: "#/components/parameters/ForecastId"
+      responses:
+        "200":
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/{forecast_id}/status:
+    get:
+      operationId: getForecastStatus
+      summary: Get forecast model status
+      parameters:
+        - $ref: "#/components/parameters/ForecastId"
+      responses:
+        "200":
+          description: Forecast status
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/device/{device_id}:
+    get:
+      operationId: getForecastsByDeviceId
+      summary: Fetch forecast configs by device ID
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pageSize # was $ref PageSize (default 10) — impl defaults to 1000 for this endpoint
+          in: query
+          schema:
+            type: integer
+            default: 1000
+            minimum: 1
+            maximum: 1000
+        - $ref: "#/components/parameters/Page"
+      responses:
+        "200":
+          description: Forecast config page
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/failure-mode-history:
+    get:
+      operationId: getFailureModeHistoryAllDevices
+      summary: Fetch failure mode history for all devices
+      parameters:
+        - $ref: "#/components/parameters/StartTs"
+        - $ref: "#/components/parameters/EndTs"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 1000
+      responses:
+        "200":
+          description: Failure mode history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailureModeHistoryResponse"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/failure-mode-history/{model_id}:
+    get:
+      operationId: getFailureModeHistory
+      summary: Fetch failure mode history
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/StartTs"
+        - $ref: "#/components/parameters/EndTs"
+      responses:
+        "200":
+          description: Failure mode history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailureModeHistoryResponse"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/failure-mode-records:
+    post:
+      operationId: createFailureModeRecord
+      summary: Create failure mode record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FailureModeRecord"
+      responses:
+        "200":
+          description: Created failure mode record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailureModeRecordResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/failure-mode-records/batch:
+    post:
+      operationId: createFailureModeRecords
+      summary: Create failure mode records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/FailureModeRecord"
+      responses:
+        "200":
+          description: Created failure mode records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateFailureModeRecordsResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/failure-mode-records/{record_type}/{record_id}:
+    put:
+      operationId: updateFailureModeRecord
+      summary: Update failure mode record
+      parameters:
+        - $ref: "#/components/parameters/RecordType"
+        - $ref: "#/components/parameters/RecordId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FailureModeRecord"
+      responses:
+        "200":
+          description: Updated failure mode record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailureModeRecordResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteFailureModeRecord
+      summary: Delete failure mode record
+      parameters:
+        - $ref: "#/components/parameters/RecordType"
+        - $ref: "#/components/parameters/RecordId"
+      responses:
+        "200":
+          description: Deleted row count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteFailureModeRecordResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/failure-mode-records/import:
+    post:
+      operationId: importFailureModeRecords
+      summary: Import failure mode records from CSV
+      parameters:
+        - name: recordType
+          in: query
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportFailureModeRecordsResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /claims:
+    get:
+      operationId: getClaimsByPage
+      summary: List claims with pagination
+      parameters:
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/SortProperty'
+        - $ref: '#/components/parameters/SortOrder'
+        - $ref: '#/components/parameters/TextSearch'
+        - name: done
+          in: query
+          schema:
+            type: boolean
+        - name: assigneeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Claim page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimPageResponse'
+        '500':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createClaim
+      summary: Create a claim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClaimRequest'
+      responses:
+        '200':
+          description: Created claim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /claims/{claim_id}:
+    get:
+      operationId: getClaim
+      summary: Get claim by id
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Claim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: updateClaim
+      summary: Update claim
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClaimRequest'
+      responses:
+        '200':
+          description: Updated claim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteClaim
+      summary: Delete claim
+      parameters:
+        - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Deleted claim count
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteClaimResponse'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+components:
+  parameters:
+    StartTs:
+      name: startTs
+      in: query
+      schema:
+        type: integer
+        format: int64
+    EndTs:
+      name: endTs
+      in: query
+      schema:
+        type: integer
+        format: int64
+    RecordType:
+      name: record_type
+      in: path
+      required: true
+      schema:
+        type: string
+    RecordId:
+      name: record_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ForecastId:
+      name: forecast_id
+      in: path
+      required: true
+      schema:
+        type: string
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 1000
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    SortProperty:
+      name: sortProperty
+      in: query
+      schema:
+        type: string
+    SortOrder:
+      name: sortOrder
+      in: query
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+    TextSearch:
+      name: textSearch
+      in: query
+      schema:
+        type: string
+    ClaimId:
+      name: claim_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    FailureModeRecord:
+      type: object
+      required:
+        - type
+        - device_id
+        - datetime
+      properties:
+        type:
+          type: string
+        device_id:
+          type: string
+        datetime:
+          type: string
+          format: date-time
+        description:
+          type: string
+          nullable: true
+        parts_replaced:
+          type: string
+          nullable: true
+        error_code:
+          type: string
+          nullable: true
+        root_cause:
+          type: string
+          nullable: true
+    FailureModeRecordResponse:
+      type: object
+      required:
+        - id
+        - datetime
+      properties:
+        id:
+          type: string
+        device_id:
+          type: string
+          nullable: true
+        device_name:
+          type: string
+          nullable: true
+        device_type:
+          type: string
+          nullable: true
+        datetime:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        parts_replaced:
+          type: string
+          nullable: true
+        error_code:
+          type: string
+          nullable: true
+        root_cause:
+          type: string
+          nullable: true
+    FailureModeHistoryResponse:
+      type: object
+      required:
+        - maintenance
+        - errors
+        - failures
+      properties:
+        modelId:
+          type: string
+          nullable: true
+        deviceId:
+          type: string
+          nullable: true
+        maintenance:
+          type: array
+          items:
+            $ref: "#/components/schemas/FailureModeRecordResponse"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FailureModeRecordResponse"
+        failures:
+          type: array
+          items:
+            $ref: "#/components/schemas/FailureModeRecordResponse"
+    CreateFailureModeRecordsResponse:
+      type: object
+      required:
+        - records
+        - createdCount
+      properties:
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/FailureModeRecordResponse"
+        createdCount:
+          type: integer
+    DeleteFailureModeRecordResponse:
+      type: object
+      required:
+        - deletedCount
+      properties:
+        deletedCount:
+          type: integer
+    ImportFailureModeRecordsResponse:
+      type: object
+      required:
+        - importedCount
+        - errors
+      properties:
+        importedCount:
+          type: integer
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportError"
+    ImportError:
+      type: object
+      required:
+        - row
+        - message
+      properties:
+        row:
+          type: integer
+        message:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+    ClaimResponse:
+      type: object
+      required:
+        - id
+        - createdTime
+        - name
+        - done
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdTime:
+          type: integer
+          format: int64
+        name:
+          type: string
+        body:
+          type: string
+          nullable: true
+        done:
+          type: boolean
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+        tags:
+          type: object
+          additionalProperties: true
+          nullable: true
+    CreateClaimRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        body:
+          type: string
+          nullable: true
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+        tags:
+          type: object
+          additionalProperties: true
+          nullable: true
+    UpdateClaimRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        done:
+          type: boolean
+          nullable: true
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+        tags:
+          type: object
+          additionalProperties: true
+          nullable: true
+    ClaimPageResponse:
+      type: object
+      required:
+        - data
+        - totalPages
+        - totalElements
+        - hasNext
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimResponse'
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+        hasNext:
+          type: boolean
+    DeleteClaimResponse:
+      type: object
+      required:
+        - deletedCount
+      properties:
+        deletedCount:
+          type: integer

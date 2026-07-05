@@ -131,6 +131,14 @@
     min-width: min(100%, 12rem);
   }
 
+  .failure-mode-control-spacer {
+    flex: 1 1 auto;
+  }
+
+  .csv-file-input {
+    display: none;
+  }
+
   ::ng-deep {
     .mat-mdc-form-field-subscript-wrapper {
       display: none;
@@ -171,6 +179,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .mat-column-actions {
+    width: 112px;
+    text-align: center;
   }
 }
 

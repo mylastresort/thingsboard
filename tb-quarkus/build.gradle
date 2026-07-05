@@ -1,0 +1,67 @@
+plugins {
+    id 'java'
+    id 'io.quarkus'
+    id 'org.openapi.generator' version '7.8.0'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
+    implementation 'io.quarkus:quarkus-flyway'
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
+    implementation 'io.quarkus:quarkus-rest-jackson'
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-hibernate-orm'
+    implementation 'io.quarkus:quarkus-rest'
+    testImplementation 'io.quarkus:quarkus-junit'
+    testImplementation 'io.rest-assured:rest-assured'
+
+    implementation 'io.quarkus:quarkus-hibernate-validator'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+}
+
+group = 'org.tb-quarkus.dev'
+version = '1.0.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+
+openApiGenerate {
+    generatorName = "jaxrs-spec"
+    inputSpec = "$projectDir/src/main/resources/META-INF/openapi.yaml"
+    outputDir = "$buildDir/generated"
+    apiPackage = "org.tb.quarkus.api"
+    modelPackage = "org.tb.quarkus.model"
+    configOptions = [
+        interfaceOnly: "true",
+        useSwaggerAnnotations: "false",
+        useJakartaEe: "true"
+    ]
+}
+
+compileJava.dependsOn tasks.openApiGenerate
+
+sourceSets {
+    main {
+        java {
+            srcDirs += "$buildDir/generated/src/gen/java"
+        }
+    }
+}
