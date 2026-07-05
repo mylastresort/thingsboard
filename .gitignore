@@ -46,3 +46,4 @@ redis-data
 kafka-data
 tb_quarkus_cache/
 tb_quarkus_dev_cache/
+**/__pycache__/
