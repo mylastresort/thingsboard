@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional;
 import org.tb.quarkus.entity.pdm.*;
 import org.tb.quarkus.dto.FailureModeRecordMapper;
 import org.tb.quarkus.model.*; 
+import jakarta.ws.rs.NotFoundException;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -92,11 +93,49 @@ public class FailureModeRecordService {
 
     @Transactional
     public FailureModeRecordResponse update(String recordType, UUID id, FailureModeRecord record) {
-        delete(recordType, id); // ponytail: replace-on-update; add partial patch if you need field-level updates
-        record.setType(normalizeRecordType(record.getType()));
-        Object entity = FailureModeRecordMapper.toEntity(record);
-        ((FailureRecordBaseEntity) entity).id = id;
-        ((PanacheEntityBase) entity).persist();
+        record.setType(normalizeRecordType(firstNonBlank(record.getType(), recordType)));
+        UUID deviceId = UUID.fromString(record.getDeviceId());
+        Instant ts = record.getDatetime().toInstant();
+
+        Object entity = switch (normalizeRecordType(recordType)) {
+            case "error" -> {
+                DeviceErrorEntity e = DeviceErrorEntity.findById(id);
+                if (e == null) {
+                    throw new NotFoundException("Failure mode error record not found");
+                }
+                e.deviceId = deviceId;
+                e.errorTime = ts;
+                e.errorDescription = record.getDescription();
+                e.errorCode = defaultString(record.getErrorCode(), "UNKNOWN");
+                yield e;
+            }
+            case "maintenance" -> {
+                DeviceMaintenanceEntity e = DeviceMaintenanceEntity.findById(id);
+                if (e == null) {
+                    throw new NotFoundException("Failure mode maintenance record not found");
+                }
+                e.deviceId = deviceId;
+                e.maintenanceDate = ts;
+                e.maintenanceType = "maintenance";
+                e.description = record.getDescription();
+                e.partsReplaced = defaultString(record.getPartsReplaced(), "");
+                yield e;
+            }
+            case "failure" -> {
+                DeviceFailureEntity e = DeviceFailureEntity.findById(id);
+                if (e == null) {
+                    throw new NotFoundException("Failure mode failure record not found");
+                }
+                e.deviceId = deviceId;
+                e.failureTime = ts;
+                e.failureType = "failure";
+                e.failureDescription = record.getDescription();
+                e.rootCause = defaultString(record.getRootCause(), "UNKNOWN");
+                yield e;
+            }
+            default -> throw new IllegalArgumentException("Unknown record type: " + recordType);
+        };
+
         return FailureModeRecordMapper.toResponse(entity);
     }
 
@@ -126,7 +165,14 @@ public class FailureModeRecordService {
     }
 
     public FailureModeHistoryResponse getHistoryForModel(String modelId, Long startTs, Long endTs) {
-        var resp = getHistory(UUID.fromString(modelId), startTs, endTs, null); // ponytail: model_id treated as device_id, no separate model registry yet
+        var modelUuid = UUID.fromString(modelId);
+        PredictiveMaintenanceConfigEntity config = PredictiveMaintenanceConfigEntity.findById(modelUuid);
+        var deviceId = config != null ? config.deviceId : modelUuid;
+        if (deviceId == null) {
+            throw new NotFoundException("Forecast device not found");
+        }
+
+        var resp = getHistory(deviceId, startTs, endTs, null);
         resp.setModelId(modelId);
         return resp;
     }
@@ -228,6 +274,10 @@ public class FailureModeRecordService {
             case "failures", "failure" -> "failure";
             default -> throw new IllegalArgumentException("Unknown record type: " + type);
         };
+    }
+
+    private static String defaultString(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private static Date parseDate(String value) {

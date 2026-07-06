@@ -29,7 +29,7 @@ DEV_FILES  := $(CORE_FILES) -f $(COMPOSE_DIR)/docker-compose.toolbox.yml -f $(CO
 # --project-directory pins relative paths (volumes, build context, .env) to the repo
 # root regardless of where the -f files live — run `make` from repo root.
 # override with `make COMPOSE="docker compose --project-directory . $(CORE_FILES)" <target>`
-COMPOSE := docker compose --project-directory . $(DEV_FILES) -p $(PROJECT)
+COMPOSE := docker-compose --project-directory . $(DEV_FILES) -p $(PROJECT)
 
 .DEFAULT_GOAL  := help
 

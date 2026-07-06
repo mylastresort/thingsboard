@@ -11,7 +11,7 @@
         </span>
         <ng-template #singleDeviceCopy>
           Device maintenance, error, and failure records
-          <span *ngIf="deviceId">for {{ deviceId }}</span>
+          <span *ngIf="deviceId">for {{ getCurrentDeviceDisplayName() }}</span>
         </ng-template>
       </p>
     </div>

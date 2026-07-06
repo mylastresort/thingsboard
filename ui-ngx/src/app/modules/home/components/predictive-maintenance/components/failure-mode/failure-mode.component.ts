@@ -20,6 +20,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DeviceService } from '@app/core/http/device.service';
+import { DialogService } from '@app/core/services/dialog.service';
 import { catchError, debounceTime, distinctUntilChanged, forkJoin, map, Observable, of, startWith, switchMap } from 'rxjs';
 import {
   FailureModeRecordPayload,
@@ -93,6 +94,7 @@ interface FailureModeFailureRow extends FailureModeBaseRow {
 export class FailureModeComponent implements OnChanges {
   @Input() modelId = '';
   @Input() deviceId = '';
+  @Input() deviceName = '';
   @Input() allDevicesMode = false;
 
   readonly allDevicesFilter = '__all__';
@@ -128,7 +130,9 @@ export class FailureModeComponent implements OnChanges {
   constructor(
     private predictiveModelsService: PredictiveModelsService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialogService: DialogService,
+    private deviceService: DeviceService
   ) {
     this.configureFilters();
   }
@@ -136,11 +140,13 @@ export class FailureModeComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['modelId'] || changes['deviceId'] || changes['allDevicesMode']) {
       this.loadFailureModeHistory();
+    } else if (changes['deviceName']) {
+      this.applyKnownDeviceNameToRows();
     }
   }
 
   loadFailureModeHistory(): void {
-    if (!this.modelId && !this.allDevicesMode) {
+    if (!this.allDevicesMode && !this.deviceId) {
       this.setRows([], [], []);
       return;
     }
@@ -149,8 +155,8 @@ export class FailureModeComponent implements OnChanges {
     this.errorMessage = '';
 
     const request$ = this.allDevicesMode
-      ? this.getConfigurationsFailureModeHistory()
-      : this.predictiveModelsService.getFailureModeHistory(this.deviceId || this.modelId);
+      ? this.predictiveModelsService.getAllDevicesFailureModeHistory()
+      : this.predictiveModelsService.getFailureModeHistory(this.deviceId);
 
     request$.subscribe({
       next: (response: FailureModeHistoryResponse) => {
@@ -186,6 +192,7 @@ export class FailureModeComponent implements OnChanges {
           }))
         );
         this.setRows(maintenanceRows, errorRows, failureRows);
+        this.resolveDeviceNames();
         this.isLoading = false;
       },
       error: (error) => {
@@ -198,77 +205,6 @@ export class FailureModeComponent implements OnChanges {
 
   refresh(): void {
     this.loadFailureModeHistory();
-  }
-
-  private getConfigurationsFailureModeHistory(): Observable<FailureModeHistoryResponse> {
-    const pageLink = new PageLink(1000, 0, null, {
-      property: 'createdTime',
-      direction: Direction.DESC,
-    });
-
-    return this.predictiveModelsService.getPredictiveModelsByPage(pageLink).pipe(
-      switchMap((configurationsPage) => {
-        const deviceIds = Array.from(
-          new Set(
-            (configurationsPage.data || [])
-              .filter((configuration: any) => !this.isHiddenConfiguration(configuration))
-              .map((configuration: any) => configuration?.deviceId?.id)
-              .filter(Boolean)
-          )
-        );
-
-        if (!deviceIds.length) {
-          return of(this.emptyFailureModeHistory());
-        }
-
-        return forkJoin(
-          deviceIds.map((deviceId) =>
-            this.predictiveModelsService.getFailureModeHistory(deviceId).pipe(
-              catchError((error) => {
-                console.error(`[FailureMode] Failed to load history for device ${deviceId}:`, error);
-                return of(this.emptyFailureModeHistory(deviceId));
-              })
-            )
-          )
-        ).pipe(map((responses) => this.mergeFailureModeHistory(responses)));
-      })
-    );
-  }
-
-  private mergeFailureModeHistory(responses: FailureModeHistoryResponse[]): FailureModeHistoryResponse {
-    return responses.reduce(
-      (merged, response) => ({
-        modelId: null,
-        deviceId: null,
-        maintenance: [...merged.maintenance, ...(response.maintenance || [])],
-        errors: [...merged.errors, ...(response.errors || [])],
-        failures: [...merged.failures, ...(response.failures || [])],
-      }),
-      this.emptyFailureModeHistory()
-    );
-  }
-
-  private emptyFailureModeHistory(deviceId: string | null = null): FailureModeHistoryResponse {
-    return {
-      modelId: null,
-      deviceId,
-      maintenance: [],
-      errors: [],
-      failures: [],
-    };
-  }
-
-  private isHiddenConfiguration(configuration: any): boolean {
-    const viewPreferences = configuration?.viewPreferences;
-    if (!viewPreferences) {
-      return false;
-    }
-    try {
-      const preferences = typeof viewPreferences === 'string' ? JSON.parse(viewPreferences) : viewPreferences;
-      return !!preferences?.hidden;
-    } catch {
-      return false;
-    }
   }
 
   setActiveView(index: number): void {
@@ -289,15 +225,29 @@ export class FailureModeComponent implements OnChanges {
       return;
     }
 
-    this.predictiveModelsService.deleteFailureModeRecord(view, row.id).subscribe({
-      next: () => {
-        this.showMessage('Failure mode record deleted.');
-        this.loadFailureModeHistory();
-      },
-      error: (error) => {
-        console.error('[FailureMode] Failed to delete record:', error);
-        this.showMessage('Unable to delete failure mode record.');
-      },
+    const label = this.getRecordTypeLabel(view);
+    const summary = this.getDeleteRecordSummary(view, row);
+    this.dialogService.confirm(
+      `Delete ${label} record`,
+      `Are you sure you want to delete this ${label} record${summary ? ` (${summary})` : ''}?`,
+      'Cancel',
+      'Delete',
+      true
+    ).subscribe((confirmed) => {
+      if (!confirmed) {
+        return;
+      }
+
+      this.predictiveModelsService.deleteFailureModeRecord(view, row.id).subscribe({
+        next: () => {
+          this.showMessage('Failure mode record deleted.');
+          this.loadFailureModeHistory();
+        },
+        error: (error) => {
+          console.error('[FailureMode] Failed to delete record:', error);
+          this.showMessage('Unable to delete failure mode record.');
+        },
+      });
     });
   }
 
@@ -372,6 +322,16 @@ export class FailureModeComponent implements OnChanges {
       : `No ${label} records match the current filters.`;
   }
 
+  getCurrentDeviceDisplayName(): string {
+    return (
+      this.deviceName ||
+      [...this.maintenanceRows, ...this.errorRows, ...this.failureRows]
+        .find((row) => row.deviceId === this.deviceId && row.deviceName && row.deviceName !== row.deviceId)
+        ?.deviceName ||
+      this.deviceId
+    );
+  }
+
   private configureFilters(): void {
     this.maintenanceDataSource.filterPredicate = (row, filter) =>
       this.matchesFilter(row, filter, [row.description, row.partsReplaced]);
@@ -393,6 +353,8 @@ export class FailureModeComponent implements OnChanges {
         view,
         row,
         defaultDeviceId: row?.deviceId || this.deviceId || this.getDefaultDeviceId(view),
+        defaultDeviceName: row?.deviceName || this.deviceName || '',
+        hideDeviceField: !this.allDevicesMode && !!this.deviceId,
       },
     });
 
@@ -442,11 +404,30 @@ export class FailureModeComponent implements OnChanges {
     this.snackBar.open(message, undefined, { duration: 3000 });
   }
 
+  private getRecordTypeLabel(view: FailureModeView): string {
+    return view === 'errors' ? 'error' : view === 'failures' ? 'failure' : 'maintenance';
+  }
+
+  private getDeleteRecordSummary(view: FailureModeView, row: FailureModeBaseRow): string {
+    if (view === 'maintenance') {
+      const maintenanceRow = row as FailureModeMaintenanceRow;
+      return maintenanceRow.description || maintenanceRow.partsReplaced || row.datetime;
+    }
+    if (view === 'errors') {
+      return (row as FailureModeErrorRow).errorCode || row.datetime;
+    }
+    return (row as FailureModeFailureRow).rootCause || row.datetime;
+  }
+
   private setRows(
     maintenanceRows: FailureModeMaintenanceRow[],
     errorRows: FailureModeErrorRow[],
     failureRows: FailureModeFailureRow[]
   ): void {
+    this.applyKnownDeviceName(maintenanceRows);
+    this.applyKnownDeviceName(errorRows);
+    this.applyKnownDeviceName(failureRows);
+
     this.maintenanceRows = maintenanceRows;
     this.errorRows = errorRows;
     this.failureRows = failureRows;
@@ -462,6 +443,73 @@ export class FailureModeComponent implements OnChanges {
     this.applyFilter('maintenance');
     this.applyFilter('errors');
     this.applyFilter('failures');
+  }
+
+  private resolveDeviceNames(): void {
+    const deviceIds = Array.from(
+      new Set(
+        [...this.maintenanceRows, ...this.errorRows, ...this.failureRows]
+          .filter((row) => this.needsDeviceName(row))
+          .map((row) => row.deviceId)
+      )
+    );
+
+    if (!deviceIds.length) {
+      return;
+    }
+
+    forkJoin(
+      deviceIds.map((deviceId) =>
+        this.deviceService.getDeviceInfo(deviceId).pipe(
+          map((device) => ({
+            id: deviceId,
+            name: device.name || device.label || deviceId,
+          })),
+          catchError((error) => {
+            console.error(`[FailureMode] Failed to resolve device name for ${deviceId}:`, error);
+            return of({ id: deviceId, name: deviceId });
+          })
+        )
+      )
+    ).subscribe((devices) => {
+      const deviceNames = new Map(devices.map((device) => [device.id, device.name]));
+      this.setRows(
+        this.withResolvedDeviceNames(this.maintenanceRows, deviceNames),
+        this.withResolvedDeviceNames(this.errorRows, deviceNames),
+        this.withResolvedDeviceNames(this.failureRows, deviceNames)
+      );
+    });
+  }
+
+  private applyKnownDeviceNameToRows(): void {
+    this.setRows([...this.maintenanceRows], [...this.errorRows], [...this.failureRows]);
+  }
+
+  private applyKnownDeviceName<T extends FailureModeBaseRow>(rows: T[]): void {
+    if (!this.deviceName || !this.deviceId) {
+      return;
+    }
+    rows.forEach((row) => {
+      if (row.deviceId === this.deviceId && this.needsDeviceName(row)) {
+        row.deviceName = this.deviceName;
+      }
+    });
+  }
+
+  private withResolvedDeviceNames<T extends FailureModeBaseRow>(
+    rows: T[],
+    deviceNames: Map<string, string>
+  ): T[] {
+    return rows.map((row) => ({
+      ...row,
+      deviceName: this.needsDeviceName(row)
+        ? deviceNames.get(row.deviceId) || row.deviceName
+        : row.deviceName,
+    }));
+  }
+
+  private needsDeviceName(row: FailureModeBaseRow): boolean {
+    return !!row.deviceId && (!row.deviceName || row.deviceName === row.deviceId);
   }
 
   private applyFilter(view: FailureModeView): void {
@@ -584,6 +632,8 @@ interface FailureModeRecordDialogData {
   view: FailureModeView;
   row?: FailureModeBaseRow;
   defaultDeviceId: string;
+  defaultDeviceName?: string;
+  hideDeviceField?: boolean;
 }
 
 @Component({
@@ -603,7 +653,7 @@ interface FailureModeRecordDialogData {
     <h2 mat-dialog-title>{{ data.row ? 'Edit' : 'Add' }} {{ title }}</h2>
     <mat-dialog-content>
       <form [formGroup]="form" class="failure-mode-record-form">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" *ngIf="!data.hideDeviceField">
           <mat-label>Device</mat-label>
           <input
             matInput
@@ -771,7 +821,10 @@ export class FailureModeRecordDialogComponent {
 
     this.form.patchValue({
       device_id: this.data.row?.deviceId || this.data.defaultDeviceId || '',
-      device_name: this.data.row?.deviceName || this.getDeviceName(this.data.defaultDeviceId),
+      device_name:
+        this.data.row?.deviceName ||
+        this.data.defaultDeviceName ||
+        this.getDeviceName(this.data.defaultDeviceId),
       datetime: this.toDateTimeLocal(this.data.row?.datetime),
       description: (this.data.row as FailureModeMaintenanceRow)?.description || '',
       parts_replaced: (this.data.row as FailureModeMaintenanceRow)?.partsReplaced || '',
@@ -807,6 +860,14 @@ export class FailureModeRecordDialogComponent {
   }
 
   resolveTypedDevice(): void {
+    if (this.data.hideDeviceField) {
+      this.form.patchValue({
+        device_id: this.data.defaultDeviceId || '',
+        device_name: this.data.defaultDeviceName || this.data.defaultDeviceId || '',
+      });
+      return;
+    }
+
     const deviceName = (this.form.controls.device_name.value || '').trim();
     const device = this.deviceOptions.find(
       (item) => item.name.toLowerCase() === deviceName.toLowerCase()
@@ -842,6 +903,9 @@ export class FailureModeRecordDialogComponent {
   }
 
   getDeviceName(deviceId: string): string {
+    if (deviceId === this.data.defaultDeviceId && this.data.defaultDeviceName) {
+      return this.data.defaultDeviceName;
+    }
     return this.deviceOptions.find((device) => device.id === deviceId)?.name || deviceId || '';
   }
 
