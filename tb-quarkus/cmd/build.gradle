@@ -9,10 +9,13 @@ repositories {
 }
 
 dependencies {
+    implementation 'io.quarkus:quarkus-config-yaml'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-picocli'
     implementation 'io.quarkus:quarkus-jackson'
     implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-rest-client-reactive-jackson'
+    implementation 'io.quarkiverse.openapi.generator:quarkus-openapi-generator:2.17.0'
 
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
@@ -33,6 +36,25 @@ compileJava {
 
 compileTestJava {
     options.encoding = 'UTF-8'
+}
+
+// Sync the gateway's OpenAPI spec into src/main/openapi, where the
+// quarkus-openapi-generator extension picks it up automatically as
+// part of quarkusGenerateCode. See application.properties for the
+// generator config (package names, mutiny, configKey, etc).
+tasks.register('syncOpenApiSpec', Copy) {
+    group = 'openapi tools'
+    description = 'Copy the gateway OpenAPI spec into src/main/openapi for code generation.'
+    from "$rootDir/../gateway/src/main/resources/META-INF/openapi.yaml"
+    into "$projectDir/src/main/openapi"
+}
+
+tasks.named('quarkusGenerateCode') {
+    dependsOn tasks.named('syncOpenApiSpec')
+}
+
+tasks.named('quarkusGenerateCodeDev') {
+    dependsOn tasks.named('syncOpenApiSpec')
 }
 
 // CLI app - no HTTP server needed, the packaged jar just runs the

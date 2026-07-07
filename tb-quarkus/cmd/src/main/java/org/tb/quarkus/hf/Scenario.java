@@ -15,10 +15,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Scenario {
 
     @JsonProperty("id")
-    public Integer id;
+    public String id;
 
     /** Free-text ask, e.g. "download Chiller 6 tonnage for last week of 2020". */
-    @JsonProperty("utterance")
+    @JsonProperty("text")
     public String utterance;
 
     /** Owning agent: IoT | FMSR | TSFM | WO | Vibration (per row). */
@@ -44,7 +44,7 @@ public class Scenario {
     public String note;
 
     /** Asset the utterance is about, e.g. "Chiller 6". Column name varies slightly by config version. */
-    @JsonProperty("asset")
+    @JsonProperty("entity")
     public String asset;
 
     public boolean isDeterministic() {

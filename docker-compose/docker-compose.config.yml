@@ -10,7 +10,7 @@ services:
     ports:
       - "5432"
     volumes:
-      - ../psql_data-merge-config:/var/lib/postgresql/data
+      - ./psql_data-merge-config:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d config_db -U config_user"]
       interval: 30s

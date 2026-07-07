@@ -73,6 +73,30 @@ export interface FailureModeRecordPayload {
   error_code?: string;
   root_cause?: string;
 }
+
+export interface AgenticBenchmarkSubset {
+  name: string;
+  sourceFile: string;
+  rowCount: number;
+}
+
+export interface AgenticBenchmarkRow {
+  id?: string;
+  subsetName: string;
+  datasetRecordId?: number;
+  subject?: string;
+  question: string;
+  options?: string[];
+  optionIds?: string[];
+  correct?: boolean[];
+  textType?: string;
+  assetName?: string;
+  relevancy?: string;
+  questionType?: string;
+  triggerStatement?: string;
+  context?: string;
+  rawPayload?: any;
+}
 // import { Order } from '../components/forecast/forcast-page.component'; // Adjust import path as needed
 
 @Injectable({
@@ -106,6 +130,7 @@ export class PredictiveModelsService {
 
   private baseUrlModels = '/api/v1/models'; // Model service API
   private baseUrlFailureMode = '/api/models'; // Quarkus failure-mode API
+  private baseUrlAgenticBenchmark = '/api/v1/agentic-benchmark';
 
   constructor(private http: HttpClient) {}
 
@@ -344,6 +369,71 @@ export class PredictiveModelsService {
     const params = `${pageLink.toQuery()}&withModelsOnly=${withModelsOnly}`;
     return this.http.get<PageData<any>>(
       `/api/devices-with-models${params}`,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  getAgenticBenchmarkSubsets(config?: RequestConfig): Observable<AgenticBenchmarkSubset[]> {
+    return this.http.get<AgenticBenchmarkSubset[]>(
+      `${this.baseUrlAgenticBenchmark}/subsets`,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  getAgenticBenchmarkRows(
+    pageSize: number,
+    page: number,
+    subsetName?: string,
+    textSearch?: string,
+    config?: RequestConfig
+  ): Observable<PageData<AgenticBenchmarkRow>> {
+    const params = new URLSearchParams({
+      pageSize: String(pageSize),
+      page: String(page),
+    });
+    if (subsetName) {
+      params.set('subsetName', subsetName);
+    }
+    if (textSearch) {
+      params.set('textSearch', textSearch);
+    }
+    return this.http.get<PageData<AgenticBenchmarkRow>>(
+      `${this.baseUrlAgenticBenchmark}/rows?${params.toString()}`,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  importAgenticBenchmarkRows(config?: RequestConfig): Observable<{ importedCount: number; subsetCount: number }> {
+    return this.http.post<{ importedCount: number; subsetCount: number }>(
+      `${this.baseUrlAgenticBenchmark}/import`,
+      {},
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  createAgenticBenchmarkRow(row: AgenticBenchmarkRow, config?: RequestConfig): Observable<AgenticBenchmarkRow> {
+    return this.http.post<AgenticBenchmarkRow>(
+      `${this.baseUrlAgenticBenchmark}/rows`,
+      row,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  updateAgenticBenchmarkRow(
+    rowId: string,
+    row: AgenticBenchmarkRow,
+    config?: RequestConfig
+  ): Observable<AgenticBenchmarkRow> {
+    return this.http.put<AgenticBenchmarkRow>(
+      `${this.baseUrlAgenticBenchmark}/rows/${rowId}`,
+      row,
+      defaultHttpOptionsFromConfig(config)
+    );
+  }
+
+  deleteAgenticBenchmarkRow(rowId: string, config?: RequestConfig): Observable<{ deletedCount: number }> {
+    return this.http.delete<{ deletedCount: number }>(
+      `${this.baseUrlAgenticBenchmark}/rows/${rowId}`,
       defaultHttpOptionsFromConfig(config)
     );
   }

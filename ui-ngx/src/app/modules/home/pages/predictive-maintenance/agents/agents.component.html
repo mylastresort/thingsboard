@@ -1,0 +1,27 @@
+<div class="agents-page">
+  <nav mat-tab-nav-bar [tabPanel]="agentsPanel" class="agents-tabs">
+    <a
+      mat-tab-link
+      routerLink="runtime"
+      routerLinkActive
+      #runtimeActive="routerLinkActive"
+      [active]="runtimeActive.isActive"
+    >
+      <mat-icon>smart_toy</mat-icon>
+      Agent Runtime
+    </a>
+    <a
+      mat-tab-link
+      routerLink="benchmarks"
+      routerLinkActive
+      #benchmarksActive="routerLinkActive"
+      [active]="benchmarksActive.isActive"
+    >
+      <mat-icon>dataset</mat-icon>
+      Benchmarks
+    </a>
+  </nav>
+  <mat-tab-nav-panel #agentsPanel class="agents-panel">
+    <router-outlet></router-outlet>
+  </mat-tab-nav-panel>
+</div>

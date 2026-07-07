@@ -119,7 +119,7 @@ export class RouterTabsComponent extends PageComponent implements OnInit {
     const sectionPath = this.getSectionPath(activatedRoute);
     const authority = getCurrentAuthUser(this.store).authority;
     const children = activatedRoute.routeConfig.children.filter(page => {
-      if (page.path !== '') {
+      if (page.path !== '' && !page.data?.hideFromTabs) {
         if (page.data?.auth) {
           return page.data?.auth.includes(authority);
         } else {

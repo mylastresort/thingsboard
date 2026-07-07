@@ -1,0 +1,82 @@
+:host {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.benchmark-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: #050707;
+}
+
+.benchmark-toolbar {
+  flex: 0 0 auto;
+  gap: 12px;
+  min-height: 72px;
+  height: auto;
+  padding: 10px 16px;
+  background: #101415;
+}
+
+.subset-field {
+  width: 280px;
+}
+
+.search-field {
+  width: min(420px, 35vw);
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.benchmark-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.benchmark-table {
+  width: 100%;
+  background: #050707;
+
+  .mat-mdc-header-row {
+    background: #050707;
+  }
+
+  .mat-mdc-row:nth-child(odd) {
+    background: #101415;
+  }
+
+  th,
+  td {
+    padding: 8px 12px;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .question-cell {
+    min-width: 360px;
+    max-width: 640px;
+  }
+}
+
+.loading-state {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.rotating {
+  animation: rotate 900ms linear infinite;
+}
+
+@keyframes rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -40,7 +40,7 @@ public class TbScenarioStore {
     @Inject
     TbSessionLedger ledger;
 
-    public void pushAll(List<Scenario> scenarios) throws IOException, InterruptedException {
+    public void pushAll(String subsetKey, List<Scenario> scenarios) throws IOException, InterruptedException {
         TbGateway.EntityResult storeAsset = tb.createOrUpdateAsset(
                 scenarioStoreAssetName, "AOB_Benchmark", "AssetOpsBench scenario fixtures");
         String assetId = storeAsset.id();
@@ -49,21 +49,21 @@ public class TbScenarioStore {
                     () -> tb.deleteAsset(assetId));
         }
 
-        // Batch in chunks so one HTTP call doesn't carry hundreds of scenarios at once.
+        String keyPrefix = "scenario_" + subsetKey.replace("/", "_") + "_";
+
         int batchSize = 50;
         for (int i = 0; i < scenarios.size(); i += batchSize) {
             Map<String, Object> batch = new HashMap<>();
             List<Scenario> slice = scenarios.subList(i, Math.min(i + batchSize, scenarios.size()));
             for (Scenario s : slice) {
-                batch.put("scenario_" + s.id, toAttributeValue(s));
+                batch.put(keyPrefix + s.id, toAttributeValue(s));
             }
 
-            // Snapshot whatever's there now for these keys, before we overwrite them.
             Map<String, JsonNode> before = tb.getServerAttributes("ASSET", assetId, batch.keySet());
             registerAttributeRollback(assetId, batch.keySet(), before);
 
             tb.saveServerAttributes("ASSET", assetId, batch);
-            Log.infof("Pushed scenario attributes %d-%d of %d", i, i + slice.size(), scenarios.size());
+            Log.infof("Pushed scenario attributes %d-%d of %d for subset %s", i, i + slice.size(), scenarios.size(), subsetKey);
         }
     }
 

@@ -1,0 +1,9 @@
+.gradle
+.quarkus
+**/build
+
+.git
+.idea
+*.iml
+
+.DS_Store

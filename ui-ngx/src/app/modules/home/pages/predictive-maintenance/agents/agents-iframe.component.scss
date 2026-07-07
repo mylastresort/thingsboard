@@ -1,0 +1,13 @@
+:host {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.agents-runtime-frame {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  border: 0;
+  background: #050707;
+}

@@ -10,6 +10,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
@@ -47,7 +48,7 @@ compileTestJava {
 openApiGenerate {
     generatorName = "jaxrs-spec"
     inputSpec = "$projectDir/src/main/resources/META-INF/openapi.yaml"
-    outputDir = "$buildDir/generated"
+    outputDir = "$buildDir/openapi-generated"
     apiPackage = "org.tb.quarkus.api"
     modelPackage = "org.tb.quarkus.model"
     configOptions = [
@@ -62,7 +63,7 @@ compileJava.dependsOn tasks.openApiGenerate
 sourceSets {
     main {
         java {
-            srcDirs += "$buildDir/generated/src/gen/java"
+            srcDirs += "$buildDir/openapi-generated/src/gen/java"
         }
     }
 }

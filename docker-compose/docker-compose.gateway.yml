@@ -25,7 +25,7 @@ services:
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - tb-quarkus-cache:/deployments/cache
+      - ./tb-quarkus-cache:/deployments/cache
     depends_on:
       postgres:
         condition: service_healthy
@@ -37,10 +37,3 @@ services:
       timeout: 5s
       retries: 12
 
-volumes:
-  tb-quarkus-cache:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./tb_quarkus_cache

@@ -31,7 +31,9 @@ services:
         condition: service_started
 
   tb-quarkus-dev:
-    image: eclipse-temurin:21-jdk
+    build:
+      context: ./tb-quarkus/gateway
+      dockerfile: src/main/docker/Dockerfile.jvm
     container_name: tb-lts43-monolith-tb-quarkus-dev
     working_dir: /workspace
     volumes:
@@ -51,7 +53,8 @@ services:
       - "8082:8081"
       - "5005:5005"
     healthcheck:
-      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/8081' || exit 1"]
+      test:
+        ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/8081' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -59,8 +62,8 @@ services:
 
   tb-quarkus-cmd-dev:
     build:
-      context: ./tb-quarkus/cmd
-      dockerfile: Dockerfile
+      context: ./tb-quarkus
+      dockerfile: cmd/Dockerfile
     image: tb-quarkus-cmd:dev
     container_name: tb-lts43-monolith-tb-quarkus-cmd-dev
     environment:
@@ -89,12 +92,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     volumes:
-      - tb-quarkus-kafka-data:/var/lib/kafka/data
+      - ./tb-quarkus-kafka-data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 12
-
-volumes:
-  tb-quarkus-kafka-data:

@@ -8,8 +8,8 @@ services:
     working_dir: /src
     volumes:
       - ./go-toolbox:/src
-      - go-mod-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
+      - ./go-mod-cache:/go/pkg/mod
+      - ./go-build-cache:/root/.cache/go-build
     environment:
       - TB_USERNAME=${TB_USERNAME}
       - TB_PASSWORD=${TB_PASSWORD}
@@ -24,37 +24,12 @@ services:
       target: dash
     container_name: tb-lts43-monolith-dash
     volumes:
-      - go-mod-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
+      - ./go-mod-cache:/go/pkg/mod
+      - ./go-build-cache:/root/.cache/go-build
     depends_on:
       thingsboard:
         condition: service_started
     command: /go/bin/dash
-
-  go-toolbox-failuremode:
-    build:
-      context: ./go-toolbox
-      dockerfile: Dockerfile
-      target: failuremode
-    container_name: tb-lts43-monolith-failuremode
-    volumes:
-      - go-mod-cache:/go/pkg/mod
-      - go-build-cache:/root/.cache/go-build
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${POSTGRES_DB:-thingsboard}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/8090' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    command: /go/bin/failuremode
 
   go-toolbox-darktheme:
     build:
@@ -64,8 +39,3 @@ services:
     volumes:
       - ./ui-ngx/src:/ui-ngx/src  # adjust to your actual ui-ngx path
 
-volumes:
-  go-mod-cache:
-    driver: local
-  go-build-cache:
-    driver: local

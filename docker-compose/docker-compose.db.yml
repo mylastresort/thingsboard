@@ -4,12 +4,12 @@ services:
     image: "postgres:18"
     container_name: tb-lts43-monolith-postgres
     ports:
-      - "5432"
+      - "5431:5432"
     environment:
       POSTGRES_DB: thingsboard
       POSTGRES_PASSWORD: postgres
     volumes:
-      - ../psql_data-merge:/var/lib/postgresql
+      - ./psql_data-merge:/var/lib/postgresql
       - .:/app
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d thingsboard"]

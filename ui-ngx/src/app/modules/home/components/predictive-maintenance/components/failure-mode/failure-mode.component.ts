@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Inject, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,6 +21,7 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DeviceService } from '@app/core/http/device.service';
 import { DialogService } from '@app/core/services/dialog.service';
+import { ActivatedRoute } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, forkJoin, map, Observable, of, startWith, switchMap } from 'rxjs';
 import {
   FailureModeRecordPayload,
@@ -91,7 +92,7 @@ interface FailureModeFailureRow extends FailureModeBaseRow {
   templateUrl: './failure-mode.component.html',
   styleUrls: ['./failure-mode.component.scss'],
 })
-export class FailureModeComponent implements OnChanges {
+export class FailureModeComponent implements OnChanges, OnInit {
   @Input() modelId = '';
   @Input() deviceId = '';
   @Input() deviceName = '';
@@ -132,9 +133,15 @@ export class FailureModeComponent implements OnChanges {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private dialogService: DialogService,
-    private deviceService: DeviceService
+    private deviceService: DeviceService,
+    private route: ActivatedRoute
   ) {
     this.configureFilters();
+    this.allDevicesMode = !!this.route.snapshot.data['allDevicesMode'] || this.allDevicesMode;
+  }
+
+  ngOnInit(): void {
+    this.loadFailureModeHistory();
   }
 
   ngOnChanges(changes: SimpleChanges): void {

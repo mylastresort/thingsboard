@@ -41,5 +41,3 @@ services:
     #   - /var/run/docker.sock:/var/run/docker.sock
     #   - assetops-client-uv-cache:/root/.cache/uv
 
-volumes:
-  assetops-client-uv-cache:

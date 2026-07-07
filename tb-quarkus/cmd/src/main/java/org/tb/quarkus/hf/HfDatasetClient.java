@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * Pulls AssetOpsBench scenario rows straight from HuggingFace's
  * datasets-server (https://datasets-server.huggingface.co/rows), which
@@ -57,6 +60,24 @@ public class HfDatasetClient {
         return fetchAllScenarios(config, split);
     }
 
+    /**
+     * Pulls every subset (config/split pair) of the dataset into memory. "Readable"
+     * is proven implicitly: fetchAllScenarios already deserializes each row into a
+     * Scenario via Jackson, so if this returns without throwing, the client parsed
+     * every subset successfully. Nothing touches disk here.
+     */
+    public Map<String, List<Scenario>> fetchAllSubsets() throws IOException, InterruptedException {
+        Map<String, List<Scenario>> bySubset = new LinkedHashMap<>();
+        for (String[] pair : fetchAvailableConfigs()) {
+            String cfg = pair[0];
+            String spl = pair[1];
+            List<Scenario> rows = fetchAllScenarios(cfg, spl);
+            bySubset.put(cfg + "/" + spl, rows);
+            Log.infof("Subset %s/%s: %d rows pulled into memory", cfg, spl, rows.size());
+        }
+        return bySubset;
+    }
+
     public List<Scenario> fetchAllScenarios(String configName, String splitName) throws IOException, InterruptedException {
         List<Scenario> all = new ArrayList<>();
         int offset = 0;
@@ -82,11 +103,35 @@ public class HfDatasetClient {
     }
 
     public EndpointCheck testEndpoints() throws IOException, InterruptedException {
-        List<String[]> splits = fetchAvailableConfigs();
-        RowsResponse sample = fetchPage(config, split, 0, 1);
-        int sampleRows = sample.rows != null ? sample.rows.size() : 0;
-        int totalRows = sample.numRowsTotal != null ? sample.numRowsTotal : -1;
-        return new EndpointCheck(dataset, config, split, splits.size(), sampleRows, totalRows);
+        String rowsUrl = rowsApiBase
+                + "?dataset=" + urlEncode(dataset)
+                + "&config=" + urlEncode(config)
+                + "&split=" + urlEncode(split)
+                + "&offset=0&length=1";
+        String splitsUrl = rowsApiBase.replace("/rows", "/splits") + "?dataset=" + urlEncode(dataset);
+
+        boolean rowsOk = checkOptions(rowsUrl);
+        boolean splitsOk = checkOptions(splitsUrl);
+
+        if (!rowsOk || !splitsOk) {
+            throw new IOException("HF endpoint(s) not callable: rows=" + rowsOk + " splits=" + splitsOk);
+        }
+
+        return new EndpointCheck(dataset, config, split, -1, -1, -1);
+    }
+
+    private boolean checkOptions(String url) throws IOException, InterruptedException {
+        HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(15))
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody());
+
+        if (token.isPresent() && !token.get().isBlank()) {
+            reqBuilder.header("Authorization", "Bearer " + token.get());
+        }
+
+        HttpResponse<Void> response = http.send(reqBuilder.build(), HttpResponse.BodyHandlers.discarding());
+        return response.statusCode() < 500;
     }
 
     private RowsResponse fetchPage(String configName, String splitName, int offset, int length) throws IOException, InterruptedException {

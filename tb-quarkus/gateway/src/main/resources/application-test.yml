@@ -1,0 +1,9 @@
+quarkus:
+  datasource:
+    devservices:
+      enabled: false
+    db-kind: postgresql
+    jdbc:
+      url: jdbc:postgresql://localhost:5431/thingsboard?currentSchema=tb_quarkus
+    username: postgres
+    password: postgres

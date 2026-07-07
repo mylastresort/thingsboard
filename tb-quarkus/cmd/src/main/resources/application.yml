@@ -1,0 +1,51 @@
+# --- Quarkus CLI mode: no HTTP server, exits when the command finishes ---
+quarkus:
+  banner:
+    enabled: false
+  package:
+    jar:
+      type: uber-jar
+
+  rest-client:
+    agentic-benchmark-api:
+      url: ${AGENTIC_BENCHMARK_URL:http://tb-quarkus:8081/api/v1}
+      connect-timeout: 15000
+      read-timeout: 60000
+
+  # --- OpenAPI client generation (quarkus-openapi-generator, replaces npx openapi-generator-cli) ---
+  # spec file lives at src/main/openapi/openapi.yaml
+  openapi-generator:
+    codegen:
+      spec:
+        openapi_yaml:
+          config-key: agentic-benchmark-api
+          base-package: org.tb.quarkus.gateway.client
+          mutiny: true
+
+agents:
+  # --- HuggingFace dataset source ---
+  hf:
+    dataset: ibm-research/AssetOpsBench
+    config: default
+    split: train
+    # datasets-server returns rows as JSON directly - no parquet parsing needed
+    rows-api: https://datasets-server.huggingface.co/rows
+    page-size: 100
+    # Optional: only needed if the dataset/config is gated behind a HF token
+    token: ${HF_TOKEN:}
+
+  # --- ThingsBoard target instance ---
+  tb:
+    url: ${TB_URL:http://localhost:8080}
+    username: ${TB_USERNAME:tenant@thingsboard.org}
+    password: ${TB_PASSWORD:tenant}
+
+    # Only rows whose asset name matches one of these are pushed as topology.
+    # Empty = push everything the loader recognizes.
+    asset-class-filter: "chiller,ahu,compressor,pump"
+    # asset-class-filter: ""
+
+    # Name of the umbrella asset that stores scenario JSON as SERVER_SCOPE
+    # attributes, keyed by scenario id. This is what your ADK WO/FMSR agents
+    # read back via the ThingsBoard MCP server at query time.
+    scenario-store-asset: AOB_Benchmark_Scenarios

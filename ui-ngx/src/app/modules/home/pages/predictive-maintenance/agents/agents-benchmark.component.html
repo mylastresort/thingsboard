@@ -1,0 +1,88 @@
+<div class="benchmark-page">
+  <mat-toolbar class="benchmark-toolbar">
+    <mat-form-field appearance="outline" class="subset-field">
+      <mat-label>Subset</mat-label>
+      <mat-select [value]="selectedSubset" (selectionChange)="applySubset($event.value)">
+        <mat-option value="">All subsets</mat-option>
+        <mat-option *ngFor="let subset of subsets" [value]="subset.name">
+          {{ subset.name }} ({{ subset.rowCount }})
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        [value]="textSearch"
+        placeholder="Search benchmark rows"
+        (keyup.enter)="applySearch($any($event.target).value)"
+      />
+    </mat-form-field>
+    <span class="toolbar-spacer"></span>
+    <button mat-icon-button type="button" (click)="importDataset()" matTooltip="Import AssetOpsBench">
+      <mat-icon>download</mat-icon>
+    </button>
+    <button mat-icon-button type="button" (click)="loadRows()" matTooltip="Refresh">
+      <mat-icon [class.rotating]="isLoading">refresh</mat-icon>
+    </button>
+    <button mat-flat-button color="primary" type="button" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      <span>Add</span>
+    </button>
+  </mat-toolbar>
+
+  <div class="loading-state" *ngIf="isLoading">
+    <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+  </div>
+
+  <div class="benchmark-table-wrap">
+    <table mat-table [dataSource]="rows" class="benchmark-table">
+      <ng-container matColumnDef="subsetName">
+        <th mat-header-cell *matHeaderCellDef>Subset</th>
+        <td mat-cell *matCellDef="let row">{{ row.subsetName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="datasetRecordId">
+        <th mat-header-cell *matHeaderCellDef>ID</th>
+        <td mat-cell *matCellDef="let row">{{ row.datasetRecordId ?? row.id }}</td>
+      </ng-container>
+      <ng-container matColumnDef="assetName">
+        <th mat-header-cell *matHeaderCellDef>Asset</th>
+        <td mat-cell *matCellDef="let row">{{ row.assetName || 'N/A' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="subject">
+        <th mat-header-cell *matHeaderCellDef>Subject</th>
+        <td mat-cell *matCellDef="let row">{{ row.subject || 'N/A' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="question">
+        <th mat-header-cell *matHeaderCellDef>Question</th>
+        <td mat-cell *matCellDef="let row" class="question-cell">{{ row.question }}</td>
+      </ng-container>
+      <ng-container matColumnDef="answer">
+        <th mat-header-cell *matHeaderCellDef>Answer</th>
+        <td mat-cell *matCellDef="let row">{{ answer(row) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let row">
+          <button mat-icon-button type="button" (click)="openEditDialog(row)" matTooltip="Edit row">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" type="button" (click)="deleteRow(row)" matTooltip="Delete row">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+  </div>
+
+  <mat-paginator
+    [length]="totalElements"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[10, 25, 50, 100]"
+    showFirstLastButtons
+    (page)="pageChanged($event)"
+  ></mat-paginator>
+</div>

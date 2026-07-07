@@ -39,7 +39,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AddModelDialogComponent } from '../model/add-model-dialog/add-model-dialog.component';
 import { ModelSelectionDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/model-selection-dialog/model-selection-dialog.component';
 import { HttpClient } from '@angular/common/http';
-import { FailureModeComponent } from '../failure-mode/failure-mode.component';
 
 export interface Configuration {
   id: string;
@@ -74,12 +73,9 @@ export interface Configuration {
     TranslateModule,
     ReactiveFormsModule,
     MatMenuModule,
-    FailureModeComponent,
   ],
 })
 export class ConfigurationsListComponent implements OnInit {
-  activePageTab: 'models' | 'failure-mode' = 'models';
-
   displayedColumns: string[] = [
     'select',
     'createdTime',

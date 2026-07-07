@@ -1,16 +1,20 @@
 package org.tb.quarkus.cli;
 
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.tb.quarkus.gateway.client.api.AgenticBenchmarkApi;
 import org.tb.quarkus.hf.HfDatasetClient;
+import org.tb.quarkus.gateway.client.model.AgenticBenchmarkSubset;
 import org.tb.quarkus.tb.TbGateway;
 import picocli.CommandLine;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
         name = "test-connection",
         mixinStandardHelpOptions = true,
-        description = "Test configured ThingsBoard and HuggingFace connectivity."
+        description = "Test configured ThingsBoard, HuggingFace, and tb-quarkus gateway connectivity."
 )
 public class TestConnectionCommand implements Callable<Integer> {
 
@@ -19,6 +23,10 @@ public class TestConnectionCommand implements Callable<Integer> {
 
     @Inject
     HfDatasetClient hf;
+
+    @Inject
+    @RestClient
+    AgenticBenchmarkApi agenticBenchmarkApi;
 
     @CommandLine.Option(
             names = {"--thingsboard", "--thingsboard-client", "--tb"},
@@ -32,9 +40,15 @@ public class TestConnectionCommand implements Callable<Integer> {
     )
     boolean huggingFace;
 
+    @CommandLine.Option(
+            names = {"--gateway", "--tb-quarkus", "--gateway-client"},
+            description = "Test tb-quarkus gateway API connectivity (agentic-benchmark endpoints)."
+    )
+    boolean gateway;
+
     @Override
     public Integer call() {
-        boolean runAll = !thingsboard && !huggingFace;
+        boolean runAll = !thingsboard && !huggingFace && !gateway;
         boolean ok = true;
 
         if (runAll || thingsboard) {
@@ -42,6 +56,9 @@ public class TestConnectionCommand implements Callable<Integer> {
         }
         if (runAll || huggingFace) {
             ok &= testHuggingFace();
+        }
+        if (runAll || gateway) {
+            ok &= testGateway();
         }
 
         return ok ? 0 : 1;
@@ -71,6 +88,19 @@ public class TestConnectionCommand implements Callable<Integer> {
                     check.splitCount(),
                     check.sampleRows(),
                     check.totalRows() >= 0 ? Integer.toString(check.totalRows()) : "unknown");
+            return true;
+        } catch (Exception e) {
+            System.out.println("FAILED " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean testGateway() {
+        System.out.print("tb-quarkus gateway: ");
+        try {
+            List<AgenticBenchmarkSubset> subsets = agenticBenchmarkApi.getAgenticBenchmarkSubsets()
+                    .await().indefinitely();
+            System.out.printf("OK subsets=%d%n", subsets == null ? 0 : subsets.size());
             return true;
         } catch (Exception e) {
             System.out.println("FAILED " + e.getMessage());
