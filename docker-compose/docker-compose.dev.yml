@@ -57,6 +57,23 @@ services:
       retries: 12
     command: ./gradlew quarkusDev --no-daemon -Dquarkus.http.host=0.0.0.0 -Dquarkus.http.port=8081
 
+  tb-quarkus-cmd-dev:
+    build:
+      context: ./tb-quarkus/cmd
+      dockerfile: Dockerfile
+    image: tb-quarkus-cmd:dev
+    container_name: tb-lts43-monolith-tb-quarkus-cmd-dev
+    environment:
+      TB_URL: http://thingsboard:8080
+      TB_USERNAME: ${TB_USERNAME:-tenant@thingsboard.org}
+      TB_PASSWORD: ${TB_PASSWORD:-tenant}
+      HF_TOKEN: ${HF_TOKEN:-}
+      QUARKUS_LOG_CATEGORY__IO_QUARKUS__LEVEL: WARN
+    entrypoint: ["tail", "-f", "/dev/null"]
+    depends_on:
+      thingsboard:
+        condition: service_started
+
   tb-quarkus-kafka:
     image: apache/kafka:4.2.0
     container_name: tb-lts43-monolith-tb-quarkus-kafka

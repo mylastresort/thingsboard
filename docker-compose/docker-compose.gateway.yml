@@ -12,12 +12,12 @@ services:
         condition: service_started
       model:
         condition: service_healthy
-      tb-quarkus:
-        condition: service_healthy
+      # tb-quarkus:
+      #   condition: service_healthy
 
   tb-quarkus:
     build:
-      context: ./tb-quarkus
+      context: ./tb-quarkus/gateway
       dockerfile: ${TB_QUARKUS_DOCKERFILE:-src/main/docker/Dockerfile.jvm}
     container_name: tb-lts43-monolith-tb-quarkus
     environment:
