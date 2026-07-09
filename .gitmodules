@@ -5,3 +5,6 @@
 	path = assetopsbench
 	url = https://github.com/mylastresort/assetopsbench
 	branch = experiment
+[submodule "pandas-mcp-server"]
+	path = pandas-mcp-server
+	url = git@github.com:marlonluo2018/pandas-mcp-server.git

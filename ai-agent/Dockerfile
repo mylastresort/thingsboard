@@ -1,17 +1,19 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-	PYTHONUNBUFFERED=1
+	PYTHONUNBUFFERED=1 \
+	UV_SYSTEM_PYTHON=1
 
 WORKDIR /app
 
+# Grab the uv binary directly (no pip bootstrap needed)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN uv pip install --system --no-cache -r /app/requirements.txt
 
 COPY . /app
 
 EXPOSE 8300
-
-# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8300"]
 
 CMD ["adk", "api_server", "--with_ui", "--host", "0.0.0.0", "--port", "8300", "thingsboard_ops_agent"]

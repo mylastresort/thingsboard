@@ -75,12 +75,43 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      OLLAMA_BASE_URL: "http://ollama:11434"
-      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen3:8b}"
-      OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-8192}"
-      MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
-      MAX_STEPS: "8"
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://ollama:11434}"
+      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen3:14b}"
+      OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-65536}"
+      MAX_STEPS: "30"
       MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
+      # Prompt: Detect unusual vibration, temperature, or pressure changes in machinery in building 1
+
+      # ── model / context tuning ───────────────────────────────────────────
+      # Ollama on RTX 4090 box (~21GB free VRAM idle).
+      # Tested combos to try, roughly ordered safest -> riskiest for VRAM:
+      #   4. qwen3:8b  @ num_ctx=65536 -> ~6GB, plenty of headroom, fast
+      #   4. qwen3:14b  @ num_ctx=32768  -> ~13GB, best headroom if 14B quality ok
+      #   1. qwen3:14b  @ num_ctx=16384  -> ~11GB total, plenty of headroom, fast
+      #   2. qwen3:32b  @ num_ctx=12288  -> ~22-23GB, small bump from current 8192
+      #   3. qwen3:32b  @ num_ctx=16384  -> ~22-23GB, only if #2 fits w/o OOM
+      # Watch `nvidia-smi` on the Windows box during a typical multi-step query
+      # before committing to a combo.
+      #
+      # ── multi-step / tool-calling reliability (past failure history) ────
+      # qwen2.5:7b had multi-layer tool-calling failures -> fixed by qwen3:8b.
+      # If similar issues resurface (dropped tool calls, malformed args,
+      # agent losing track mid-loop), before just swapping models again:
+      #   1. INSTRUMENT FIRST: log step # at failure across a few queries.
+      #      - fails late (step 6-8)  -> MAX_STEPS is too low, raise it
+      #      - fails early/mid        -> not a step-budget issue; check
+      #                                  context window or observation
+      #                                  truncation instead
+      #   2. MAX_OBSERVATION_CHARS=2000 may be truncating tool responses
+      #      (e.g. alarm lists, telemetry dumps) causing the model to reason
+      #      on incomplete data -> try 4000 if context/VRAM allows.
+      #   3. MAX_TOOLS_PER_QUERY=20 means all 20 tool schemas load into the
+      #      system prompt every time -> scope down tools per query type if
+      #      possible; smaller decision space measurably improves tool-call
+      #      accuracy independent of model size.
+      #   4. If failures cluster near the step ceiling, try MAX_STEPS=12-15
+      #      before assuming it's a model quality problem.
+      MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
       MAX_ALARM_PAGES: "${TINY_AGENT_MAX_ALARM_PAGES:-1}"
       MAX_OBSERVATION_CHARS: "${TINY_AGENT_MAX_OBSERVATION_CHARS:-2000}"
       PORT: "8300"

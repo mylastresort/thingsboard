@@ -13,6 +13,9 @@ class Settings:
     max_alarm_pages: int
     max_observation_chars: int
     port: int
+    tb_authority: str = "TENANT_ADMIN"
+    tb_customer_id: str | None = None
+    tb_tenant_id: str | None = None
 
 
 def _getenv_int(key: str, default: int) -> int:
@@ -26,6 +29,12 @@ def _getenv_int(key: str, default: int) -> int:
 
 
 def load_settings() -> Settings:
+    tb_authority = os.environ.get("TB_AUTHORITY", "TENANT_ADMIN").strip()
+    if tb_authority not in {"SYS_ADMIN", "TENANT_ADMIN", "CUSTOMER_USER"}:
+        raise ValueError(
+            "TB_AUTHORITY must be one of SYS_ADMIN, TENANT_ADMIN, CUSTOMER_USER"
+        )
+
     return Settings(
         ollama_base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
         ollama_model=os.environ.get("OLLAMA_MODEL", "ibm/granite3.3:8b-instruct-q8_0"),
@@ -39,4 +48,7 @@ def load_settings() -> Settings:
         max_alarm_pages=_getenv_int("MAX_ALARM_PAGES", 1),
         max_observation_chars=_getenv_int("MAX_OBSERVATION_CHARS", 4000),
         port=_getenv_int("PORT", 8300),
+        tb_authority=tb_authority,
+        tb_customer_id=os.environ.get("TB_CUSTOMER_ID") or None,
+        tb_tenant_id=os.environ.get("TB_TENANT_ID") or None,
     )

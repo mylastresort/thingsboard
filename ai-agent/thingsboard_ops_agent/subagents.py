@@ -13,6 +13,11 @@ from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
 
 from shared.settings import Settings
+from .scope import (
+    build_scoped_instruction,
+    build_scoped_tool_filter,
+    guard_scoped_tool_calls,
+)
 
 # name -> (description/instruction, tool_filter)
 # Grouped from the ThingsBoard MCP server tools.
@@ -205,13 +210,14 @@ def build_subagents(settings: Settings) -> list[BaseAgent]:
             name=name,
             model=model,
             description=text,  # shown to the root as this tool's docstring
-            instruction=f"{text} Only use the tools you've been given.",
+            instruction=build_scoped_instruction(name, text),
             tools=[
                 MCPToolset(
                     connection_params=SseConnectionParams(url=settings.mcp_server_url),
-                    tool_filter=tool_filter,
+                    tool_filter=build_scoped_tool_filter(name, tool_filter),
                 )
             ],
+            before_tool_callback=guard_scoped_tool_calls,
         )
         for name, (text, tool_filter) in DOMAINS.items()
     ]
