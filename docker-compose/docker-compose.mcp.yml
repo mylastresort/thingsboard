@@ -76,7 +76,7 @@ services:
     restart: unless-stopped
     environment:
       OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://ollama:11434}"
-      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen3:14b}"
+      OLLAMA_MODEL: "${TINY_AGENT_MODEL:-glm-4.7-flash:q4_K_M}"
       OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-65536}"
       MAX_STEPS: "30"
       MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
