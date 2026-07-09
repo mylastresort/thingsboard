@@ -459,3 +459,46 @@ $gallery-border-hover-color: #2a7dec;
     }
   }
 }
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view div.code-wrapper button.clipboard-btn p {
+    background: rgba(24, 26, 27, 0.85);
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view div.code-wrapper button.clipboard-btn div {
+    background-color: #181a1b;
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view pre[class*="language-"].line-numbers > code span.line-numbers-rows {
+    background: #1a1c1d;
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view pre[class*="language-"].line-numbers > code span.line-numbers-rows > span:before {
+    color: rgba(209, 205, 199, 0.6);
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view .tb-callout.tb-callout-note {
+    background: #202325;
+    border-color: #074b82;
+    color: #5eabed;
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view .tb-callout.tb-callout-warn {
+    background: #342800;
+    border-color: #8c6900;
+    color: #f68a2c;
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view .tb-callout.tb-callout-error {
+    background: #3e0719;
+    border-color: #761313;
+    color: #da4a4a;
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view .tb-gallery-images .tb-gallery-image {
+    border: 2px solid #414649;
+    background: #181a1b;
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view .tb-gallery-images .tb-gallery-image:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view .tb-gallery-images .tb-gallery-image .tb-image-container {
+    background: #181a1b;
+  }
+  .dark-theme :host ::ng-deep tb-markdown .tb-markdown-view .tb-gallery-images .tb-gallery-image .tb-image-tooltip {
+    background: rgba(0, 0, 0, 0.72);
+    color: #e8e6e3;
+  }

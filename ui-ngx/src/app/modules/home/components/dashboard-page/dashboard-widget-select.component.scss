@@ -639,6 +639,76 @@ tb-dashboard-widget-select {
   .dark-theme .tb-dashboard-widget-select {
     background-color: #2b353a;
   }
+  .dark-theme .tb-dashboard-widget-select mat-toolbar.tb-widget-select-header {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dashboard-widget-select mat-toolbar.tb-widget-select-header button.mat-mdc-icon-button.mat-mdc-button-base {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-title-row .tb-widget-select-title {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-top-level-widget-mode-toggle .tb-toggle-container .mat-button-toggle-group.mat-button-toggle-group-appearance-standard.tb-toggle-header {
+    border: 1px solid rgba(48, 52, 54, 0.15);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-top-level-widget-mode-toggle .tb-toggle-container .mat-button-toggle-group.mat-button-toggle-group-appearance-standard.tb-toggle-header.tb-fill.tb-invert .mat-button-toggle.mat-button-toggle-appearance-standard {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search {
+    background: rgba(24, 26, 27, 0.16);
+    border: 1px solid rgba(48, 52, 54, 0.15);
+    color: rgba(232, 230, 227, 0.84);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search mat-icon {
+    color: rgba(232, 230, 227, 0.8);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search input {
+    background: rgba(0, 0, 0, 0);
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search input::placeholder {
+    color: rgba(232, 230, 227, 0.8);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search button.mat-mdc-icon-button mat-icon {
+    color: rgba(232, 230, 227, 0.8);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search.focus {
+    background: #181a1b;
+    border-color: rgba(48, 52, 54, 0.15);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search.focus mat-icon {
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search.focus input {
+    color: rgba(232, 230, 227, 0.76);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search.focus input::placeholder {
+    color: rgba(232, 230, 227, 0.38);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search.focus button.mat-mdc-icon-button mat-icon, .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-search.focus mat-icon.close {
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-sort {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-search-row .tb-widget-select-sort mat-icon {
+    color: #e8e6e3;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-logical-card .widget-title, .dark-theme .tb-dashboard-widget-select .tb-widget-category-card .widget-title {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-empty-state .tb-widget-select-empty-inner h3 {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-empty-state .tb-widget-select-empty-inner p {
+    color: rgba(232, 230, 227, 0.76);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-empty-state .tb-widget-select-browse-tip {
+    background: #181a1b;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-widget-select-empty-state .tb-widget-select-browse-tip .tb-widget-select-browse-tip-text {
+    color: rgba(232, 230, 227, 0.76);
+  }
   .dark-theme .tb-dashboard-widget-select .mat-mdc-card.tb-widget-preview-card:hover {
     box-shadow: 0 2px 6px 6px rgba(0, 0, 0, 0.2), 0 1px 4px 2px rgba(0, 0, 0, 0.14), 0 1px 6px 0 rgba(0, 0, 0, 0.12);
   }
@@ -657,4 +727,48 @@ tb-dashboard-widget-select {
   }
   .dark-theme .tb-dashboard-widget-select .mat-mdc-card.tb-widget-preview-card.loading-cell .preview-container, .dark-theme .tb-dashboard-widget-select .mat-mdc-card.tb-widget-preview-card.loading-cell .title-container {
     background: linear-gradient(110deg, #232627 8%, #1e2021 18%, #232627 33%);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-author, .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-installs {
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-author mat-icon, .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-installs mat-icon {
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-author mat-icon.tb-iot-hub-verified-icon, .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-installs mat-icon.tb-iot-hub-verified-icon {
+    color: #83fff0;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-installed-badge {
+    background: rgba(20, 102, 45, 0.06);
+    color: #7be59b;
+  }
+  .dark-theme .tb-dashboard-widget-select .tb-iot-hub-widget-card .tb-iot-hub-widget-installed-badge mat-icon {
+    color: #7be59b;
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-wsp-close.mat-mdc-icon-button {
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-title {
+    color: rgba(232, 230, 227, 0.87);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-sections.filter-items-hovered::-webkit-scrollbar-track {
+    background-color: rgba(0, 0, 0, 0);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-sections.filter-items-hovered::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-sections mat-expansion-panel {
+    background: rgba(0, 0, 0, 0);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-items::-webkit-scrollbar-track {
+    background-color: rgba(0, 0, 0, 0);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-items::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-group-label {
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .tb-iot-hub-filter-panel .tb-iot-hub-filter-badge {
+    background: #b82c00;
+    color: #e8e6e3;
   }
