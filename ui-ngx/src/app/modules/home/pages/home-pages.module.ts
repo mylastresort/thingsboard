@@ -49,6 +49,7 @@ import { GatewaysModule } from '@home/pages/gateways/gateways.module';
 import { MobileModule } from '@home/pages/mobile/mobile.module';
 import { AiModelModule } from '@home/pages/ai-model/ai-model.module';
 import { PredictiveMaintenanceModule } from '@home/pages/predictive-maintenance/predictive-maintenance.module';
+import { IotHubModule } from '@home/pages/iot-hub/iot-hub.module';
 
 @NgModule({
   exports: [
@@ -85,6 +86,7 @@ import { PredictiveMaintenanceModule } from '@home/pages/predictive-maintenance/
     AccountModule,
     ScadaSymbolModule,
     AiModelModule,
+    IotHubModule,
   ]
 })
 export class HomePagesModule { }

@@ -1,0 +1,70 @@
+/**
+ * Copyright © 2016-2026 The Thingsboard Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@import "../../../../../scss/constants";
+
+:host-context(.mat-mdc-dialog-container) {
+  .mat-mdc-dialog-content {
+    position: relative;
+    padding: 0;
+    overflow-x: hidden;
+    height: 70vh;
+
+    tb-iot-hub-browse {
+      height: 100%;
+    }
+
+    @media #{$mat-gt-sm} {
+      width: 80vw;
+      max-height: 70vh;
+    }
+
+    @media #{$mat-gt-md} {
+      width: 1000px;
+    }
+
+    @media #{$mat-gt-xmd} {
+      width: 1200px;
+    }
+  }
+
+  .mat-mdc-dialog-actions {
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
+}
+
+// Auto-generated dark theme — do not edit manually
+  .dark-theme .input-wrapper {
+    background: rgba(24, 26, 27, 0.2);
+    color: rgba(232, 230, 227, 0.84);
+  }
+  .dark-theme .input-wrapper input {
+    background-color: rgba(0, 0, 0, 0);
+    color: #e8e6e3;
+  }
+  .dark-theme .input-wrapper input::placeholder {
+    color: #e8e6e3;
+  }
+  .dark-theme .input-wrapper.focus {
+    background: #181a1b;
+    color: rgba(232, 230, 227, 0.54);
+  }
+  .dark-theme .input-wrapper.focus input {
+    color: #e8e6e3;
+  }
+  .dark-theme .input-wrapper.focus .close {
+    color: #e8e6e3;
+  }

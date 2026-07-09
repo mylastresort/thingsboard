@@ -59,6 +59,8 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
   @ViewChild('sidenav')
   sidenav: MatSidenav;
 
+  @ViewChild('mainContent', { static: true }) mainContent: ElementRef<HTMLElement>;
+
   @ViewChild('searchInput') searchInputField: ElementRef;
 
   fullscreenEnabled = screenfull.isEnabled;
@@ -155,6 +157,7 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
 
   activeComponentChanged(activeComponent: any) {
     this.activeComponentService.setCurrentActiveComponent(activeComponent);
+    this.mainContent?.nativeElement?.scrollTo({ top: 0, left: 0 });
     if (!this.activeComponent) {
       setTimeout(() => {
         this.updateActiveComponent(activeComponent);

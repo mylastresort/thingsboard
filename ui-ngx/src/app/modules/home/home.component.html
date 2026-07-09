@@ -126,10 +126,8 @@
         *ngIf="!hideLoadingBar && (isLoading$ | async)"
       >
       </mat-progress-bar>
-      <div tb-toast class="tb-main-content flex flex-1 flex-col">
-        <router-outlet
-          (activate)="activeComponentChanged($event)"
-        ></router-outlet>
+      <div #mainContent tb-toast class="tb-main-content flex flex-1 flex-col">
+        <router-outlet (activate)="activeComponentChanged($event)"></router-outlet>
       </div>
     </div>
   </mat-sidenav-content>
