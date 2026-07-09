@@ -8,7 +8,7 @@ services:
       - .:/app
     depends_on:
       thingsboard:
-        condition: service_started
+        condition: service_healthy
 
   tb-web-ui-dev:
     build:
@@ -26,9 +26,9 @@ services:
       - "4200:4200"
     depends_on:
       thingsboard:
-        condition: service_started # downgraded — no healthcheck to wait on
+        condition: service_healthy
       gateway:
-        condition: service_started
+        condition: service_healthy
 
   tb-quarkus-dev:
     build:
@@ -64,7 +64,6 @@ services:
     build:
       context: ./tb-quarkus
       dockerfile: cmd/Dockerfile
-    image: tb-quarkus-cmd:dev
     container_name: tb-lts43-monolith-tb-quarkus-cmd-dev
     environment:
       TB_URL: http://thingsboard:8080
@@ -75,7 +74,7 @@ services:
     entrypoint: ["tail", "-f", "/dev/null"]
     depends_on:
       thingsboard:
-        condition: service_started
+        condition: service_healthy
 
   tb-quarkus-kafka:
     image: apache/kafka:4.2.0

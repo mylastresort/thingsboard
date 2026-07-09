@@ -51,3 +51,7 @@ tb_quarkus_dev_cache/
 .ollama
 go-build-cache/
 go-mod-cache
+psql_data-merge
+psql_data-merge-config
+psql_data-model
+pip-cache

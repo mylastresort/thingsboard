@@ -16,6 +16,9 @@ services:
     stdin_open: true
     tty: true
     command: go run .
+    depends_on:
+      thingsboard:
+        condition: service_healthy
 
   go-toolbox-dash:
     build:
@@ -28,7 +31,7 @@ services:
       - ./go-build-cache:/root/.cache/go-build
     depends_on:
       thingsboard:
-        condition: service_started
+        condition: service_healthy
     command: /go/bin/dash
 
   go-toolbox-darktheme:

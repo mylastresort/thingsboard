@@ -47,7 +47,7 @@ services:
 
   thingsboard:
     # restart: always
-    image: "${DOCKER_REPO}/${TB_NODE_DOCKER_NAME}:${TB_VERSION}"
+    image: "${DOCKER_REPO:-thingsboard}/${TB_NODE_DOCKER_NAME:-tb-node}:${TB_VERSION:-4.3.1.3}"
     container_name: tb-lts43-monolith-node
     volumes:
       - ./tb-config:/config
@@ -87,6 +87,12 @@ services:
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_SERVICE_QUEUE: WARN
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_SERVICE: WARN
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_ACTORS_RULECHAIN: WARN
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
     depends_on:
       postgres:
         condition: service_healthy

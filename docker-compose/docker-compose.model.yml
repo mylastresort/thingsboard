@@ -34,6 +34,8 @@ services:
         condition: service_healthy
       model-postgres:
         condition: service_healthy
+      thingsboard:
+        condition: service_healthy
     env_file:
       - .env
     environment:

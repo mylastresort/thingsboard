@@ -9,11 +9,17 @@ services:
       - ./gateway/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
       thingsboard:
-        condition: service_started
+        condition: service_healthy
       model:
         condition: service_healthy
       # tb-quarkus:
       #   condition: service_healthy
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   tb-quarkus:
     build:
@@ -28,6 +34,8 @@ services:
       - ./tb-quarkus-cache:/deployments/cache
     depends_on:
       postgres:
+        condition: service_healthy
+      thingsboard:
         condition: service_healthy
     ports:
       - "8083:8081"

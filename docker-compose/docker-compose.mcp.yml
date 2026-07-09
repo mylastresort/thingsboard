@@ -7,25 +7,32 @@ services:
     environment:
       WAIT_HOSTS: "thingsboard:8080"
       THINGSBOARD_URL: "http://thingsboard:8080"
-
-      # ── authentication ───────────────────────────────────────────────────
-      # API key takes priority when the image is started; leave blank to use
-      # username/password instead.
       THINGSBOARD_API_KEY: "${TB_MCP_API_KEY:-}"
       THINGSBOARD_USERNAME: "${TB_MCP_USERNAME:-tenant@thingsboard.org}"
       THINGSBOARD_PASSWORD: "${TB_MCP_PASSWORD:-tenant}"
-
-      # ── transport: SSE HTTP service (not a STDIO subprocess) ─────────────
       SPRING_AI_MCP_SERVER_STDIO: "false"
       SPRING_WEB_APPLICATION_TYPE: servlet
       HTTP_BIND_ADDRESS: "0.0.0.0"
       HTTP_BIND_PORT: "8000"
-
     ports:
       - "${MCP_PORT:-8201}:8000"
-
     depends_on:
-      - thingsboard
+      thingsboard:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   ollama:
     image: ollama/ollama:0.30.11
@@ -37,13 +44,6 @@ services:
     environment:
       OLLAMA_FLASH_ATTENTION: "1"
       OLLAMA_KV_CACHE_TYPE: "q8_0"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "ollama serve &
@@ -51,31 +51,23 @@ services:
        ollama pull qwen3:8b &&
        wait"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "ollama", "list"]
       interval: 5s
       timeout: 3s
       retries: 30
-
-  # ai-agent:
-  #   build:
-  #     context: ./ai-agent
-  #     dockerfile: Dockerfile
-  #   restart: unless-stopped
-  #   environment:
-  #     OLLAMA_BASE_URL: "http://ollama:11434"
-  #     OLLAMA_MODEL: "${TINY_AGENT_MODEL:-qwen3:8b}"
-  #     OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-1024}"
-  #     MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
-  #     MAX_STEPS: "8"
-  #     MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
-  #     MAX_ALARM_PAGES: "${TINY_AGENT_MAX_ALARM_PAGES:-1}"
-  #     MAX_OBSERVATION_CHARS: "${TINY_AGENT_MAX_OBSERVATION_CHARS:-2000}"
-  #     PORT: "8300"
-  #   ports:
-  #     - "${TINY_AGENT_PORT:-8300}:8300"
-  #   depends_on:
-  #     - thingsboard-mcp
-  #     - ollama
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 12G
+        reservations:
+          cpus: "1.0"
+          memory: 4G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   ai-agent-py:
     build:
@@ -95,5 +87,15 @@ services:
     ports:
       - "${TINY_AGENT_PORT:-8300}:8300"
     depends_on:
-      - thingsboard-mcp
-      - ollama
+      thingsboard-mcp:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M

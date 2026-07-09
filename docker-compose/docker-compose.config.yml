@@ -29,11 +29,13 @@ services:
     depends_on:
       config-db:
         condition: service_healthy
+      thingsboard:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://config_user:config_pass@config-db:5432/config_db
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:9000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 10s
