@@ -222,3 +222,41 @@ def build_subagents(settings: Settings) -> list[BaseAgent]:
         for name, (text, tool_filter) in DOMAINS.items()
     ]
     return agents
+
+
+PANDAS_DOMAIN: tuple[str, tuple[str, list[str]]] = (
+    "pandas_agent",
+    (
+        "Runs pandas-based statistical analysis and chart generation on "
+        "tabular or timeseries data you pass in directly (e.g. telemetry "
+        "pulled from ThingsBoard): read_metadata_tool, interpret_column_data, "
+        "run_pandas_code_tool, generate_chartjs_tool. Use run_pandas_code_tool "
+        "for stats/anomaly detection on data you already have in hand — you "
+        "do not need a file on disk to use it.",
+        [
+            "read_metadata_tool",
+            "interpret_column_data",
+            "run_pandas_code_tool",
+            "generate_chartjs_tool",
+        ],
+    ),
+)
+
+
+def build_pandas_agent(settings: Settings) -> BaseAgent:
+    name, (text, tool_filter) = PANDAS_DOMAIN
+    return LlmAgent(
+        name=name,
+        model=build_model(settings),
+        description=text,
+        instruction=build_scoped_instruction(name, text),
+        tools=[
+            MCPToolset(
+                connection_params=SseConnectionParams(
+                    url=settings.pandas_mcp_server_url
+                ),
+                tool_filter=build_scoped_tool_filter(name, tool_filter),
+            )
+        ],
+        before_tool_callback=guard_scoped_tool_calls,
+    )

@@ -7,4 +7,4 @@
 	branch = experiment
 [submodule "pandas-mcp-server"]
 	path = pandas-mcp-server
-	url = git@github.com:marlonluo2018/pandas-mcp-server.git
+	url = git@github.com:mylastresort/pandas-mcp-server.git

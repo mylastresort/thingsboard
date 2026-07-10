@@ -115,6 +115,7 @@ services:
       MAX_ALARM_PAGES: "${TINY_AGENT_MAX_ALARM_PAGES:-1}"
       MAX_OBSERVATION_CHARS: "${TINY_AGENT_MAX_OBSERVATION_CHARS:-2000}"
       PORT: "8300"
+      PANDAS_MCP_SERVER_URL: "http://pandas-mcp:8000/sse"
     ports:
       - "${TINY_AGENT_PORT:-8300}:8300"
     depends_on:
@@ -130,3 +131,30 @@ services:
         reservations:
           cpus: "0.25"
           memory: 256M
+
+
+  pandas-mcp:
+    build:
+      context: ./pandas-mcp-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      HTTP_BIND_ADDRESS: "0.0.0.0"
+      HTTP_BIND_PORT: "8000"
+      PANDAS_MCP_LOG_LEVEL: "${PANDAS_MCP_LOG_LEVEL:-INFO}"
+    ports:
+      - "${PANDAS_MCP_PORT:-8202}:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s

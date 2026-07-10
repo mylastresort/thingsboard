@@ -16,6 +16,7 @@ class Settings:
     tb_authority: str = "TENANT_ADMIN"
     tb_customer_id: str | None = None
     tb_tenant_id: str | None = None
+    pandas_mcp_server_url: str = os.getenv("PANDAS_MCP_SERVER_URL", "http://pandas-mcp:8000/sse")
 
 
 def _getenv_int(key: str, default: int) -> int:
