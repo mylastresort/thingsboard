@@ -10,6 +10,8 @@ repositories {
 }
 
 dependencies {
+    implementation 'io.quarkiverse.mcp:quarkus-mcp-server-http'
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:quarkus-mcp-server-bom:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
