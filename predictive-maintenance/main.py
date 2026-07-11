@@ -25,6 +25,7 @@ from fastapi_mcp import FastApiMCP  # noqa: F811
 
 from library.core.data_registry import DataRegistry
 from src.logger import logger  # Global logger
+from src.model.client import get_client
 from src.model.model import router as model_router
 from src.notify import router as notify_router
 from src.on_startup import on_startup
@@ -84,6 +85,16 @@ logger.info("Predictive Maintenance Service Starting")
 @app.on_event("startup")
 async def startup_event():
     await on_startup()
+
+
+@app.on_event("startup")
+async def check_thingsboard_connection():
+    try:
+        _ = get_client()
+        logger.info("Successfully connected to Thingsboard")
+    except Exception as e:
+        logger.error(f"Failed to connect to Thingsboard: {e}")
+        raise e
 
 
 @app.get("/health")

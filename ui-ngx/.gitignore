@@ -47,3 +47,4 @@ testem.log
 Thumbs.db
 
 src/app/core/api-client/
+src/app/core/event-models/

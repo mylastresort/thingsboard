@@ -38,10 +38,10 @@ import {
   animate,
 } from '@angular/animations';
 import {
-  LogEntry,
-  AnomalyPredictionLogEntry,
   AnomalyPrediction,
 } from '../anomalies/anomalies.component';
+import { GenericLogEntry as LogEntry } from '@core/event-models/GenericLogEntry';
+import { AnomalyPredictionLogEntry } from '@core/event-models/AnomalyPredictionLogEntry';
 
 export interface AnomalyAlert {
   id: string;
@@ -90,12 +90,12 @@ export interface AnomalyAlert {
   ]
 })
 export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
-  @Input() logsObservable: Observable<LogEntry>;
+  @Input() logsObservable!: Observable<LogEntry>;
   @Input() maxAlerts = 5; // Maximum number of stacked alerts to show
   @Input() autoCloseDelay = 10000; // Auto-close delay in milliseconds (0 = no auto-close)
 
   alerts: AnomalyAlert[] = [];
-  private subscription: Subscription;
+  private subscription!: Subscription;
   private alertIdCounter = 0;
 
   constructor(
@@ -108,40 +108,6 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
     if (this.logsObservable) {
       this.subscribeToAnomalyPredictions();
     }
-    
-    // // TEST: Show two test alerts on component init (Critical and Major)
-    // setTimeout(() => {
-    //   this.showTestAlerts();
-    // }, 1000);
-  }
-
-  // Show test alerts for debugging
-  private showTestAlerts(): void {
-    console.log('[AnomalyAlerts] Showing test alerts...');
-    
-    // Critical alert (probability >= 0.8)
-    const criticalPrediction: AnomalyPrediction = {
-      datetime: new Date().toISOString(),
-      predicted_failing_component: 'Motor Bearing',
-      general_failure_probability: 0.92,
-      component_failure_probabilities: { 'Motor Bearing': 0.92 },
-      component_probabilities: { 'Motor Bearing': 0.92 },
-      failure_predicted: true
-    };
-    this.addAlert(criticalPrediction);
-    
-    // Major alert (probability >= 0.5 and < 0.8)
-    setTimeout(() => {
-      const majorPrediction: AnomalyPrediction = {
-        datetime: new Date().toISOString(),
-        predicted_failing_component: 'Pump Seal',
-        general_failure_probability: 0.65,
-        component_failure_probabilities: { 'Pump Seal': 0.65 },
-        component_probabilities: { 'Pump Seal': 0.65 },
-        failure_predicted: true
-      };
-      this.addAlert(majorPrediction);
-    }, 500);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -193,8 +159,8 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
         console.log('[AnomalyAlerts] Checking log - type:', log.type, 'level:', log.level);
       }),
       filter((log: LogEntry) =>
-        log.type && log.type.toLowerCase() === 'anomaly' &&
-        log.level && log.level.toLowerCase() === 'prediction'
+        !!log.type && log.type.toLowerCase() === 'anomaly' &&
+        !!log.level && log.level.toLowerCase() === 'prediction'
       )
     ) as Observable<AnomalyPredictionLogEntry>;
 
@@ -312,19 +278,5 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
 
   trackByAlertId(index: number, alert: AnomalyAlert): string {
     return alert.id;
-  }
-
-  // Public method to manually add a test alert (for debugging)
-  addTestAlert(): void {
-    console.log('[AnomalyAlerts] Adding test alert...');
-    const testPrediction: AnomalyPrediction = {
-      datetime: new Date().toISOString(),
-      predicted_failing_component: 'Test Component',
-      general_failure_probability: 0.85,
-      component_failure_probabilities: { 'Test Component': 0.85 },
-      component_probabilities: { 'Test Component': 0.85 },
-      failure_predicted: true
-    };
-    this.addAlert(testPrediction);
   }
 }

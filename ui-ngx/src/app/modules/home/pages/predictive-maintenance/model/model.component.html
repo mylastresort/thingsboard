@@ -336,6 +336,7 @@
               [modelId]="trueId"
               [predictionType]="'Anomaly'"
               [predictiveModelsService]="predictiveModelsService"
+              (refreshFilter)="onAnomalyRefreshFilter($event)"
             >
             </tb-anomalies>
           </div>

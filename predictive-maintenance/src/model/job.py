@@ -433,7 +433,7 @@ def save_prediction(data_registry, model_id: str, message, source):
         with data_registry.engine.connect() as conn:
             query = text(
                 """
-                INSERT INTO tb_quarkus.predictions
+                INSERT INTO tb_quarkus_pdm.predictions
                 (model_id, created_at, created_time, prediction_time, prediction_type, prediction_value)
                 VALUES (:model_id, :created_at, :created_time, :prediction_time, :prediction_type, :prediction_value)
                 """

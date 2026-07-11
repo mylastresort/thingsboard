@@ -1,0 +1,503 @@
+asyncapi: 2.6.0
+
+info:
+  title: Predictive Maintenance Model WebSocket API
+  version: 1.0.0
+  description: >
+    Unified WebSocket channel used by ModelWebSocketService (Angular) to drive
+    predictive-maintenance model activation, job status polling, log
+    streaming and prediction subscriptions against the `model` service.
+    Reverse-engineered from the RxJS webSocket client implementation.
+
+defaultContentType: application/json
+
+servers:
+  local:
+    url: ws://{host}:{port}
+    protocol: ws
+    description: Direct connection to the `model` container, bypassing the Angular dev-server proxy (which cannot reliably proxy WS upgrades).
+    variables:
+      host:
+        default: localhost
+      port:
+        default: '8000'
+  production:
+    url: wss://{host}
+    protocol: wss
+    variables:
+      host:
+        default: your-tb-host.example.com
+
+channels:
+  /models/ws/unified:
+    description: >
+      Single multiplexed connection. Every request/response is correlated by
+      `commandId` (client-generated, monotonically increasing) and/or
+      `forecastId`. Authentication is via a JWT passed as a query parameter,
+      not a header.
+    bindings:
+      ws:
+        query:
+          type: object
+          properties:
+            token:
+              type: string
+              description: ThingsBoard JWT access token, obtained from AuthService.getJwtToken().
+          required:
+            - token
+    publish:
+      summary: Commands sent by the Angular client.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ActivateCommand'
+          - $ref: '#/components/messages/JobStatusCommand'
+          - $ref: '#/components/messages/ModelStatusCommand'
+          - $ref: '#/components/messages/UnsubscribeModelStatusCommand'
+          - $ref: '#/components/messages/UnsubscribePredictionsCommand'
+          - $ref: '#/components/messages/UnsubscribeLogsCommand'
+          - $ref: '#/components/messages/SubscribeLogsCommand'
+          - $ref: '#/components/messages/PauseJobCommand'
+          - $ref: '#/components/messages/UnpauseJobCommand'
+    subscribe:
+      summary: Events pushed by the model service.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/StreamMessage'
+          - $ref: '#/components/messages/StreamMessageLogs'
+
+components:
+  messages:
+    ActivateCommand:
+      name: activate
+      title: ActivateCommand
+      payload: { $ref: '#/components/schemas/ActivateCommand' }
+    JobStatusCommand:
+      name: job_status
+      title: JobStatusCommand
+      payload: { $ref: '#/components/schemas/JobStatusCommand' }
+    ModelStatusCommand:
+      name: model_status
+      title: ModelStatusCommand
+      payload: { $ref: '#/components/schemas/ModelStatusCommand' }
+    UnsubscribeModelStatusCommand:
+      name: unsubscribe_model_status
+      title: UnsubscribeModelStatusCommand
+      payload: { $ref: '#/components/schemas/UnsubscribeModelStatusCommand' }
+    UnsubscribePredictionsCommand:
+      name: unsubscribe_predictions
+      title: UnsubscribePredictionsCommand
+      payload: { $ref: '#/components/schemas/UnsubscribePredictionsCommand' }
+    UnsubscribeLogsCommand:
+      name: unsubscribe_logs
+      title: UnsubscribeLogsCommand
+      payload: { $ref: '#/components/schemas/UnsubscribeLogsCommand' }
+    SubscribeLogsCommand:
+      name: subscribe_logs
+      title: SubscribeLogsCommand
+      payload: { $ref: '#/components/schemas/SubscribeLogsCommand' }
+    PauseJobCommand:
+      name: pause_job
+      title: PauseJobCommand
+      payload: { $ref: '#/components/schemas/PauseJobCommand' }
+    UnpauseJobCommand:
+      name: unpause_job
+      title: UnpauseJobCommand
+      payload: { $ref: '#/components/schemas/UnpauseJobCommand' }
+    StreamMessage:
+      title: StreamMessage
+      payload: { $ref: '#/components/schemas/StreamMessage' }
+    StreamMessageLogs:
+      name: logs
+      title: StreamMessageLogs
+      payload: { $ref: '#/components/schemas/StreamMessageLogs' }
+
+  schemas:
+    ModelType:
+      title: ModelType
+      type: string
+      enum: [anomaly, forecast]
+
+    # --- outgoing commands (flat, no allOf) ---
+    ActivateCommand:
+      title: ActivateCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: activate }
+        forecastId: { type: string }
+      required: [commandId, type]
+
+    JobStatusCommand:
+      title: JobStatusCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: job_status }
+        forecastId: { type: string }
+        data:
+          $ref: '#/components/schemas/JobStatusCommandData'
+      required: [commandId, type]
+
+    JobStatusCommandData:
+      title: JobStatusCommandData
+      type: object
+      properties:
+        modelType: { $ref: '#/components/schemas/ModelType' }
+      required: [modelType]
+
+    ModelStatusCommand:
+      title: ModelStatusCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: model_status }
+        forecastId: { type: string }
+      required: [commandId, type]
+
+    UnsubscribeModelStatusCommand:
+      title: UnsubscribeModelStatusCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: unsubscribe_model_status }
+        forecastId: { type: string }
+      required: [commandId, type]
+
+    UnsubscribePredictionsCommand:
+      title: UnsubscribePredictionsCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: unsubscribe_predictions }
+        forecastId: { type: string }
+        data:
+          $ref: '#/components/schemas/UnsubscribePredictionsCommandData'
+      required: [commandId, type, data]
+
+    UnsubscribePredictionsCommandData:
+      title: UnsubscribePredictionsCommandData
+      type: object
+      properties:
+        modelType: { $ref: '#/components/schemas/ModelType' }
+      required: [modelType]
+
+    UnsubscribeLogsCommand:
+      title: UnsubscribeLogsCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: unsubscribe_logs }
+        forecastId: { type: string }
+      required: [commandId, type]
+
+    SubscribeLogsCommand:
+      title: SubscribeLogsCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: subscribe_logs }
+        forecastId: { type: string }
+      required: [commandId, type]
+
+    PauseJobCommand:
+      title: PauseJobCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: pause_job }
+        forecastId: { type: string }
+        data:
+          $ref: '#/components/schemas/PauseJobCommandData'
+      required: [commandId, type, data]
+
+    PauseJobCommandData:
+      title: PauseJobCommandData
+      type: object
+      properties:
+        modelType: { $ref: '#/components/schemas/ModelType' }
+      required: [modelType]
+
+    UnpauseJobCommand:
+      title: UnpauseJobCommand
+      type: object
+      properties:
+        commandId: { type: integer }
+        type: { type: string, const: unpause_job }
+        forecastId: { type: string }
+        data:
+          $ref: '#/components/schemas/UnpauseJobCommandData'
+      required: [commandId, type, data]
+
+    UnpauseJobCommandData:
+      title: UnpauseJobCommandData
+      type: object
+      properties:
+        modelType: { $ref: '#/components/schemas/ModelType' }
+      required: [modelType]
+
+    # --- incoming events (same 2 shapes handleMessage() actually discriminates on) ---
+    StreamMessage:
+      title: StreamMessage
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/StreamMessageType'
+        model: { type: string }
+        cmdId: { type: integer }
+        data: { $ref: '#/components/schemas/StreamMessageData' }
+        errorCode: { type: integer }
+        errorMsg: { type: string }
+        forecastId: { type: string }
+      required: [type, cmdId]
+
+    StreamMessageType:
+      title: StreamMessageType
+      type: string
+      enum: [progress, complete, error, job_status, model_status, prediction, response]
+
+    StreamMessageData:
+      title: StreamMessageData
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/StreamMessageDataType'
+        forecast_id: { type: string }
+        message: { type: string }
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/AnomalyReport'
+            - type: array
+              items: { $ref: '#/components/schemas/AnomalyReport' }
+            - $ref: '#/components/schemas/AnomalyLogs'
+        timestamp: { type: string }
+        status:
+          $ref: '#/components/schemas/StreamMessageStatus'
+      required: [type]
+
+    StreamMessageStatus:
+      title: StreamMessageStatus
+      type: string
+      enum: [pending, running, completed, failed]
+
+    StreamMessageDataType:
+      title: StreamMessageDataType
+      type: string
+      enum: [connection, anomaly, historical, error]
+
+    StreamMessageLogs:
+      title: StreamMessageLogs
+      type: object
+      properties:
+        cmdId: { type: integer }
+        type: { type: string, const: logs }
+        forecast_id: { type: string }
+        forecastId: { type: string }
+        message:
+          $ref: '#/components/schemas/StreamMessageDataMessage'
+        data: { $ref: '#/components/schemas/AnomalyLogs' }
+        timestamp: { type: string }
+      required: [cmdId, type]
+
+    StreamMessageDataMessage:
+      title: StreamMessageDataMessage
+      type: object
+      properties:
+        result:
+          type: array
+          items: { $ref: '#/components/schemas/AnomalyReport' }
+
+    # stubs — AnomalyReport/AnomalyLogs live in anomalies.component.ts, not in the file you pasted
+    AnomalyReportSeverity:
+      type: string
+      enum: [Critical, Major, Minor]
+
+    AnomalyReportStatus:
+      type: string
+      enum: [Active, Resolved, Investigating]
+
+    AnomalyReport:
+      type: object
+      properties:
+        id: { type: string }
+        reportEntity: { type: string }
+        errorName: { type: string }
+        severity: { $ref: '#/components/schemas/AnomalyReportSeverity' }
+        creationDate: { type: string }
+        componentType: { type: string }
+        deviceType: { type: string }
+        location: { type: string }
+        description: { type: string }
+        status: { $ref: '#/components/schemas/AnomalyReportStatus' }
+        affectedMetrics:
+          type: array
+          items: { type: string }
+        confidence: { type: number }
+        timeRange: { type: string }
+        startTime: { type: [string, number] }
+        endTime: { type: [string, number] }
+      required:
+        [id, reportEntity, errorName, severity, creationDate, componentType,
+         deviceType, location, description, status, affectedMetrics, confidence]
+
+    LogEntryType:
+      type: string
+      enum: [forecast, anomaly, system, other]
+
+    LogEntrySource:
+      type: string
+      enum: [ForecastModel, AnomalyModel]
+
+    AnomalyPrediction:
+      type: object
+      properties:
+        datetime: { type: string }
+        predicted_failing_component: { type: string }
+        general_failure_probability: { type: number }
+        component_failure_probabilities:
+          type: object
+          additionalProperties: { type: number }
+        component_probabilities:
+          type: object
+          additionalProperties: { type: number }
+        failure_predicted: { type: boolean }
+      required:
+        [datetime, predicted_failing_component, general_failure_probability,
+         component_failure_probabilities, component_probabilities, failure_predicted]
+
+    ForecastSensorPrediction:
+      type: object
+      properties:
+        forecast: { type: array, items: { type: number } }
+        timestamp: { type: array, items: { type: number } }
+      required: [forecast, timestamp]
+
+    LogEntryMessage:
+      type: object
+      properties:
+        result:
+          oneOf:
+            - { $ref: '#/components/schemas/AnomalyPrediction' }
+            - { $ref: '#/components/schemas/ForecastSensorPrediction' }
+        sensor: { type: string }
+        prediction_type: {}   # empty schema = unconstrained -> Modelina maps this to `any`
+
+    ForecastSensorPredictions:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/ForecastSensorPrediction'
+
+    ForecastPrediction:
+      type: object
+      properties:
+        forecast_max_steps: { type: integer }
+      required: [forecast_max_steps]
+      additionalProperties:
+        $ref: '#/components/schemas/ForecastSensorPrediction'
+
+    AnomalyPredictionLogEntryMessage:
+      type: object
+      properties:
+        result:
+          type: array
+          items: { $ref: '#/components/schemas/AnomalyPrediction' }
+        sensor: { type: string }
+        type: {}   # unconstrained -> Modelina maps to `any`
+
+    ForecastPredictionInfo:
+      type: object
+      properties:
+        group_by_period_ms: { type: integer }
+        recent_point_ts: { type: number }
+      required: [group_by_period_ms, recent_point_ts]
+
+    ForecastResult:
+      type: object
+      properties:
+        prediction_info: { $ref: '#/components/schemas/ForecastPredictionInfo' }
+        forecast: { type: array, items: { type: number } }
+        timestamp: { type: array, items: { type: number } }
+      required: [prediction_info, forecast, timestamp]
+
+    ForecastStepMessage:
+      type: object
+      properties:
+        device_id: { type: string }
+        iteration: { type: integer }
+        prediction_type: { type: string, const: "forecast" }
+        result: { $ref: '#/components/schemas/ForecastResult' }
+        sensor: { type: string }
+      required: [prediction_type, result]
+
+    ForecastHistoryMessage:
+      type: object
+      properties:
+        forecast: { type: number }
+        prediction_info: { $ref: '#/components/schemas/ForecastPredictionInfo' }
+        prediction_type: { type: string, const: "history" }
+        sensor_name: { type: string }
+      required: [prediction_type, forecast]
+
+    ForecastPredictionLogEntryMessage:
+      oneOf:
+        - { $ref: '#/components/schemas/ForecastStepMessage' }
+        - { $ref: '#/components/schemas/ForecastHistoryMessage' }
+
+    AnomalyPredictionLogEntry:
+      type: object
+      properties:
+        timestamp: { type: string }
+        type: { type: string, const: "anomaly" }
+        level: { type: string, const: "PREDICTION" }
+        message: { $ref: '#/components/schemas/AnomalyPredictionLogEntryMessage' }
+        source: { $ref: '#/components/schemas/LogEntrySource' }
+      required: [timestamp, type, level, message]
+
+    ForecastPredictionLogEntry:
+      type: object
+      properties:
+        timestamp: { type: string }
+        type: { type: string, const: "forecast" }
+        level: { type: string, enum: [PREDICTION, FORECAST_HISTORY] }
+        message:
+          oneOf:
+            # - { type: string }
+            - { $ref: '#/components/schemas/ForecastPredictionLogEntryMessage' }
+        source: { $ref: '#/components/schemas/LogEntrySource' }
+      required: [timestamp, type, level, message]
+
+    # fallback for type: "system" | "other", or anything not PREDICTION/FORECAST_HISTORY
+    GenericLogEntryMessage:
+      type: object
+      properties:
+        result:
+          oneOf:
+            - { $ref: '#/components/schemas/AnomalyPrediction' }
+            - { $ref: '#/components/schemas/ForecastSensorPrediction' }
+        sensor: { type: string }
+        prediction_type: {}
+
+    GenericLogEntry:
+      type: object
+      properties:
+        timestamp: { type: string }
+        type: { $ref: '#/components/schemas/LogEntryType' }
+        level: { type: string }
+        message:
+          oneOf:
+            - { type: string }
+            - { $ref: '#/components/schemas/GenericLogEntryMessage' }
+        source: { $ref: '#/components/schemas/LogEntrySource' }
+      required: [timestamp, type, level, message]
+
+    LogEntry:
+      oneOf:
+        - { $ref: '#/components/schemas/AnomalyPredictionLogEntry' }
+        - { $ref: '#/components/schemas/ForecastPredictionLogEntry' }
+        - { $ref: '#/components/schemas/GenericLogEntry' }
+
+    AnomalyLogs:
+      type: object
+      properties:
+        logs: { type: array, items: { $ref: '#/components/schemas/LogEntry' } }
+        count: { type: integer }
+      required: [logs, count]
