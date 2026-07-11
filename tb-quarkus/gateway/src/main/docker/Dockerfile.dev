@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.7
+# Dev-mode only. No build stage, no runtime/ENTRYPOINT stage — those exist in
+# Dockerfile.jvm and would either waste a full `gradlew build` or bake in a
+# run-java.sh ENTRYPOINT that silently eats compose's `command:` override.
+# Source is bind-mounted at runtime (see docker-compose.gateway.yml), so this
+# image only needs the JDK + gradle wrapper to be present at container start.
+
+FROM eclipse-temurin:21-jdk
+
+WORKDIR /workspace/tb-quarkus/gateway
+
+# Copy just enough to let the wrapper self-install before the bind mount lands
+# on top of it. Everything under src/ and api-specs/ comes from the volumes.
+COPY tb-quarkus/gateway/gradlew tb-quarkus/gateway/gradlew.bat tb-quarkus/gateway/settings.gradle tb-quarkus/gateway/build.gradle tb-quarkus/gateway/gradle.properties ./
+COPY tb-quarkus/gateway/gradle ./gradle
+
+RUN chmod +x ./gradlew
