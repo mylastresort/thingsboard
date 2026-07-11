@@ -3,12 +3,13 @@ FROM node:22-bookworm-slim AS frontend-builder
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y git python3 make g++ && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git python3 make g++ default-jre-headless && rm -rf /var/lib/apt/lists/*
 
 COPY ui-ngx/package.json ui-ngx/yarn.lock ./
 RUN yarn install --non-interactive --network-concurrency 4 --network-timeout 100000 --mutex network
 
 COPY ui-ngx/ .
+COPY api-specs /api-specs
 RUN yarn build:prod
 
 # Stage 2 — Build the Express proxy server

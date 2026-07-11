@@ -17,8 +17,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/AvailableModelsResponse"
         "500":
           $ref: "#/components/responses/Error"
   /models/saveLoadConfig:
@@ -753,6 +752,27 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
   schemas:
+    AvailableModelsResponse:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          $ref: "#/components/schemas/AvailableModelOption"
+      description: >
+        Keyed by model category (e.g. "ForecastModel", "AnomalyPredictor").
+        Keys are not fixed — new categories may appear without a schema change.
+
+    AvailableModelOption:
+      type: object
+      required:
+        - model_name
+      properties:
+        model_name:
+          type: string
+        model_parameters:
+          type: object
+          additionalProperties: true
+          description: Hyperparameter schema/defaults for this model type; shape varies per model_name.
     FailureModeRecord:
       type: object
       required:

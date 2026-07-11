@@ -58,7 +58,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { ECharts, echartsModule } from '@home/components/widget/lib/chart/echarts-widget.models';
 import { AttributeService } from '@core/http/attribute.service';
 import { Timewindow, QuickTimeInterval, AggregationType } from '@shared/models/time/time.models';
-import { PredictiveModelsService } from '@core/http/forecast.service';
+import { PredictiveModelsService } from '@app/core/http/forecast.service';
 import { startCase } from 'lodash';
 import { ForecastAttribute } from '@app/shared/models/forecast.models';
 import { ForecastViewPreferences } from '@app/shared/models/forecast-view-preferences.models';

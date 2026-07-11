@@ -18,6 +18,7 @@ services:
     working_dir: /app
     volumes:
       - ./ui-ngx:/app
+      - ./api-specs:/api-specs
     environment:
       - GATEWAY_URL=http://gateway:80
       - AI_AGENT_URL=http://ai-agent:8300

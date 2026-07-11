@@ -25,7 +25,7 @@ public class MCP {
     // --- Models / forecasts (read) ---
 
     @Tool(description = "Get available predictive maintenance models")
-    public Map<String, Object> getAvailableModels() {
+    public Map<String, List<AvailableModelOption>> getAvailableModels() {
         return predictiveModelsRestService.getAvailableModels();
     }
 

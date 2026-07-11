@@ -11,6 +11,7 @@ import jakarta.ws.rs.NotFoundException;
 import org.tb.quarkus.entity.pdm.PredictionEntity;
 import org.tb.quarkus.entity.pdm.PredictiveMaintenanceConfigEntity;
 import org.tb.quarkus.entity.pdm.PredictiveModelLoadModelConfigEntity;
+import org.tb.quarkus.model.AvailableModelOption;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -24,14 +25,21 @@ public class PredictiveModelsRestService {
     @Inject EntityManager em;
     @Inject ObjectMapper mapper;
 
-    public Map<String, Object> getAvailableModels() {
+    public Map<String, List<AvailableModelOption>> getAvailableModels() {
         return Map.of(
                 "AnomalyPredictor", List.of(
-                        Map.of("model_name", "random_forest", "model_parameters", Map.of()),
-                        Map.of("model_name", "xgboost", "model_parameters", Map.of())),
+                        modelOption("random_forest", Map.of()),
+                        modelOption("xgboost", Map.of())),
                 "ForecastModel", List.of(
-                        Map.of("model_name", "lstm", "model_parameters", Map.of()),
-                        Map.of("model_name", "xgboost", "model_parameters", Map.of())));
+                        modelOption("lstm", Map.of()),
+                        modelOption("xgboost", Map.of())));
+    }
+
+    private AvailableModelOption modelOption(String name, Map<String, Object> parameters) {
+        AvailableModelOption option = new AvailableModelOption();
+        option.setModelName(name);
+        option.setModelParameters(parameters);
+        return option;
     }
 
     public Map<String, Object> getLoadModelConfigs() {

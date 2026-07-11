@@ -1,4 +1,3 @@
-
 ///
 /// Copyright © 2016-2024 The Thingsboard Authors
 ///
@@ -15,426 +14,202 @@
 /// limitations under the License.
 ///
 
+// ponytail: wired against the REAL generated services — DefaultService for
+// the untagged Models+Claims routes, AgenticBenchmarkService for the
+// "AgenticBenchmark" tag. Only `getDevicesWithModelsCount` and
+// `importAgenticBenchmarkRows` (the old CSV-import-style POST) have NO
+// generated equivalent — neither endpoint exists in api-specs/openapi.yaml.
+// Those two are left as direct HttpClient calls below. Everything else now
+// goes through the generated client's real types (AgenticBenchmarkRow,
+// AgenticBenchmarkRowRequest, AgenticBenchmarkSubset) instead of the
+// hand-rolled interfaces the old service defined.
+
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, Observable, Subject } from 'rxjs';
-import { defaultHttpOptionsFromConfig, defaultHttpUploadOptions, RequestConfig } from './http-utils'; // Import utility functions if available
+import { Observable, Subject } from 'rxjs';
 import { PageData, PageLink } from '@app/shared/public-api';
-import { Order } from '@app/modules/home/models/predictive-maintenance.models';
-import { Forecast, ForecastCreate } from '@app/shared/models/forecast.models';
-import { AnomalyReport } from '@app/modules/home/components/predictive-maintenance/components/anomalies/anomalies.component';
+import { AnomalyReport } from '@home/components/predictive-maintenance/components/anomalies/anomalies.component';
+import { DefaultService, AgenticBenchmarkService  } from '@app/core/api-client';
+import type {
+  FailureModeHistoryResponse,
+  FailureModeRecord,
+  FailureModeRecordResponse,
+  CreateFailureModeRecordsResponse,
+  AgenticBenchmarkRow,
+  AgenticBenchmarkRowRequest,
+  AgenticBenchmarkSubset,
+  AvailableModelOption,
+} from '@app/core/api-client';
 
-export interface AvailableModelsResponse {
-  ForecastModel?: { model_name: string }[];
-  AnomalyPredictor?: { model_name: string }[];
-}
-
-export interface FailureModeHistoryResponse {
-  modelId: string | null;
-  deviceId: string | null;
-  maintenance: Array<{
-    id?: string;
-    datetime: string;
-    description?: string;
-    parts_replaced?: string;
-    comp?: string;
-    device_id?: string;
-    device_name?: string;
-    device_type?: string;
-  }>;
-  errors: Array<{
-    id?: string;
-    datetime: string;
-    errorID?: string;
-    error_code?: string;
-    device_id?: string;
-    device_name?: string;
-    device_type?: string;
-  }>;
-  failures: Array<{
-    id?: string;
-    datetime: string;
-    failure?: string;
-    root_cause?: string;
-    device_id?: string;
-    device_name?: string;
-    device_type?: string;
-  }>;
-}
+export type AvailableModelsResponse = Record<string, AvailableModelOption[]>;
 
 export type FailureModeRecordType = 'maintenance' | 'errors' | 'failures';
-
-export interface FailureModeRecordPayload {
-  type: FailureModeRecordType;
-  device_id: string;
-  datetime: string;
-  description?: string;
-  parts_replaced?: string;
-  error_code?: string;
-  root_cause?: string;
-}
-
-export interface AgenticBenchmarkSubset {
-  name: string;
-  sourceFile: string;
-  rowCount: number;
-}
-
-export interface AgenticBenchmarkRow {
-  id?: string;
-  subsetName: string;
-  datasetRecordId?: number;
-  subject?: string;
-  question: string;
-  options?: string[];
-  optionIds?: string[];
-  correct?: boolean[];
-  textType?: string;
-  assetName?: string;
-  relevancy?: string;
-  questionType?: string;
-  triggerStatement?: string;
-  context?: string;
-  rawPayload?: any;
-}
-// import { Order } from '../components/forecast/forcast-page.component'; // Adjust import path as needed
 
 @Injectable({
   providedIn: 'root',
 })
 export class PredictiveModelsService {
+  // Not part of the OpenAPI spec (client-side push stream from the model
+  // websocket service, not a REST call) — kept as-is, nothing to generate.
   anomaliesDataSubject = new Subject<AnomalyReport>();
   anomaliesData$ = this.anomaliesDataSubject.asObservable();
   anomalies = [];
+
+  constructor(
+    private api: DefaultService,
+    private agenticBenchmarkApi: AgenticBenchmarkService,
+    private http: HttpClient
+  ) {}
 
   sendAnomaly(anomaly: AnomalyReport) {
     this.anomalies.push(anomaly);
     this.anomaliesDataSubject.next(anomaly);
   }
 
-  /**
-   * Fetch available model types and algorithms from backend
-   * @returns Observable with available models structure
-   */
-  getAvailableModels(): Observable<AvailableModelsResponse> {
-    return this.http.get<AvailableModelsResponse>('/api/models/available');
+  getAvailableModels() {
+    return this.api.getAvailableModels();
   }
 
-  getLoadModelConfigs(): Observable<any> {
-    return this.http.get<any>('/api/models/loadModelConfig', {});
+  getLoadModelConfigs() {
+    return this.api.getLoadModelConfigs();
   }
 
-  saveLoadModelConfig(config: any): Observable<any> {
-    return this.http.post<any>('/api/models/saveLoadConfig', config, {});
+  saveLoadModelConfig(config: { [key: string]: any }) {
+    return this.api.saveLoadModelConfig(config);
   }
 
-  private baseUrlModels = '/api/v1/models'; // Model service API
-  private baseUrlFailureMode = '/api/models'; // Quarkus failure-mode API
-  private baseUrlAgenticBenchmark = '/api/v1/agentic-benchmark';
-
-  constructor(private http: HttpClient) {}
-
-  // Fetch forecasts with pagination (PageLink handling like in DeviceService)
-  getPredictiveModelsByPage(
-    pageLink: PageLink,
-    config?: RequestConfig
-  ): Observable<PageData<any>> {
-    return this.http.get<PageData<Order>>(
-      `${this.baseUrlModels}${pageLink.toQuery()}`,
-      defaultHttpOptionsFromConfig(config)
+  getPredictiveModelsByPage(pageLink: PageLink) {
+    return this.api.getPredictiveModelsByPage(
+      pageLink.pageSize,
+      pageLink.page,
+      pageLink.sortOrder?.property,
+      pageLink.sortOrder?.direction as 'ASC' | 'DESC',
+      pageLink.textSearch
     );
   }
 
-  /**
-   * Fetch anomaly history predictions from the database.
-   *
-   * @param modelId - Model ID (predictive_maintenance_config UUID)
-   * @param predictionType - Prediction type: 'Anomaly', 'Forecast', or 'Failure'
-   * @param startTs - Optional start timestamp in milliseconds
-   * @param endTs - Optional end timestamp in milliseconds
-   * @param limit - Maximum number of records (default: 100)
-   * @param config - Optional HTTP request config
-   * @returns Observable with predictions array and totalCount
-   */
   fetchHistoryPredictions(
     modelId: string,
     predictionType: string,
     startTs?: number,
     endTs?: number,
-    limit: number = 100,
-    config?: RequestConfig
-  ): Observable<{ predictions: any[]; totalCount: number; limit: number }> {
-    // Build query parameters
-    let params = `limit=${limit}`;
-    if (startTs) {
-      params += `&startTs=${startTs}`;
-    }
-    if (endTs) {
-      params += `&endTs=${endTs}`;
-    }
-
-    return this.http.get<{ predictions: any[]; totalCount: number; limit: number }>(
-      `${this.baseUrlModels}/anomaly-history-predictions/${modelId}/${predictionType}?${params}`,
-      defaultHttpOptionsFromConfig(config)
-    );
+    limit: number = 100
+  ) {
+    return this.api.getAnomalyHistoryPredictions(modelId, predictionType, startTs, endTs, limit);
   }
 
-  getFailureModeHistory(
-    modelId: string,
-    startTs?: number,
-    endTs?: number,
-    config?: RequestConfig
-  ): Observable<FailureModeHistoryResponse> {
-    let params = '';
-    if (startTs) {
-      params += `startTs=${startTs}`;
-    }
-    if (endTs) {
-      params += `${params ? '&' : ''}endTs=${endTs}`;
-    }
-
-    const query = params ? `?${params}` : '';
-
-    return this.http.get<FailureModeHistoryResponse>(
-      `${this.baseUrlFailureMode}/failure-mode-history/${modelId}${query}`,
-      defaultHttpOptionsFromConfig(config)
-    );
+  getFailureModeHistory(modelId: string, startTs?: number, endTs?: number): Observable<FailureModeHistoryResponse> {
+    return this.api.getFailureModeHistory(modelId, startTs, endTs);
   }
 
   getAllDevicesFailureModeHistory(
     startTs?: number,
     endTs?: number,
-    limit: number = 1000,
-    config?: RequestConfig
+    limit: number = 1000
   ): Observable<FailureModeHistoryResponse> {
-    const params: string[] = [`limit=${limit}`];
-    if (startTs) {
-      params.push(`startTs=${startTs}`);
+    return this.api.getFailureModeHistoryAllDevices(startTs, endTs, limit);
+  }
+
+  createFailureModeRecord(record: FailureModeRecord) {
+    return this.api.createFailureModeRecord(record);
+  }
+
+  createFailureModeRecords(records: FailureModeRecord[]) {
+    return this.api.createFailureModeRecords(records);
+  }
+
+  updateFailureModeRecord(recordType: FailureModeRecordType, recordId: string, record: FailureModeRecord) {
+    return this.api.updateFailureModeRecord(recordType, recordId, record);
+  }
+
+  deleteFailureModeRecord(recordType: FailureModeRecordType, recordId: string) {
+    return this.api.deleteFailureModeRecord(recordType, recordId);
+  }
+
+  // NOTE: generated signature is (file, recordType) — file first, flipped
+  // from the old hand-written service's (recordType, file).
+  importFailureModeRecords(recordType: FailureModeRecordType, file: File) {
+    return this.api.importFailureModeRecords(file, recordType);
+  }
+
+  deleteAnomalyHistoryPredictions(modelId: string, predictionType?: string) {
+    return this.api.deleteAnomalyHistoryPredictions(modelId, predictionType);
+  }
+
+  // renamed in the spec: Predictive Model -> Forecast
+  getPredictiveModel(forecastId: string) {
+    return this.api.getForecast(forecastId);
+  }
+
+  addPredictiveModelConfig(forecast: { [key: string]: any }) {
+    return this.api.createForecast(forecast);
+  }
+
+  updatePredictiveModel(forecast: { id?: string; [key: string]: any }) {
+    if (!forecast?.id) {
+      throw new Error('updatePredictiveModel: forecast object is missing an id');
     }
-    if (endTs) {
-      params.push(`endTs=${endTs}`);
-    }
-
-    return this.http.get<FailureModeHistoryResponse>(
-      `${this.baseUrlFailureMode}/failure-mode-history?${params.join('&')}`,
-      defaultHttpOptionsFromConfig(config)
-    );
+    return this.api.updateForecast(forecast.id, forecast);
   }
 
-  createFailureModeRecord(
-    record: FailureModeRecordPayload,
-    config?: RequestConfig
-  ): Observable<any> {
-    return this.http.post<any>(
-      `${this.baseUrlFailureMode}/failure-mode-records`,
-      record,
-      defaultHttpOptionsFromConfig(config)
-    );
+  deletePredictiveModel(forecastId: string) {
+    return this.api.deleteForecast(forecastId);
   }
 
-  createFailureModeRecords(
-    records: FailureModeRecordPayload[],
-    config?: RequestConfig
-  ): Observable<{ records: any[]; createdCount: number }> {
-    return this.http.post<{ records: any[]; createdCount: number }>(
-      `${this.baseUrlFailureMode}/failure-mode-records/batch`,
-      records,
-      defaultHttpOptionsFromConfig(config)
-    );
+  getPredictiveModelStatus(forecastId: string) {
+    return this.api.getForecastStatus(forecastId);
   }
 
-  updateFailureModeRecord(
-    recordType: FailureModeRecordType,
-    recordId: string,
-    record: FailureModeRecordPayload,
-    config?: RequestConfig
-  ): Observable<any> {
-    return this.http.put<any>(
-      `${this.baseUrlFailureMode}/failure-mode-records/${recordType}/${recordId}`,
-      record,
-      defaultHttpOptionsFromConfig(config)
-    );
+  getForecastsByDeviceId(deviceId: string, pageSize?: number, page?: number) {
+    return this.api.getForecastsByDeviceId(deviceId, pageSize, page);
   }
 
-  deleteFailureModeRecord(
-    recordType: FailureModeRecordType,
-    recordId: string,
-    config?: RequestConfig
-  ): Observable<{ deletedCount: number }> {
-    return this.http.delete<{ deletedCount: number }>(
-      `${this.baseUrlFailureMode}/failure-mode-records/${recordType}/${recordId}`,
-      defaultHttpOptionsFromConfig(config)
-    );
+  getAgenticBenchmarkSubsets(): Observable<AgenticBenchmarkSubset[]> {
+    return this.agenticBenchmarkApi.getAgenticBenchmarkSubsets();
   }
 
-  importFailureModeRecords(
-    recordType: FailureModeRecordType,
-    file: File,
-    config?: RequestConfig
-  ): Observable<{ importedCount: number; errors: Array<{ row: number; message: string }> }> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.http.post<{ importedCount: number; errors: Array<{ row: number; message: string }> }>(
-      `${this.baseUrlFailureMode}/failure-mode-records/import?recordType=${recordType}`,
-      formData,
-      defaultHttpUploadOptions(config?.ignoreLoading, config?.ignoreErrors, config?.resendRequest)
-    );
+  getAgenticBenchmarkRows(pageSize?: number, page?: number, subsetName?: string, textSearch?: string) {
+    return this.agenticBenchmarkApi.getAgenticBenchmarkRows(pageSize, page, subsetName, textSearch);
   }
 
-  deleteAnomalyHistoryPredictions(
-    modelId: string,
-    predictionType?: string,
-    config?: RequestConfig
-  ): Observable<{ deletedCount: number; message: string }> {
-    // Build query parameters
-    let params = '';
-    if (predictionType) {
-      params = `?predictionType=${predictionType}`;
-    }
-
-    return this.http.delete<{ deletedCount: number; message: string }>(
-      `${this.baseUrlModels}/anomaly-history-predictions/${modelId}${params}`,
-      defaultHttpOptionsFromConfig(config)
-    );
+  createAgenticBenchmarkRow(row: AgenticBenchmarkRowRequest): Observable<AgenticBenchmarkRow> {
+    return this.agenticBenchmarkApi.createAgenticBenchmarkRow(row);
   }
 
-  // Fetch a specific predictive model by its ID
-  getPredictiveModel(
-    forecastId: string,
-    config?: RequestConfig
-  ): Observable<Forecast> {
-    return this.http.get<Forecast>(
-      `${this.baseUrlModels}/${forecastId}`,
-      defaultHttpOptionsFromConfig(config)
-    );
+  updateAgenticBenchmarkRow(rowId: string, row: AgenticBenchmarkRowRequest): Observable<AgenticBenchmarkRow> {
+    return this.agenticBenchmarkApi.updateAgenticBenchmarkRow(rowId, row);
   }
 
-  // Save a new predictive model
-  addPredictiveModelConfig(
-    forecast: ForecastCreate,
-    config?: RequestConfig
-  ): Observable<any> {
-    return this.http.post<Forecast>(
-      this.baseUrlModels,
-      forecast,
-      defaultHttpOptionsFromConfig(config)
-    ).pipe(map(() => ({ success: true } as any)));
+  deleteAgenticBenchmarkRow(rowId: string) {
+    return this.agenticBenchmarkApi.deleteAgenticBenchmarkRow(rowId);
   }
 
-  // Update an existing predictive model
-  updatePredictiveModel(forecast: any, config?: RequestConfig): Observable<Forecast> {
-    const forecastId = forecast.id?.id || forecast.id;
-    return this.http.post<Forecast>(
-      `${this.baseUrlModels}/${forecastId}`,
-      forecast,
-      defaultHttpOptionsFromConfig(config)
-    );
+  // Batch upsert exists in the spec but had no equivalent in the old
+  // hand-written service — new capability, not a rename.
+  upsertAgenticBenchmarkRows(rows: AgenticBenchmarkRowRequest[]) {
+    return this.agenticBenchmarkApi.upsertAgenticBenchmarkRows(rows);
   }
 
-  // Delete a predictive model by its ID
-  deletePredictiveModel(forecastId: string, config?: RequestConfig): Observable<void> {
-    return this.http.delete<void>(
-      `${this.baseUrlModels}/${forecastId}`,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
+  // --- Not yet in the OpenAPI spec — unchanged manual HTTP calls ---
 
-  getPredictiveModelStatus(
-    forecastId: string,
-    config?: RequestConfig
-  ): Observable<{ forecast_id: string; status: string }> {
-    return this.http.get<{ forecast_id: string; status: string }>(
-      `${this.baseUrlModels}/${forecastId}/status`,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
-
-  // Fetch forecasts by device ID
-  getForecastsByDeviceId(
-    deviceId: string,
-    config?: RequestConfig
-  ): Observable<PageData<any>> {
-    return this.http.get<PageData<any>>(
-      `${this.baseUrlModels}/device/${deviceId}`,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
-
-  // Fetch devices with their predictive maintenance models count
-  getDevicesWithModelsCount(
-    pageLink: PageLink,
-    withModelsOnly: boolean = false,
-    config?: RequestConfig
-  ): Observable<PageData<any>> {
+  getDevicesWithModelsCount(pageLink: PageLink, withModelsOnly: boolean = false): Observable<PageData<any>> {
     const params = `${pageLink.toQuery()}&withModelsOnly=${withModelsOnly}`;
-    return this.http.get<PageData<any>>(
-      `/api/devices-with-models${params}`,
-      defaultHttpOptionsFromConfig(config)
-    );
+    return this.http.get<PageData<any>>(`/api/devices-with-models${params}`);
   }
 
-  getAgenticBenchmarkSubsets(config?: RequestConfig): Observable<AgenticBenchmarkSubset[]> {
-    return this.http.get<AgenticBenchmarkSubset[]>(
-      `${this.baseUrlAgenticBenchmark}/subsets`,
-      defaultHttpOptionsFromConfig(config)
-    );
+  // No "import" endpoint exists in the spec (only upsertAgenticBenchmarkRows,
+  // which takes rows directly rather than a file) — left pointing at the old
+  // path since there's nothing generated to delegate to.
+  importAgenticBenchmarkRows(): Observable<{ importedCount: number; subsetCount: number }> {
+    return this.http.post<{ importedCount: number; subsetCount: number }>('/api/v1/agentic-benchmark/import', {});
   }
+}
 
-  getAgenticBenchmarkRows(
-    pageSize: number,
-    page: number,
-    subsetName?: string,
-    textSearch?: string,
-    config?: RequestConfig
-  ): Observable<PageData<AgenticBenchmarkRow>> {
-    const params = new URLSearchParams({
-      pageSize: String(pageSize),
-      page: String(page),
-    });
-    if (subsetName) {
-      params.set('subsetName', subsetName);
-    }
-    if (textSearch) {
-      params.set('textSearch', textSearch);
-    }
-    return this.http.get<PageData<AgenticBenchmarkRow>>(
-      `${this.baseUrlAgenticBenchmark}/rows?${params.toString()}`,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
-
-  importAgenticBenchmarkRows(config?: RequestConfig): Observable<{ importedCount: number; subsetCount: number }> {
-    return this.http.post<{ importedCount: number; subsetCount: number }>(
-      `${this.baseUrlAgenticBenchmark}/import`,
-      {},
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
-
-  createAgenticBenchmarkRow(row: AgenticBenchmarkRow, config?: RequestConfig): Observable<AgenticBenchmarkRow> {
-    return this.http.post<AgenticBenchmarkRow>(
-      `${this.baseUrlAgenticBenchmark}/rows`,
-      row,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
-
-  updateAgenticBenchmarkRow(
-    rowId: string,
-    row: AgenticBenchmarkRow,
-    config?: RequestConfig
-  ): Observable<AgenticBenchmarkRow> {
-    return this.http.put<AgenticBenchmarkRow>(
-      `${this.baseUrlAgenticBenchmark}/rows/${rowId}`,
-      row,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
-
-  deleteAgenticBenchmarkRow(rowId: string, config?: RequestConfig): Observable<{ deletedCount: number }> {
-    return this.http.delete<{ deletedCount: number }>(
-      `${this.baseUrlAgenticBenchmark}/rows/${rowId}`,
-      defaultHttpOptionsFromConfig(config)
-    );
-  }
+export type {
+  FailureModeHistoryResponse,
+  FailureModeRecord,
+  FailureModeRecordResponse,
+  CreateFailureModeRecordsResponse,
+  AgenticBenchmarkRow,
+  AgenticBenchmarkSubset,
 }

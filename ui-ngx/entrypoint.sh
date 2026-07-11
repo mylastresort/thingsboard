@@ -1,6 +1,13 @@
+#!/bin/sh
+set -e
+
 if [ ! -d node_modules ]; then
     echo 'Installing node_modules...' && yarn install --non-interactive --check-files --network-concurrency 4 --network-timeout 100000 --mutex network
-fi &&
+fi
+
+echo 'Generating API client from OpenAPI spec...'
+yarn generate:api
+
 node --max_old_space_size=8048 ./node_modules/@angular/cli/bin/ng serve \
     --configuration development \
     --host 0.0.0.0 \

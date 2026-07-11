@@ -19,7 +19,7 @@ public class ModelsApiImpl implements ModelsApi {
     @Inject PredictiveModelsRestService predictiveModelsRestService;
 
     @Override
-    public Map<String, Object> getAvailableModels() {
+    public Map<String, List<AvailableModelOption>> getAvailableModels() {
         return predictiveModelsRestService.getAvailableModels();
     }
 

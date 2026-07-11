@@ -24,10 +24,12 @@ import { DialogService } from '@app/core/services/dialog.service';
 import { ActivatedRoute } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, forkJoin, map, Observable, of, startWith, switchMap } from 'rxjs';
 import {
-  FailureModeRecordPayload,
   FailureModeRecordType,
   FailureModeHistoryResponse,
+  FailureModeRecordResponse,
+  CreateFailureModeRecordsResponse,
   PredictiveModelsService,
+  FailureModeRecord
 } from '@app/core/http/forecast.service';
 import { PageLink } from '@shared/models/page/page-link';
 import { Direction } from '@shared/models/page/sort-order';
@@ -45,7 +47,7 @@ interface FailureModeDeviceOption {
 }
 
 interface FailureModeDialogResult {
-  records: FailureModeRecordPayload[];
+  records: FailureModeRecord[];   // was FailureModeRecordPayload[]
 }
 
 interface FailureModeBaseRow {
@@ -175,7 +177,7 @@ export class FailureModeComponent implements OnChanges, OnInit {
             deviceName: item.device_name || item.device_id || response.deviceId || this.deviceId || 'N/A',
             deviceType: item.device_type || '',
             description: item.description || '',
-            partsReplaced: item.parts_replaced || item.comp || 'N/A',
+            partsReplaced: item.parts_replaced || 'N/A',
           }))
         );
         const errorRows = this.sortRows(
@@ -185,7 +187,7 @@ export class FailureModeComponent implements OnChanges, OnInit {
             deviceId: item.device_id || response.deviceId || this.deviceId || '',
             deviceName: item.device_name || item.device_id || response.deviceId || this.deviceId || 'N/A',
             deviceType: item.device_type || '',
-            errorCode: item.errorID || item.error_code || 'N/A',
+            errorCode: item.error_code || 'N/A',
           }))
         );
         const failureRows = this.sortRows(
@@ -195,7 +197,7 @@ export class FailureModeComponent implements OnChanges, OnInit {
             deviceId: item.device_id || response.deviceId || this.deviceId || '',
             deviceName: item.device_name || item.device_id || response.deviceId || this.deviceId || 'N/A',
             deviceType: item.device_type || '',
-            rootCause: item.failure || item.root_cause || 'N/A',
+            rootCause: item.root_cause || 'N/A',
           }))
         );
         this.setRows(maintenanceRows, errorRows, failureRows);
@@ -370,9 +372,9 @@ export class FailureModeComponent implements OnChanges, OnInit {
         return;
       }
 
-      const request$ = row?.id
-        ? this.predictiveModelsService.updateFailureModeRecord(view, row.id, result.records[0])
-        : this.predictiveModelsService.createFailureModeRecords(result.records);
+    const request$: Observable<FailureModeRecordResponse | CreateFailureModeRecordsResponse> = row?.id
+      ? this.predictiveModelsService.updateFailureModeRecord(view, row.id, result.records[0])
+      : this.predictiveModelsService.createFailureModeRecords(result.records);
 
       request$.subscribe({
         next: () => {
@@ -797,7 +799,7 @@ export class FailureModeRecordDialogComponent {
   private readonly deviceSearchPageSize = 10;
 
   readonly title: string;
-  queuedRecords: FailureModeRecordPayload[] = [];
+  queuedRecords: FailureModeRecord[] = [];   // was FailureModeRecordPayload[]
   filteredDevices: Observable<FailureModeDeviceOption[]>;
   deviceOptions: FailureModeDeviceOption[] = [];
   isLoadingDevices = false;
@@ -916,7 +918,7 @@ export class FailureModeRecordDialogComponent {
     return this.deviceOptions.find((device) => device.id === deviceId)?.name || deviceId || '';
   }
 
-  getRecordSummary(record: FailureModeRecordPayload): string {
+  getRecordSummary(record: FailureModeRecord): string {
     if (this.data.view === 'maintenance') {
       return record.parts_replaced || record.description || 'Maintenance';
     }
@@ -940,7 +942,7 @@ export class FailureModeRecordDialogComponent {
     });
   }
 
-  private buildRecord(): FailureModeRecordPayload | null {
+  private buildRecord(): FailureModeRecord | null {
     this.resolveTypedDevice();
 
     if (this.form.invalid) {

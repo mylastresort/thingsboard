@@ -1,4 +1,3 @@
-import { PredictiveModelsService } from "./../../../../core/http/forecast.service";
 ///
 /// Copyright © 2016-2024 The Thingsboard Authors
 ///
