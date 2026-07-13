@@ -5,7 +5,7 @@ from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
 from google.adk.tools.agent_tool import AgentTool
 
-from .subagents import build_model, build_subagents, build_pandas_agent
+from .subagents import build_model, build_subagents, build_pandas_agent, build_pdm_agent
 from .scope import build_scope_resolver, harvest_known_ids
 from shared.settings import load_settings, Settings
 from shared.datetime_tool import get_current_datetime
@@ -18,6 +18,7 @@ get_timeseries_data_skill = load_skill_from_dir(SKILLS_DIR / "get-timeseries-dat
 detect_machinery_anomalies_skill = load_skill_from_dir(
     SKILLS_DIR / "detect-machinery-anomalies"
 )
+seed_train_infer_pdm_skill = load_skill_from_dir(SKILLS_DIR / "seed-train-infer-pdm")
 
 ROOT_INSTRUCTION = (
     # --- Identity & tool inventory -------------------------------------
@@ -28,7 +29,7 @@ ROOT_INSTRUCTION = (
     "tools of your own — each of these tools is a specialist you call and "
     "whose answer you relay to the user: devices_agent, assets_agent, "
     "customers_users_agent, alarms_agent, telemetry_agent, "
-    "relations_query_agent, ota_agent, pandas_agent. "
+    "relations_query_agent, ota_agent, pandas_agent, pdm_agent. "
     # --- pandas_agent delegation rule -----------------------------------
     # Fixes the observed failure mode where the root agent reasoned about
     # its own inability to run code ("I cannot run pandas in this
@@ -67,7 +68,10 @@ ROOT_INSTRUCTION = (
     "method (detect-machinery-anomalies — load this BEFORE calling any "
     "telemetry tool for that kind of request; if the request already "
     "answers all of the skill's elicitation questions, the skill closes "
-    "its gate in the same turn with no questions asked). "
+    "its gate in the same turn with no questions asked), or asks to seed "
+    "a PdM machine through the Quarkus MCP endpoint, create a predictive "
+    "model, train it, or poll forecast/anomaly inference "
+    "(seed-train-infer-pdm — load this BEFORE calling pdm_agent). "
     # --- Skill sequencing ------------------------------------------------
     # Prevents calling get-timeseries-data with an unresolved site/building
     # name instead of a concrete device id.
@@ -125,11 +129,13 @@ def build_root_agent(settings: Settings) -> LlmAgent:
                     find_devices_in_site_skill,
                     get_timeseries_data_skill,
                     detect_machinery_anomalies_skill,
+                    seed_train_infer_pdm_skill,
                 ]
             ),
             get_current_datetime,
             *[AgentTool(agent=a) for a in build_subagents(settings)],
             AgentTool(agent=build_pandas_agent(settings)),
+            AgentTool(agent=build_pdm_agent(settings)),
         ],
     )
 

@@ -243,6 +243,34 @@ PANDAS_DOMAIN: tuple[str, tuple[str, list[str]]] = (
 )
 
 
+PDM_DOMAIN: tuple[str, tuple[str, list[str]]] = (
+    "pdm_agent",
+    (
+        "Runs predictive-maintenance workflows through the Quarkus PdM MCP "
+        "endpoint. Use it to seed a new machine, create/update model configs, "
+        "train models, start inference, poll model/job status, and fetch "
+        "forecast or anomaly prediction history.",
+        [
+            "getSeedMachineOptions",
+            "seedMachine",
+            "getAvailableModels",
+            "createForecast",
+            "createPredictiveModel",
+            "createAndTrainPredictiveModel",
+            "trainPredictiveModel",
+            "inferPredictiveModel",
+            "pollPredictiveModelInference",
+            "updateForecast",
+            "getForecast",
+            "getForecastStatus",
+            "getForecastsByDeviceId",
+            "getAnomalyHistoryPredictions",
+            "deleteAnomalyHistoryPredictions",
+        ],
+    ),
+)
+
+
 def build_pandas_agent(settings: Settings) -> BaseAgent:
     name, (text, tool_filter) = PANDAS_DOMAIN
     return LlmAgent(
@@ -255,6 +283,23 @@ def build_pandas_agent(settings: Settings) -> BaseAgent:
                 connection_params=SseConnectionParams(
                     url=settings.pandas_mcp_server_url
                 ),
+                tool_filter=build_scoped_tool_filter(name, tool_filter),
+            )
+        ],
+        before_tool_callback=guard_scoped_tool_calls,
+    )
+
+
+def build_pdm_agent(settings: Settings) -> BaseAgent:
+    name, (text, tool_filter) = PDM_DOMAIN
+    return LlmAgent(
+        name=name,
+        model=build_model(settings),
+        description=text,
+        instruction=build_scoped_instruction(name, text),
+        tools=[
+            MCPToolset(
+                connection_params=SseConnectionParams(url=settings.pdm_mcp_server_url),
                 tool_filter=build_scoped_tool_filter(name, tool_filter),
             )
         ],
