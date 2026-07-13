@@ -1,5 +1,10 @@
 <div class="agents-page">
-  <nav mat-tab-nav-bar [tabPanel]="agentsPanel" class="agents-tabs">
+  <nav
+    mat-tab-nav-bar
+    [tabPanel]="agentsPanel"
+    [mat-stretch-tabs]="false"
+    class="agents-tabs"
+  >
     <a
       mat-tab-link
       routerLink="runtime"
@@ -12,13 +17,13 @@
     </a>
     <a
       mat-tab-link
-      routerLink="benchmarks"
+      routerLink="evaluation"
       routerLinkActive
-      #benchmarksActive="routerLinkActive"
-      [active]="benchmarksActive.isActive"
+      #evaluationActive="routerLinkActive"
+      [active]="evaluationActive.isActive"
     >
       <mat-icon>dataset</mat-icon>
-      Benchmarks
+      Evaluation
     </a>
   </nav>
   <mat-tab-nav-panel #agentsPanel class="agents-panel">

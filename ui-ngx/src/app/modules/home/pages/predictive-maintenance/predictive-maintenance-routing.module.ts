@@ -109,11 +109,11 @@ const routes: Routes = [
             },
           },
           {
-            path: "benchmarks",
+            path: "evaluation",
             component: AgentsBenchmarkComponent,
             data: {
               auth: [Authority.TENANT_ADMIN, Authority.CUSTOMER_USER],
-              title: "predictive-maintenance.agents-benchmarks",
+              title: "predictive-maintenance.agents-evaluation",
             },
           },
         ],

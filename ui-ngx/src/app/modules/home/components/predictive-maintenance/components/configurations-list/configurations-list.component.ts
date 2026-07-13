@@ -30,14 +30,18 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SelectionModel } from '@angular/cdk/collections';
 import { Router } from '@angular/router';
+import type { PdmSeedMachineRequest, PdmSeedMachineResult } from '@app/core/api-client';
 import { PredictiveModelsService } from '@app/core/http/forecast.service';
 import { DeviceService } from '@app/core/public-api';
 import { Direction, PageLink, TemplateAutocompleteComponent } from '@app/shared/public-api';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AddModelDialogComponent } from '../model/add-model-dialog/add-model-dialog.component';
 import { ModelSelectionDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/model-selection-dialog/model-selection-dialog.component';
+import { SeedMachineDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/seed-machine-dialog/seed-machine-dialog.component';
+import { SeedMachineResultDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/seed-machine-result-dialog/seed-machine-result-dialog.component';
 import { HttpClient } from '@angular/common/http';
 
 export interface Configuration {
@@ -73,6 +77,7 @@ export interface Configuration {
     TranslateModule,
     ReactiveFormsModule,
     MatMenuModule,
+    MatSnackBarModule,
   ],
 })
 export class ConfigurationsListComponent implements OnInit {
@@ -99,6 +104,8 @@ export class ConfigurationsListComponent implements OnInit {
 
   isLoading = false;
 
+  isSeedingMachine = false;
+
   totalElements = 0;
 
   pageSizeOptions = [10, 25, 50, 100];
@@ -115,7 +122,8 @@ export class ConfigurationsListComponent implements OnInit {
     private deviceService: DeviceService,
     private translate: TranslateService,
     private router: Router,
-    private httpClient: HttpClient
+    private httpClient: HttpClient,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit() {}
@@ -298,6 +306,58 @@ export class ConfigurationsListComponent implements OnInit {
 
   openAddMenu(): void {
     // kept for compatibility; menu handles actions in template
+  }
+
+  openSeedMachineDialog(): void {
+    this.forecastService.getSeedMachineOptions().subscribe(
+      (options) => {
+        const dialogRef = this.dialog.open(SeedMachineDialogComponent, {
+          width: '680px',
+          data: options,
+        });
+
+        dialogRef.afterClosed().subscribe((request?: PdmSeedMachineRequest) => {
+          if (!request) {
+            return;
+          }
+          this.isSeedingMachine = true;
+          this.forecastService
+            .seedMachine(request)
+            .subscribe(
+              (response) => {
+                this.isSeedingMachine = false;
+                this.openSeedMachineResultDialog(response);
+                this.snackBar.open(
+                  `Seeded ${response.devicesReady} machine with ${response.telemetryPoints} points`,
+                  undefined,
+                  { duration: 4000 }
+                );
+                this.refreshConfigurations();
+              },
+              (error) => {
+                this.isSeedingMachine = false;
+                console.error('Error seeding machine:', error);
+                this.snackBar.open(
+                  error?.error?.message || error?.message || 'Unable to seed machine',
+                  undefined,
+                  { duration: 5000 }
+                );
+              }
+            );
+        });
+      },
+      (error) => {
+        console.error('Error loading seed options:', error);
+        this.snackBar.open('Unable to load seed options', undefined, { duration: 5000 });
+      }
+    );
+  }
+
+  private openSeedMachineResultDialog(result: PdmSeedMachineResult): void {
+    this.dialog.open(SeedMachineResultDialogComponent, {
+      width: '640px',
+      data: result,
+    });
   }
 
   openLoadModelDialog(): void {

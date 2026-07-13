@@ -20,6 +20,7 @@ const (
 	defaultMaxMachines = 100
 	defaultWorkers     = 8
 	defaultBatchSize   = 1000
+	dayMillis          = int64(24 * time.Hour / time.Millisecond)
 	csvDateLayout      = "2006-01-02 15:04:05"
 )
 
@@ -58,11 +59,11 @@ func main() {
 	log.Printf("machines: %d devices ready", len(machineToDevice))
 
 	deviceTelemetry := map[string][]tb.TsPoint{}
-	maxTs := int64(0)
+	machineMaxTs := map[int]int64{}
 
-	track := func(deviceID string, ts int64, kv map[string]string) {
-		if ts > maxTs {
-			maxTs = ts
+	track := func(machineID int, deviceID string, ts int64, kv map[string]string) {
+		if ts > machineMaxTs[machineID] {
+			machineMaxTs[machineID] = ts
 		}
 		deviceTelemetry[deviceID] = append(deviceTelemetry[deviceID], tb.TsPoint{Ts: ts, Values: kv})
 	}
@@ -89,14 +90,9 @@ func main() {
 		totalPoints += len(pts)
 	}
 
-	if *shiftToNow && maxTs > 0 {
-		shift := time.Now().UnixMilli() - maxTs
-		for _, pts := range deviceTelemetry {
-			for i := range pts {
-				pts[i].Ts += shift
-			}
-		}
-		log.Printf("shift-to-now: %.1f days", float64(shift)/float64(24*time.Hour/time.Millisecond))
+	if *shiftToNow {
+		shifted := shiftMachineTelemetryToNow(machineToDevice, machineMaxTs, deviceTelemetry, time.Now().UnixMilli())
+		log.Printf("shift-to-now: %d machines rounded to whole-day offsets", shifted)
 	}
 
 	log.Printf("telemetry: %d points across %d devices", totalPoints, len(deviceTelemetry))
@@ -197,7 +193,7 @@ func loadMachines(dataPath string, client *tb.Client, allowed map[int]bool, useM
 	return machineToDevice, loaded, nil
 }
 
-type tsTrackFunc func(deviceID string, ts int64, kv map[string]string)
+type tsTrackFunc func(machineID int, deviceID string, ts int64, kv map[string]string)
 
 func loadTelemetry(dataPath string, machineToDevice map[int]string, track tsTrackFunc) error {
 	rows, err := readCSVRows(dataPath + "/PdM_telemetry.csv")
@@ -223,7 +219,7 @@ func loadTelemetry(dataPath string, machineToDevice map[int]string, track tsTrac
 		for j := 2; j < len(row) && j < len(header); j++ {
 			kv[header[j]] = row[j]
 		}
-		track(deviceID, ts, kv)
+		track(machineID, deviceID, ts, kv)
 	}
 	log.Printf("telemetry: %d loaded, %d skipped", len(rows)-1-skipped, skipped)
 	return nil
@@ -248,10 +244,28 @@ func loadKeyedEvents(dataPath, file, keyPrefix string, machineToDevice map[int]s
 			skipped++
 			continue
 		}
-		track(deviceID, ts, map[string]string{keyPrefix + row[2]: "1"})
+		track(machineID, deviceID, ts, map[string]string{keyPrefix + row[2]: "1"})
 	}
 	log.Printf("%s: %d loaded, %d skipped", file, len(rows)-1-skipped, skipped)
 	return nil
+}
+
+func shiftMachineTelemetryToNow(machineToDevice map[int]string, machineMaxTs map[int]int64, deviceTelemetry map[string][]tb.TsPoint, currentTimeMs int64) int {
+	shifted := 0
+	for machineID, deviceID := range machineToDevice {
+		maxTs := machineMaxTs[machineID]
+		if maxTs == 0 {
+			continue
+		}
+		timeDiff := currentTimeMs - maxTs
+		timeDiff -= timeDiff % dayMillis
+		points := deviceTelemetry[deviceID]
+		for i := range points {
+			points[i].Ts += timeDiff
+		}
+		shifted++
+	}
+	return shifted
 }
 
 func pushAll(client *tb.Client, deviceTelemetry map[string][]tb.TsPoint, workers int) {

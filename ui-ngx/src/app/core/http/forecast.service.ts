@@ -39,6 +39,9 @@ import type {
   AgenticBenchmarkRowRequest,
   AgenticBenchmarkSubset,
   AvailableModelOption,
+  PdmSeedMachineOptions,
+  PdmSeedMachineRequest,
+  PdmSeedMachineResult,
 } from '@app/core/api-client';
 
 export type AvailableModelsResponse = Record<string, AvailableModelOption[]>;
@@ -162,6 +165,14 @@ export class PredictiveModelsService {
 
   getForecastsByDeviceId(deviceId: string, pageSize?: number, page?: number) {
     return this.api.getForecastsByDeviceId(deviceId, pageSize, page);
+  }
+
+  getSeedMachineOptions(): Observable<PdmSeedMachineOptions> {
+    return this.api.getSeedMachineOptions();
+  }
+
+  seedMachine(config: PdmSeedMachineRequest): Observable<PdmSeedMachineResult> {
+    return this.api.seedMachine(config);
   }
 
   getAgenticBenchmarkSubsets(): Observable<AgenticBenchmarkSubset[]> {

@@ -74,6 +74,28 @@ sourceSets {
     main {
         java {
             srcDirs += "$buildDir/openapi-generated/src/gen/java"
+            srcDirs += "$buildDir/asyncapi-generated/src/gen/java"   // add alongside existing openapi srcDir
         }
     }
 }
+
+tasks.register('generateAsyncApiModels', Exec) {
+    def specFile = "$projectDir/../../api-specs/asyncapi.yaml"
+    def outDir = "$buildDir/asyncapi-generated/src/gen/java"
+
+    inputs.file specFile
+    outputs.dir outDir
+    doFirst { file(outDir).mkdirs() }
+
+    workingDir = projectDir
+    commandLine 'npx', '--yes', '@asyncapi/cli', 'generate', 'models', 'java',
+        specFile,
+        '--packageName=org.tb.quarkus.event.model',
+        "--output=$outDir",
+        '--javaJackson',
+        '--javaIncludeComments',
+        '--javaArrayType=List',
+        '--no-interactive'
+}
+
+compileJava.dependsOn tasks.generateAsyncApiModels

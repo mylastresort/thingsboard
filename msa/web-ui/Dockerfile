@@ -6,10 +6,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git python3 make g++ default-jre-headless && rm -rf /var/lib/apt/lists/*
 
 COPY ui-ngx/package.json ui-ngx/yarn.lock ./
-RUN yarn install --non-interactive --network-concurrency 4 --network-timeout 100000 --mutex network
+RUN yarn install --non-interactive --network-concurrency 4 --network-timeout 100000 --mutex network --ignore-engines
 
 COPY ui-ngx/ .
 COPY api-specs /api-specs
+RUN yarn run generate:api
 RUN yarn build:prod
 
 # Stage 2 — Build the Express proxy server
@@ -18,7 +19,7 @@ FROM node:22-bookworm-slim AS server-builder
 WORKDIR /build
 
 COPY msa/web-ui/package.json msa/web-ui/yarn.lock ./
-RUN yarn install --non-interactive --network-concurrency 4 --network-timeout 100000 --mutex network
+RUN yarn install --non-interactive --network-concurrency 4 --network-timeout 100000 --mutex network --ignore-engines
 
 COPY msa/web-ui/server.ts msa/web-ui/tsconfig.json ./
 COPY msa/web-ui/config/logger.ts ./config/logger.ts

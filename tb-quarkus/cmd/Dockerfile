@@ -4,9 +4,9 @@ FROM gradle:8.10.2-jdk21 AS build
 
 WORKDIR /home/gradle/project
 
-COPY --chown=gradle:gradle cmd/settings.gradle cmd/build.gradle cmd/gradle.properties ./
-COPY --chown=gradle:gradle cmd/src ./src
-COPY --chown=gradle:gradle gateway/src/main/resources/META-INF/openapi.yaml ../gateway/src/main/resources/META-INF/openapi.yaml
+COPY --chown=gradle:gradle tb-quarkus/cmd/settings.gradle tb-quarkus/cmd/build.gradle tb-quarkus/cmd/gradle.properties ./
+COPY --chown=gradle:gradle tb-quarkus/cmd/src ./src
+COPY --chown=gradle:gradle api-specs/openapi.yaml ./openapi.yaml
 
 RUN gradle --no-daemon quarkusBuild
 

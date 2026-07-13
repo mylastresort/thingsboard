@@ -2,9 +2,11 @@ package org.tb.quarkus.controller;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import org.tb.quarkus.api.ModelsApi;
 import org.tb.quarkus.model.*;
 import org.tb.quarkus.service.FailureModeRecordService;
+import org.tb.quarkus.service.PdmSeedService;
 import org.tb.quarkus.service.PredictiveModelsRestService;
 
 import java.util.List;
@@ -17,6 +19,7 @@ public class ModelsApiImpl implements ModelsApi {
 
     @Inject FailureModeRecordService service;
     @Inject PredictiveModelsRestService predictiveModelsRestService;
+    @Inject PdmSeedService pdmSeedService;
 
     @Override
     public Map<String, List<AvailableModelOption>> getAvailableModels() {
@@ -78,6 +81,24 @@ public class ModelsApiImpl implements ModelsApi {
     @Override
     public Map<String, Object> getForecastsByDeviceId(String deviceId, Integer pageSize, Integer page) {
         return predictiveModelsRestService.getForecastsByDeviceId(deviceId, pageSize, page);
+    }
+
+    @Override
+    public PdmSeedMachineOptions getSeedMachineOptions() {
+        return pdmSeedService.getOptions();
+    }
+
+    @Override
+    public PdmSeedMachineResult seedMachine(PdmSeedMachineRequest body) {
+        try {
+            return pdmSeedService.seed(body);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to seed PdM machine", e);
+        }
     }
 
     @Override

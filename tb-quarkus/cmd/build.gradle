@@ -45,7 +45,7 @@ compileTestJava {
 tasks.register('syncOpenApiSpec', Copy) {
     group = 'openapi tools'
     description = 'Copy the gateway OpenAPI spec into src/main/openapi for code generation.'
-    from "$projectDir/../../api-specs/openapi.yaml"
+    from "$projectDir/openapi.yaml"
     into "$projectDir/src/main/openapi"
 }
 

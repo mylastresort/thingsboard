@@ -5,12 +5,17 @@
 # Source is bind-mounted at runtime (see docker-compose.gateway.yml), so this
 # image only needs the JDK + gradle wrapper to be present at container start.
 
+FROM node:22-slim AS node
+
 FROM eclipse-temurin:21-jdk
 
 WORKDIR /workspace/tb-quarkus/gateway
 
-# Copy just enough to let the wrapper self-install before the bind mount lands
-# on top of it. Everything under src/ and api-specs/ comes from the volumes.
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
 COPY tb-quarkus/gateway/gradlew tb-quarkus/gateway/gradlew.bat tb-quarkus/gateway/settings.gradle tb-quarkus/gateway/build.gradle tb-quarkus/gateway/gradle.properties ./
 COPY tb-quarkus/gateway/gradle ./gradle
 

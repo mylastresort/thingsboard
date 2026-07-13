@@ -7,3 +7,5 @@ build
 *.iml
 
 .DS_Store
+
+gateway/src/main/resources/META-INF/openapi.yaml

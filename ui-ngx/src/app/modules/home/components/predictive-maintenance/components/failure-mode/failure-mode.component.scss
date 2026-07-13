@@ -124,20 +124,27 @@
   padding: 0 0 0.75rem;
 
   .failure-mode-search {
-    flex: 1 1 20rem;
+    order: 0;
+    flex: 1 1 auto;
     min-width: min(100%, 16rem);
   }
 
   .failure-mode-device-filter {
+    order: 30;
     flex: 0 1 16rem;
     min-width: min(100%, 12rem);
   }
 
   .failure-mode-control-spacer {
-    flex: 1 1 auto;
+    display: none;
+  }
+
+  > button {
+    order: 20;
   }
 
   .csv-file-input {
+    order: 20;
     display: none;
   }
 
@@ -166,6 +173,7 @@
 
 .failure-mode-table {
   width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 
@@ -185,7 +193,26 @@
 
   .mat-column-actions {
     width: 112px;
-    text-align: center;
+    text-align: right;
+    padding-right: 1rem;
+  }
+
+  .mat-column-datetime {
+    width: 18%;
+  }
+
+  .mat-column-deviceName {
+    width: 18%;
+  }
+
+  .mat-column-description,
+  .mat-column-partsReplaced {
+    width: 27%;
+  }
+
+  .mat-column-errorCode,
+  .mat-column-rootCause {
+    width: 52%;
   }
 }
 

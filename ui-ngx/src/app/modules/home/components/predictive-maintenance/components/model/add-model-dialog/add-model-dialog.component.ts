@@ -265,6 +265,9 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
 
   // Prefetch first page of devices when input is focused
   onDeviceInputFocus(): void {
+    if (this.isEditMode) {
+      return;
+    }
     if (!this.isDevicesPrefetched) {
       this.loadTenantDevices();
     }
@@ -291,6 +294,9 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
 
   // Event when autocomplete is opened
   onAutocompleteOpened(): void {
+    if (this.isEditMode) {
+      return;
+    }
     // If not prefetched yet, fetch devices
     if (!this.isDevicesPrefetched) {
       this.loadTenantDevices();
@@ -299,6 +305,10 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
 
   // Handle arrow down key to prefetch and open autocomplete
   onArrowDown(event: KeyboardEvent): void {
+    if (this.isEditMode) {
+      event.preventDefault();
+      return;
+    }
     if (!this.isDevicesPrefetched) {
       this.loadTenantDevices('', true);
     }
@@ -358,6 +368,32 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
     }
 
     return this.devicesList.find((device) => device.name.toLowerCase() === normalizedName) || null;
+  }
+
+  private getEditingDeviceId(): string {
+    const deviceId = this.editingForecast?.deviceId;
+    return typeof deviceId === 'string' ? deviceId : deviceId?.id || '';
+  }
+
+  private createEditingDeviceFallback(): DeviceInfo | null {
+    const deviceId = this.getEditingDeviceId();
+    if (!deviceId) {
+      return null;
+    }
+
+    return {
+      id: {
+        entityType: EntityType.DEVICE,
+        id: deviceId,
+      },
+      name: this.editingForecast?.device || deviceId,
+    } as DeviceInfo;
+  }
+
+  private lockDeviceControlForEdit(): void {
+    if (this.isEditMode && this.myControl.enabled) {
+      this.myControl.disable({ emitEvent: false });
+    }
   }
 
   // Get hint text showing device names
@@ -724,11 +760,12 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
 
     // If not found by name and we have a device ID, try by ID
     if (!selectedDevice && this.editingForecast.deviceId) {
-      const deviceId =
-        typeof this.editingForecast.deviceId === 'string'
-          ? this.editingForecast.deviceId
-          : this.editingForecast.deviceId.id;
+      const deviceId = this.getEditingDeviceId();
       selectedDevice = this.devicesList.find((d) => d.id.id === deviceId);
+    }
+
+    if (!selectedDevice) {
+      selectedDevice = this.createEditingDeviceFallback();
     }
 
     // If still not found, try using the trueId (forecast ID) to match with device
@@ -743,7 +780,8 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
 
     if (selectedDevice) {
       this.selectedDevice = selectedDevice;
-      this.myControl.setValue(selectedDevice);
+      this.myControl.setValue(selectedDevice, { emitEvent: false });
+      this.lockDeviceControlForEdit();
 
       // Load telemetry for the selected device
       this.onDeviceSelected(selectedDevice);

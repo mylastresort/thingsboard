@@ -825,15 +825,21 @@ export class ModelComponent
     }
     this.predictiveModelsService.getPredictiveModel(this.trueId).subscribe(
       (forecastData) => {
-        const forecastGrouping =
-          JSON.parse(forecastData.additionalData || "{}").forecastGrouping ||
-          "hourly";
+        const additionalData =
+          typeof forecastData.additionalData === "string"
+            ? JSON.parse(forecastData.additionalData || "{}")
+            : forecastData.additionalData || {};
+        const forecastId =
+          typeof forecastData.id === "string"
+            ? forecastData.id
+            : forecastData.id?.id || this.trueId;
+        const forecastGrouping = additionalData.forecastGrouping || "hourly";
         const dialogData = {
           isEdit: true,
           forecastData: {
-            id: forecastData.id,
-            trueId: forecastData.id,
-            modelName: forecastData.name || forecastData.id.id.split("-")[0],
+            id: forecastId,
+            trueId: forecastId,
+            modelName: forecastData.name || forecastId.split("-")[0],
             device: this.device,
             deviceId: forecastData.deviceId,
             attributes: forecastData.attributes || [],
@@ -862,10 +868,10 @@ export class ModelComponent
               if (result.needsRebuild) {
                 this.dialogService
                   .confirm(
-                    this.translate.instant("forecast.rebuild-model-title"),
-                    this.translate.instant("forecast.rebuild-model-text"),
-                    this.translate.instant("action.cancel"),
-                    this.translate.instant("forecast.rebuild"),
+                    "Rebuild model",
+                    "This change requires rebuilding the model. Do you want to rebuild it now?",
+                    "Cancel",
+                    "Rebuild",
                     true
                   )
                   .subscribe((confirmed) => {

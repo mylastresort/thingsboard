@@ -101,6 +101,16 @@ kafka:
 assetopsbench:
   path: ${ASSETOPSBENCH_PATH:}
 
+agents:
+  tb:
+    url: ${TB_URL:http://thingsboard:8080}
+    username: ${TB_USERNAME:tenant@thingsboard.org}
+    password: ${TB_PASSWORD:tenant}
+
+pdm:
+  seed:
+    data: ${PDM_SEED_DATA:/data}
+
 # ==============================================================================
 # DEV / TEST DATASOURCE
 # currentSchema=tb_quarkus sets the connection-level default schema —

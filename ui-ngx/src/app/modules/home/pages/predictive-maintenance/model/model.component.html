@@ -290,7 +290,7 @@
 
     <!-- Anomalies Tab -->
     <div
-      class="tab-panel"
+      class="tab-panel anomalies-tab-panel"
       role="tabpanel"
       *ngIf="
         activeDashboardTab === 'anomalies' &&
@@ -298,7 +298,7 @@
         isWidgetVisible('anomalies')
       "
     >
-      <div class="widgets-grid-container">
+      <div class="widgets-grid-container anomalies-grid-container">
         <div class="chart-section anomalies-section">
           <div class="section-header">
             <h3 class="section-title">
@@ -346,11 +346,11 @@
 
     <!-- Failure Mode Tab -->
     <div
-      class="tab-panel"
+      class="tab-panel failure-mode-tab-panel"
       role="tabpanel"
       *ngIf="activeDashboardTab === 'failure-mode'"
     >
-      <div class="widgets-grid-container">
+      <div class="widgets-grid-container failure-mode-grid-container">
         <div class="chart-section anomalies-section failure-mode-section">
           <div class="section-header">
             <h3 class="section-title">

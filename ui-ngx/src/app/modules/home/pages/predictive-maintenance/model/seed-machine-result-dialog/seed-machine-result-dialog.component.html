@@ -1,0 +1,45 @@
+<h2 mat-dialog-title>Seed completed</h2>
+
+<mat-dialog-content class="seed-result-content">
+  <div class="seed-result-summary">
+    <div class="summary-item">
+      <span class="summary-value">{{ result.devicesReady }}</span>
+      <span class="summary-label">Devices ready</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-value">{{ result.loadedMachines }}</span>
+      <span class="summary-label">Machines loaded</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-value">{{ result.telemetryPoints }}</span>
+      <span class="summary-label">Telemetry points</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-value">{{ failureModeRecords ?? "n/a" }}</span>
+      <span class="summary-label">Failure records</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-value">{{ result.shiftedMachines }}</span>
+      <span class="summary-label">Shifted machines</span>
+    </div>
+  </div>
+
+  <div class="warning-row" *ngIf="result.failedDevices > 0">
+    <mat-icon>warning</mat-icon>
+    <span>{{ result.failedDevices }} device telemetry push failed.</span>
+  </div>
+
+  <section class="machine-section" *ngIf="machines.length > 0">
+    <h3>Machine to device mapping</h3>
+    <div class="machine-list">
+      <div class="machine-row" *ngFor="let machine of machines">
+        <span class="machine-id">Machine {{ machine.machineId }}</span>
+        <span class="device-id">{{ machine.deviceId }}</span>
+      </div>
+    </div>
+  </section>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-raised-button color="primary" mat-dialog-close>Done</button>
+</mat-dialog-actions>

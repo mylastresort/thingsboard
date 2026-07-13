@@ -9,7 +9,7 @@
     "prestart": "yarn generate:api",
     "prebuild:prod": "yarn generate:api",
     "start": "node --max_old_space_size=8048 ./node_modules/@angular/cli/bin/ng serve --configuration development --host 0.0.0.0 --open",
-    "build:prod": "node --max_old_space_size=4096 ./node_modules/@angular/cli/bin/ng build --configuration production",
+    "build:prod": "npm run generate:api && node --max_old_space_size=4096 ./node_modules/@angular/cli/bin/ng build --configuration production",
     "build:types": "node generate-types.js",
     "build:icon-metadata": "node generate-icon-metadata.js",
     "lint": "ng lint",

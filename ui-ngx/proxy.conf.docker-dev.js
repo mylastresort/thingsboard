@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-const gatewayUrl = process.env.GATEWAY_URL || "http://gateway:80";
+const gatewayUrl = process.env.GATEWAY_URL || "http://proxy:80";
 const wsGatewayUrl = gatewayUrl.replace(/^http/, "ws");
 
 const PROXY_CONFIG = {

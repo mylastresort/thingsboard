@@ -2,7 +2,7 @@
 set -e
 
 if [ ! -d node_modules ]; then
-    echo 'Installing node_modules...' && yarn install --non-interactive --check-files --network-concurrency 4 --network-timeout 100000 --mutex network
+    echo 'Installing node_modules...' && yarn install --non-interactive --check-files --network-concurrency 4 --network-timeout 100000 --mutex network --ignore-engines
 fi
 
 echo 'Generating API client from OpenAPI spec...'

@@ -1,0 +1,84 @@
+<h2 mat-dialog-title>Seed machine</h2>
+
+<mat-dialog-content class="seed-machine-content" [formGroup]="form">
+  <mat-button-toggle-group class="seed-mode-toggle" formControlName="mode">
+    <mat-button-toggle value="maxMachines">Max machines</mat-button-toggle>
+    <mat-button-toggle value="selectedMachines">Selected machines</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <div class="seed-grid" *ngIf="form.controls.mode.value === 'maxMachines'">
+    <mat-form-field appearance="outline">
+      <mat-label>Max machines</mat-label>
+      <input matInput type="number" min="1" formControlName="maxMachines" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Machine prefix</mat-label>
+      <input matInput formControlName="machinePrefix" maxlength="255" />
+      <mat-hint>Names use prefix plus machine ID.</mat-hint>
+    </mat-form-field>
+  </div>
+
+  <div *ngIf="form.controls.mode.value === 'selectedMachines'">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Machines</mat-label>
+      <mat-select
+        formControlName="selectedMachineIds"
+        multiple
+        (selectionChange)="onSelectedMachineIdsChange($event.value)"
+      >
+        <mat-option *ngIf="machineOptions.length === 0" disabled>
+          No machines found
+        </mat-option>
+        <mat-option
+          *ngFor="let machine of machineOptions"
+          [value]="machine.machineId"
+        >
+          {{ machine.label || ("Machine " + machine.machineId) }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="form.controls.selectedMachineIds.hasError('required')">
+        Select at least one machine and provide a name.
+      </mat-error>
+    </mat-form-field>
+
+    <div class="selected-machine-list" *ngIf="selectedMachines().length > 0">
+      <mat-form-field
+        appearance="outline"
+        *ngFor="let machineId of selectedMachines()"
+      >
+        <mat-label>{{ machineLabel(machineId) }} name</mat-label>
+        <input
+          matInput
+          maxlength="255"
+          [formControl]="machineNameControl(machineId)"
+        />
+        <mat-error *ngIf="machineNameControl(machineId).hasError('required')">
+          Machine name is required.
+        </mat-error>
+        <mat-error *ngIf="machineNameControl(machineId).hasError('maxlength')">
+          Machine name is too long.
+        </mat-error>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <div class="seed-grid">
+    <mat-form-field appearance="outline">
+      <mat-label>Workers</mat-label>
+      <input matInput type="number" min="1" formControlName="workers" />
+    </mat-form-field>
+  </div>
+
+  <div class="seed-checks">
+    <mat-checkbox formControlName="shiftToNow">Shift timestamps to now</mat-checkbox>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button color="primary" (click)="seed()">
+    <mat-icon>add</mat-icon>
+    Seed
+  </button>
+</mat-dialog-actions>

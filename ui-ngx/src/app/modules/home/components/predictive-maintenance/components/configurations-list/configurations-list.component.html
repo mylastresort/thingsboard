@@ -55,6 +55,17 @@
                   </button>
                 </mat-menu>
 
+                <!-- Seed PdM machine button -->
+                <button
+                  mat-icon-button
+                  (click)="openSeedMachineDialog()"
+                  matTooltip="Seed PdM machine"
+                  matTooltipPosition="above"
+                  [disabled]="isSeedingMachine"
+                >
+                  <mat-icon>precision_manufacturing</mat-icon>
+                </button>
+
                 <!-- Refresh button -->
                 <button
                   mat-icon-button

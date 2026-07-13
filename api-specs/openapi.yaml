@@ -155,6 +155,43 @@ paths:
           $ref: "#/components/responses/Error"
         "500":
           $ref: "#/components/responses/Error"
+  /models/seed-machine/options:
+    get:
+      operationId: getSeedMachineOptions
+      summary: Get PdM machine seed defaults and supported options
+      responses:
+        "200":
+          description: Seed option defaults
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PdmSeedMachineOptions"
+        "500":
+          $ref: "#/components/responses/Error"
+  /models/seed-machine:
+    post:
+      operationId: seedMachine
+      summary: Seed PdM machine telemetry into ThingsBoard
+      description: >
+        Accepts public PdM loader configuration as JSON. ThingsBoard connection
+        details and execution mode are configured server-side.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PdmSeedMachineRequest"
+      responses:
+        "200":
+          description: Seed result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PdmSeedMachineResult"
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
   /models/{forecast_id}:
     get:
       operationId: getForecast
@@ -773,6 +810,133 @@ components:
           type: object
           additionalProperties: true
           description: Hyperparameter schema/defaults for this model type; shape varies per model_name.
+    PdmSeedMachineRequest:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum:
+            - maxMachines
+            - selectedMachines
+          default: maxMachines
+        machinePrefix:
+          type: string
+          description: Optional prefix for generated machine names in maxMachines mode.
+        machines:
+          type: array
+          description: Machine IDs and names to seed in selectedMachines mode.
+          items:
+            $ref: "#/components/schemas/PdmSeedMachineSelection"
+        maxMachines:
+          type: integer
+          default: 1
+          minimum: 1
+        shiftToNow:
+          type: boolean
+          default: true
+        workers:
+          type: integer
+          default: 1
+          minimum: 1
+    PdmSeedMachineSelection:
+      type: object
+      required:
+        - machineId
+        - machineName
+      properties:
+        machineId:
+          type: integer
+        machineName:
+          type: string
+    PdmSeedMachineOption:
+      type: object
+      required:
+        - machineId
+      properties:
+        machineId:
+          type: integer
+        model:
+          type: string
+        age:
+          type: string
+        label:
+          type: string
+    PdmSeedMachineDefaults:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum:
+            - maxMachines
+            - selectedMachines
+          default: maxMachines
+        machinePrefix:
+          type: string
+          description: Optional prefix for generated machine names in maxMachines mode.
+        machines:
+          type: array
+          description: Machine IDs and names to seed in selectedMachines mode.
+          items:
+            $ref: "#/components/schemas/PdmSeedMachineSelection"
+        maxMachines:
+          type: integer
+          default: 1
+          minimum: 1
+        shiftToNow:
+          type: boolean
+          default: true
+        workers:
+          type: integer
+          default: 1
+          minimum: 1
+    PdmSeedMachineOptions:
+      type: object
+      required:
+        - defaults
+        - fields
+        - machines
+      properties:
+        defaults:
+          $ref: "#/components/schemas/PdmSeedMachineDefaults"
+        fields:
+          type: array
+          items:
+            type: string
+        machines:
+          type: array
+          items:
+            $ref: "#/components/schemas/PdmSeedMachineOption"
+    PdmSeedMachineResult:
+      type: object
+      required:
+        - loadedMachines
+        - devicesReady
+        - telemetryPoints
+        - failureModeRecords
+        - shiftedMachines
+        - failedDevices
+        - machineToDevice
+      properties:
+        loadedMachines:
+          type: integer
+        devicesReady:
+          type: integer
+        telemetryPoints:
+          type: integer
+        failureModeRecords:
+          type: integer
+        shiftedMachines:
+          type: integer
+        failedDevices:
+          type: integer
+        machineToDevice:
+          type: object
+          additionalProperties:
+            type: string
     FailureModeRecord:
       type: object
       required:

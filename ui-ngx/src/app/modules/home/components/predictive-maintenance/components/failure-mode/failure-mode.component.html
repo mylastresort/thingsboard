@@ -42,6 +42,7 @@
   <mat-tab-group
     *ngIf="!isLoading && !errorMessage"
     class="failure-mode-tabs"
+    [mat-stretch-tabs]="false"
     animationDuration="0ms"
     (selectedIndexChange)="setActiveView($event)"
   >
