@@ -57,6 +57,7 @@ class DataRegistry:
                 placeholders = ", ".join([f":key_{i}" for i in range(len(key_names))])
                 params = {f"key_{i}": key for i, key in enumerate(key_names)}
 
+                # TODO: use TB API Client
                 query = text(
                     f"""
                     SELECT key, key_id
@@ -88,6 +89,7 @@ class DataRegistry:
     def _get_key_id(self, key_name: str) -> Optional[int]:
         try:
             with self.engine.connect() as conn:
+                # TODO: use TB API Client
                 query = text(
                     """
                     SELECT key_id
@@ -107,6 +109,7 @@ class DataRegistry:
     def fetch_predictive_model_config(self, model_id: str) -> Dict[str, Any]:
         try:
             with self.engine.connect() as conn:
+                # TODO: use Quarkus API Client
                 query = text(
                     """
                     SELECT 
@@ -160,6 +163,7 @@ class DataRegistry:
     def fetch_model_telemetry_keys(self, model_id: str) -> List[str]:
         try:
             with self.engine.connect() as conn:
+                # TODO: use TB API Client
                 discover_query = text(
                     """
                     SELECT DISTINCT ts_kv.key, kd.key as key_name
@@ -209,6 +213,7 @@ class DataRegistry:
 
         with self.engine.connect() as conn:
             if end_date is not None:
+                # TODO: use Quarkus API Client
                 maint_query = text(
                     """
                     SELECT
@@ -228,6 +233,7 @@ class DataRegistry:
                     "end_time": str(end_date),
                 }
             else:
+                # TODO: use Quarkus API Client
                 maint_query = text(
                     """
                     SELECT
@@ -278,6 +284,7 @@ class DataRegistry:
 
         with self.engine.connect() as conn:
             if end_date is not None:
+                # TODO: use Quarkus API Client
                 error_query = text(
                     """
                     SELECT
@@ -296,6 +303,7 @@ class DataRegistry:
                     "end_time": str(end_date),
                 }
             else:
+                # TODO: use Quarkus API Client
                 error_query = text(
                     """
                     SELECT
@@ -343,6 +351,7 @@ class DataRegistry:
         cutoff_date = start_date
 
         with self.engine.connect() as conn:
+            # TODO: use Quarkus API Client
             failure_query = text(
                 """
                 SELECT
@@ -389,6 +398,7 @@ class DataRegistry:
         machine_model = "model3"
 
         if age_key_id:
+            # TODO: use TB API Client
             age_query = text(
                 """
                     SELECT
@@ -408,6 +418,7 @@ class DataRegistry:
                     machine_age = int(row.age)
 
         if model_key_id:
+            # TODO: use TB API Client
             model_query = text(
                 """
                     SELECT
@@ -485,6 +496,7 @@ class DataRegistry:
                 feature_cols_24h = [col for col in features_df.columns if "24h" in col]
                 if feature_cols_24h:
                     features_df = features_df.dropna(subset=feature_cols_24h, how="all")
+                # TODO: use Quarkus API Client
                 error_query = text(
                     """
                     SELECT
@@ -541,6 +553,7 @@ class DataRegistry:
                 else:
                     for i in range(1, 6):
                         features_df[f"error{i}count"] = 0
+                # TODO: use Quarkus API Client
                 maint_query = text(
                     """
                     SELECT
@@ -622,6 +635,7 @@ class DataRegistry:
                 machine_age = 10
 
                 if age_key_id:
+                    # TODO: use TB API Client
                     age_query = text(
                         """
                         SELECT
@@ -643,6 +657,7 @@ class DataRegistry:
 
                 labels = None
                 if include_failures:
+                    # TODO: use Quarkus API Client
                     failure_query = text(
                         """
                         SELECT
@@ -858,6 +873,7 @@ class DataRegistry:
         logger.info("Fetching all devices")
 
         try:
+            # TODO: use TB API Client
             query = text(
                 """
                 SELECT id, name, type
