@@ -228,6 +228,24 @@ logs-tb-quarkus-dev: ## Tail tb-quarkus dev logs
 lazydocker: ## Launch lazydocker pre-wired to the split compose files (project-local config, doesn't touch your global lazydocker config)
 	XDG_CONFIG_HOME="$(CURDIR)/.lazydocker" lazydocker -p $(PROJECT)
 
+generate-kpods:
+	# check if directory command exists
+	@command -v kompose >/dev/null 2>&1 || { echo >&2 "kompose is required but not installed. Please install kompose to use this target."; exit 1; }
+	# create directory if it doesn't exist
+	@mkdir -p k8s
+	# copy .env file to docker-compose directory
+	@cp .env docker-compose/.env
+	cd k8s && kompose convert \
+		-f ../docker-compose/docker-compose.base.yml \
+		-f ../docker-compose/docker-compose.db.yml \
+		-f ../docker-compose/docker-compose.tb.yml \
+		-f ../docker-compose/docker-compose.gateway.yml \
+		-f ../docker-compose/docker-compose.web.yml \
+		-f ../docker-compose/docker-compose.model.yml \
+		-f ../docker-compose/docker-compose.config.yml \
+		-f ../docker-compose/docker-compose.mcp.yml
+	@rm docker-compose/.env
+
 # ─── status ──────────────────────────────────────────────────────────────────
 
 .PHONY: ps

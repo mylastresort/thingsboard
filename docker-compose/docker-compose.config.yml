@@ -1,7 +1,7 @@
 services:
   config-db:
     image: postgres:16
-    restart: on-failure:3
+    restart: on-failure
     environment:
       POSTGRES_USER: config_user
       POSTGRES_PASSWORD: config_pass
@@ -21,7 +21,7 @@ services:
     build:
       context: ./config-api
       dockerfile: Dockerfile
-    restart: on-failure:3
+    restart: on-failure
     ports:
       - "9000:9000"
     depends_on:
