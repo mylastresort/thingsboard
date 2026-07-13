@@ -25,6 +25,7 @@ Skipping any of these steps is a violation. NEVER implement a feature by hand-co
 
 ## Rules
 
+- REST endpoints in this gateway are schema-first. Update `api-specs/openapi.yaml` first, let OpenAPI Generator produce the `org.tb.quarkus.api.*Api` interface and `org.tb.quarkus.model.*` DTOs, then implement that generated interface in `src/main/java/org/tb/quarkus/controller/*ApiImpl.java`. Do not add standalone JAX-RS resources for new public endpoints; `mp.openapi.scan.disable` is enabled, so scanner-only endpoints will not appear in Swagger UI.
 - NEVER implement features manually when a Quarkus extension exists -- search for and add the right extension first.
 - NEVER silently pick an extension when multiple options exist -- ALWAYS present options to the user and wait for their choice.
 - NEVER write code for a feature without first loading its skill via `quarkus_skills`.

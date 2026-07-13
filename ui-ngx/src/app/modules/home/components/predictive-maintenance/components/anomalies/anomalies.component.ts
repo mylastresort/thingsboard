@@ -18,6 +18,7 @@ import {
   Component,
   Input,
   OnInit,
+  OnDestroy,
   ViewChild,
   ViewContainerRef,
   Injector,
@@ -94,7 +95,7 @@ export interface AnomalyStreamSubscription {
   templateUrl: "./anomalies.component.html",
   styleUrls: ["./anomalies.component.scss"],
 })
-export class AnomaliesComponent implements OnInit {
+export class AnomaliesComponent implements OnInit, OnDestroy {
   @Input() deviceId?: string;
 
   @Input() forecastId?: string;
@@ -182,6 +183,8 @@ export class AnomaliesComponent implements OnInit {
 
   private anomalyStreamSubscription?: Subscription;
 
+  private anomaliesDataSubscription?: Subscription;
+
   private anomalies: Map<string, AnomalyReport> = new Map<
     string,
     AnomalyReport
@@ -212,9 +215,15 @@ export class AnomaliesComponent implements OnInit {
       this.handleNewAnomaly(anomaly);
     });
 
-    this.predictiveMaintenanceService.anomaliesData$.subscribe((anomaly) => {
-      this.handleNewAnomaly(anomaly);
-    });
+    this.anomaliesDataSubscription =
+      this.predictiveMaintenanceService.anomaliesData$.subscribe((anomaly) => {
+        this.handleNewAnomaly(anomaly);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.anomalyStreamSubscription?.unsubscribe();
+    this.anomaliesDataSubscription?.unsubscribe();
   }
 
   // eslint-disable-next-line @angular-eslint/use-lifecycle-interface
@@ -492,11 +501,13 @@ export class AnomaliesComponent implements OnInit {
       .subscribe({
         next: (response: { deletedCount: number; message: string }) => {
           this.anomalies.clear();
+          this.predictiveMaintenanceService.clearAnomalies();
           this.dataSource.data = [];
         },
         error: (error: any) => {
           console.error("Failed to delete predictions:", error);
           this.anomalies.clear();
+          this.predictiveMaintenanceService.clearAnomalies();
           this.dataSource.data = [];
         },
       });
@@ -789,7 +800,7 @@ export class AnomaliesComponent implements OnInit {
   }
 
   private handleNewAnomaly(anomaly: AnomalyReport): void {
-    anomaly.creationDate = new Date().toISOString();
+    anomaly.creationDate = anomaly.creationDate || new Date().toISOString();
 
     if ((!anomaly.startTime || !anomaly.endTime) && anomaly.timeRange) {
       const parts = anomaly.timeRange.split("/");

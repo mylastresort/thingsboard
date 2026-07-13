@@ -82,7 +82,7 @@ public class PdmUnifiedWebSocket {
                 case "activate" -> {
                     readGeneratedCommand("ActivateCommand", node);
                     state.statusSubscriptions.put(forecastId, commandId);
-                    state.logSubscriptions.put(forecastId, new LogSubscription(commandId, null, 100));
+                    state.logSubscriptions.put(forecastId, new LogSubscription(commandId, null, 100, 0));
                     LOG.infof("PdM websocket activate auto-subscribed forecastId=%s commandId=%s", forecastId, commandId);
                     return response(commandId, forecastId, StreamMessageType.PROGRESS, "predictive_model", "Training command queued",
                             pdmCommandService.train(forecastId, commandData(node, commandId)));
@@ -108,12 +108,15 @@ public class PdmUnifiedWebSocket {
                 case "subscribe_logs", "job_logs" -> {
                     readGeneratedCommand(type.equals("subscribe_logs") ? "SubscribeLogsCommand" : "JobStatusCommand", node);
                     String modelType = text(node.path("data").get("modelType"));
+                    int limit = node.path("data").path("limit").asInt(100);
+                    Map<String, Object> payload = pdmCommandService.logs(forecastId, modelType, limit);
+                    Map<String, Object> response = logsResponse(commandId, forecastId, payload);
                     state.logSubscriptions.put(forecastId, new LogSubscription(
                             commandId,
                             modelType,
-                            node.path("data").path("limit").asInt(100)));
-                    return logsResponse(commandId, forecastId,
-                            pdmCommandService.logs(forecastId, modelType, node.path("data").path("limit").asInt(100)));
+                            limit,
+                            maxLogTimestamp(response)));
+                    return response;
                 }
                 case "unsubscribe_model_status" -> {
                     state.statusSubscriptions.remove(forecastId);
@@ -158,8 +161,17 @@ public class PdmUnifiedWebSocket {
         });
         state.logSubscriptions.forEach((forecastId, subscription) -> {
             try {
-                messages.add(logsResponse(subscription.commandId(), forecastId,
-                        pdmCommandService.logs(forecastId, subscription.modelType(), subscription.limit())));
+                Map<String, Object> response = logsResponse(subscription.commandId(), forecastId,
+                        pdmCommandService.logs(forecastId, subscription.modelType(), subscription.limit()),
+                        subscription.lastSentTimestamp());
+                if (logCount(response) > 0) {
+                    messages.add(response);
+                    state.logSubscriptions.put(forecastId, new LogSubscription(
+                            subscription.commandId(),
+                            subscription.modelType(),
+                            subscription.limit(),
+                            maxLogTimestamp(response)));
+                }
             } catch (Exception e) {
                 LOG.warnf(e, "Failed to build PdM logs update for forecastId=%s", forecastId);
             }
@@ -212,14 +224,19 @@ public class PdmUnifiedWebSocket {
     }
 
     private Map<String, Object> logsResponse(int commandId, String forecastId, Map<String, Object> payload) {
+        return logsResponse(commandId, forecastId, payload, null);
+    }
+
+    private Map<String, Object> logsResponse(int commandId, String forecastId, Map<String, Object> payload, Long minTimestampExclusive) {
         List<?> rawLogs = payload.get("logs") instanceof List<?> list ? list : List.of();
         List<Map<String, Object>> logEntries = rawLogs.stream()
                 .map(this::normalizeLog)
+                .filter(log -> minTimestampExclusive == null || epochMillis(log.get("timestamp")) > minTimestampExclusive)
                 .toList();
 
         Map<String, Object> logs = new LinkedHashMap<>();
         logs.put("logs", logEntries);
-        logs.put("count", payload.get("count") instanceof Number number ? number.intValue() : rawLogs.size());
+        logs.put("count", logEntries.size());
         logs.put("modelType", payload.getOrDefault("modelType", "BOTH"));
 
         Map<String, Object> stream = new LinkedHashMap<>();
@@ -229,6 +246,25 @@ public class PdmUnifiedWebSocket {
         stream.put("data", logs);
         stream.put("timestamp", Instant.now().toString());
         return stream;
+    }
+
+    private int logCount(Map<String, Object> response) {
+        Object data = response.get("data");
+        if (data instanceof Map<?, ?> map && map.get("count") instanceof Number count) {
+            return count.intValue();
+        }
+        return 0;
+    }
+
+    private long maxLogTimestamp(Map<String, Object> response) {
+        Object data = response.get("data");
+        if (!(data instanceof Map<?, ?> map) || !(map.get("logs") instanceof List<?> logs)) {
+            return 0;
+        }
+        return logs.stream()
+                .map(log -> log instanceof Map<?, ?> logMap ? epochMillis(logMap.get("timestamp")) : 0L)
+                .max(Long::compareTo)
+                .orElse(0L);
     }
 
     private Map<String, Object> normalizeLog(Object rawLog) {
@@ -269,7 +305,26 @@ public class PdmUnifiedWebSocket {
         return value == null ? null : value.toString();
     }
 
-    private record LogSubscription(int commandId, String modelType, int limit) {
+    private long epochMillis(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        String text = textValue(value);
+        if (text == null || text.isBlank()) {
+            return 0;
+        }
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException ignored) {
+            try {
+                return Instant.parse(text).toEpochMilli();
+            } catch (Exception ignoredAgain) {
+                return 0;
+            }
+        }
+    }
+
+    private record LogSubscription(int commandId, String modelType, int limit, long lastSentTimestamp) {
     }
 
     private static class WsState {

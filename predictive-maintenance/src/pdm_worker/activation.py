@@ -2,8 +2,7 @@ from datetime import datetime
 from typing import Any, Callable
 
 from src.logger import logger
-from src.model.job import start_prediction_job
-from src.model.predictive_model import ModelStatus, get_or_create_predictive_model
+from src.model.job import PredictionJobManager
 from src.model.shared import get_data_registry, train_and_save_model
 
 ProgressCallback = Callable[[str, dict[str, Any]], None]
@@ -12,19 +11,16 @@ ProgressCallback = Callable[[str, dict[str, Any]], None]
 def activate_forecast(
     forecast_id: str,
     *,
+    job_manager: PredictionJobManager,
     device_id: str | None = None,
     model_type: str | None = None,
     progress_callback: ProgressCallback | None = None,
 ) -> None:
     target = (model_type or "BOTH").upper()
-    predictive_model = get_or_create_predictive_model(forecast_id)
-    predictive_model.set_status(ModelStatus.PENDING)
-    predictive_model.update_training_progress(0, "initializing", "Starting activation...")
 
     data_registry = get_data_registry()
     model_config = data_registry.fetch_predictive_model_config(forecast_id)
     device_id = device_id or model_config["device_id"]
-    predictive_model.device_id = device_id
 
     sensors = [sensor["key"] for sensor in model_config.get("attributes", []) if "key" in sensor]
     aggregation_funcs = {
@@ -45,8 +41,13 @@ def activate_forecast(
 
     if target in {"BOTH", "FORECAST"}:
         forecast_model_id = f"{forecast_id}/forecast_model"
-        _progress(progress_callback, forecast_model_id, 20, "training_forecast", "Training ForecastModel...")
-        predictive_model.set_sub_model_status("forecast_model", "training")
+        _progress(
+            progress_callback,
+            forecast_model_id,
+            20,
+            "training_forecast",
+            "Training ForecastModel...",
+        )
         train_and_save_model(
             model_id=forecast_model_id,
             model_type="ForecastModel",
@@ -61,9 +62,14 @@ def activate_forecast(
                 progress_callback, forecast_model_id, progress
             ),
         )
-        predictive_model.set_sub_model_status("forecast_model", "trained", trained=True)
-        _progress(progress_callback, forecast_model_id, 50, "forecast_complete", "ForecastModel trained successfully")
-        start_prediction_job(
+        _progress(
+            progress_callback,
+            forecast_model_id,
+            50,
+            "forecast_complete",
+            "ForecastModel trained successfully",
+        )
+        job_manager.start(
             forecast_model_id,
             "ForecastModel",
             device_id,
@@ -73,8 +79,13 @@ def activate_forecast(
 
     if target in {"BOTH", "ANOMALY"}:
         anomaly_model_id = f"{forecast_id}/anomaly_predictor"
-        _progress(progress_callback, anomaly_model_id, 55, "training_anomaly", "Training AnomalyPredictor...")
-        predictive_model.set_sub_model_status("anomaly_predictor", "training")
+        _progress(
+            progress_callback,
+            anomaly_model_id,
+            55,
+            "training_anomaly",
+            "Training AnomalyPredictor...",
+        )
         train_and_save_model(
             model_id=anomaly_model_id,
             model_type="AnomalyPredictor",
@@ -87,12 +98,15 @@ def activate_forecast(
                 progress_callback, anomaly_model_id, progress
             ),
         )
-        predictive_model.set_sub_model_status("anomaly_predictor", "trained", trained=True)
-        _progress(progress_callback, anomaly_model_id, 95, "anomaly_complete", "AnomalyPredictor trained successfully")
-        start_prediction_job(anomaly_model_id, "AnomalyPredictor", device_id)
+        _progress(
+            progress_callback,
+            anomaly_model_id,
+            95,
+            "anomaly_complete",
+            "AnomalyPredictor trained successfully",
+        )
+        job_manager.start(anomaly_model_id, "AnomalyPredictor", device_id)
 
-    predictive_model.set_status(ModelStatus.ACTIVE)
-    predictive_model.update_training_progress(100, "complete", "Model activation complete")
     logger.info(f"Kafka worker activation complete for forecastId={forecast_id}")
 
 
@@ -113,4 +127,3 @@ def _progress_dict(
 ) -> None:
     if callback:
         callback(model_id, progress)
-

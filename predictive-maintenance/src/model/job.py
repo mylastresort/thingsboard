@@ -1,16 +1,11 @@
-import sys
-
-sys.path.append("..")
-
 import json
 import threading
 import time
 import traceback
 import uuid
-from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Dict, Set, Union
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -21,17 +16,12 @@ from library import AnomalyPredictor, ForecastModel
 from library.models.anomaly_predictor import feature_cols, load_models, predict_failure
 from src.logger import logger
 from src.model.client import get_client
-from src.model.utils import active_jobs, get_job_status, get_or_create_job_status, job_lock
 from src.settings import settings
 
 from .shared import get_data_registry
 
-model_logs: Dict[str, deque] = {}
 MAX_LOG_ENTRIES = 1000
 SYS_TENANT_ID = "13814000-1dd2-11b2-8080-808080808080"
-
-log_broadcasters: Dict[str, Set[Callable]] = {}
-broadcaster_lock = threading.Lock()
 
 JSONValue = Union[
     str,
@@ -57,31 +47,6 @@ def to_native(o):
 
 
 def add_model_log(model_id: str, level: str, message: JSONValue) -> None:
-    if model_id not in model_logs:
-        model_logs[model_id] = deque(maxlen=MAX_LOG_ENTRIES)
-
-    if "forecast" in model_id.lower():
-        source = "ForecastModel"
-    elif "anomaly" in model_id.lower():
-        source = "AnomalyModel"
-    else:
-        source = "System"
-
-    log_entry = {
-        "timestamp": datetime.now().isoformat() + "Z",
-        "level": level.upper(),
-        "message": message,
-        "type": (
-            "forecast"
-            if "forecast" in model_id
-            else "anomaly"
-            if "anomaly" in model_id
-            else "system"
-        ),
-        "source": source,
-    }
-    model_logs[model_id].append(log_entry)
-
     if level.lower() == "prediction":
         pass
     elif level.lower() == "error":
@@ -90,89 +55,6 @@ def add_model_log(model_id: str, level: str, message: JSONValue) -> None:
         logger.warning(f"[{model_id}] {message}")
     else:
         logger.info(f"[{model_id}] {message}")
-
-    with broadcaster_lock:
-        if model_id in log_broadcasters:
-            for broadcast_callback in log_broadcasters[model_id].copy():
-                try:
-                    broadcast_callback(log_entry)
-                except Exception as e:
-                    logger.error(f"Error broadcasting log to WebSocket: {str(e)}")
-
-
-def prediction_job_worker(
-    model_id: str,
-    model_type: str,
-    device_id: str = None,
-    group_by_ms_per_sensor: dict = None,
-    aggregation_funcs: dict = None,
-):
-    add_model_log(model_id, "info", f"Prediction job started for {model_type}")
-    data_registry = get_data_registry()
-    try:
-        add_model_log(model_id, "info", f"Initializing model worker for {model_type}")
-        path = settings.models_path
-        model_dir = Path(path) / model_id
-        add_model_log(model_id, "info", f"Model directory: {model_dir}")
-
-        hourly_models = None
-        model = None
-
-        if model_type == "AnomalyPredictor":
-            add_model_log(model_id, "info", "Getting data registry...")
-            add_model_log(model_id, "info", f"Loading model from {model_dir}...")
-            hourly_models = load_models(model_dir)
-            add_model_log(model_id, "info", "Model loaded successfully from disk")
-            interval = 24 * 60 * 60 * 60
-        elif model_type == "ForecastModel":
-            data_registry = get_data_registry()
-            forecast_id = model_id.rsplit("/", 1)[0]
-            model_config = data_registry.fetch_predictive_model_config(forecast_id)
-            sensors = model_config.get("attributes", [])
-            sensors = [sensor["key"] for sensor in sensors if "key" in sensor]
-            device_id = device_id or model_config.get("device_id")
-            model = ForecastModel(
-                sensors=sensors,
-                name=model_id,
-                algorithm_name="prophet",
-                lookback=20,
-                device_id=device_id,
-                data_registry=data_registry,
-                group_by_ms_per_sensor=group_by_ms_per_sensor,
-                aggregation_funcs=aggregation_funcs,
-            )
-            model.load(model_dir)
-            interval = 5
-        else:
-            add_model_log(model_id, "error", f"Unknown model type: {model_type}")
-            return
-        add_model_log(
-            model_id,
-            "info",
-            f"Model loaded successfully, running predictions every {interval}s",
-        )
-        iteration = 0
-        while True:
-            should_break = inner_loop(
-                model_id,
-                model_type,
-                device_id,
-                model,
-                hourly_models,
-                iteration,
-                data_registry,
-            )
-            if should_break:
-                break
-            iteration += 1
-            threading.Event().wait(interval)
-    except Exception as e:
-        add_model_log(model_id, "error", f"Job worker crashed: {str(e)}")
-    finally:
-        with job_lock:
-            if model_id in active_jobs:
-                active_jobs[model_id]["status"] = "stopped"
-        add_model_log(model_id, "info", "Job worker terminated")
 
 
 def anomaly_predict_model(
@@ -377,37 +259,184 @@ def forecast_predict_model(
                 )
 
 
-def inner_loop(
-    model_id: str,
-    model_type: str,
-    device_id: str,
-    model,
-    hourly_models: dict,
-    iteration: int,
-    data_registry,
-) -> bool:
-    with job_lock:
-        if model_id not in active_jobs or active_jobs[model_id]["status"] != "running":
-            add_model_log(model_id, "info", "Job stopped by user")
-            return True
+class PredictionJobManager:
+    def __init__(self) -> None:
+        self._jobs: dict[str, dict] = {}
+        self._lock = threading.Lock()
 
-        if active_jobs[model_id].get("paused", False):
-            threading.Event().wait(1)
-            return False
-    result = {}
-    try:
-        add_model_log(model_id, "info", f"Running prediction iteration #{iteration}")
+    def start(
+        self,
+        model_id: str,
+        model_type: str,
+        device_id: str = None,
+        group_by_ms_per_sensor: dict = None,
+        aggregation_funcs: dict = None,
+    ) -> bool:
+        with self._lock:
+            if model_id in self._jobs and self._jobs[model_id]["status"] == "running":
+                add_model_log(model_id, "warn", "Job already running")
+                return False
 
-        if model_type == "AnomalyPredictor":
-            anomaly_predict_model(
-                model_id, iteration, device_id, hourly_models, data_registry
+            job_thread = threading.Thread(
+                target=self._worker,
+                args=(
+                    model_id,
+                    model_type,
+                    device_id,
+                    group_by_ms_per_sensor,
+                    aggregation_funcs,
+                ),
+                daemon=True,
             )
-        elif model_type == "ForecastModel":
-            forecast_predict_model(model_id, iteration, device_id, model, data_registry)
-    except Exception as e:
-        error_details = traceback.format_exc()
-        add_model_log(model_id, "error", f"Prediction failed: {str(e)}")
-        add_model_log(model_id, "error", f"Traceback: {error_details}")
+            self._jobs[model_id] = {
+                "model_id": model_id,
+                "model_type": model_type,
+                "device_id": device_id,
+                "status": "running",
+                "paused": False,
+                "start_time": datetime.now().isoformat() + "Z",
+                "last_run": None,
+                "iterations": 0,
+                "thread": job_thread,
+            }
+            job_thread.start()
+
+        add_model_log(model_id, "info", "Job started successfully")
+        return True
+
+    def stop(self, model_id: str) -> bool:
+        with self._lock:
+            if model_id not in self._jobs:
+                return False
+            self._jobs[model_id]["status"] = "stopped"
+        add_model_log(model_id, "info", "Job stop requested")
+        return True
+
+    def pause(self, model_id: str) -> bool:
+        with self._lock:
+            if model_id not in self._jobs or self._jobs[model_id]["status"] != "running":
+                return False
+            self._jobs[model_id]["paused"] = True
+        add_model_log(model_id, "info", "Job paused")
+        return True
+
+    def unpause(self, model_id: str) -> bool:
+        with self._lock:
+            if model_id not in self._jobs or self._jobs[model_id]["status"] != "running":
+                return False
+            self._jobs[model_id]["paused"] = False
+        add_model_log(model_id, "info", "Job resumed")
+        return True
+
+    def _worker(
+        self,
+        model_id: str,
+        model_type: str,
+        device_id: str = None,
+        group_by_ms_per_sensor: dict = None,
+        aggregation_funcs: dict = None,
+    ) -> None:
+        add_model_log(model_id, "info", f"Prediction job started for {model_type}")
+        data_registry = get_data_registry()
+        try:
+            add_model_log(model_id, "info", f"Initializing model worker for {model_type}")
+            model_dir = Path(settings.models_path) / model_id
+            add_model_log(model_id, "info", f"Model directory: {model_dir}")
+
+            hourly_models = None
+            model = None
+
+            if model_type == "AnomalyPredictor":
+                add_model_log(model_id, "info", "Getting data registry...")
+                add_model_log(model_id, "info", f"Loading model from {model_dir}...")
+                hourly_models = load_models(model_dir)
+                add_model_log(model_id, "info", "Model loaded successfully from disk")
+                interval = 24 * 60 * 60 * 60
+            elif model_type == "ForecastModel":
+                forecast_id = model_id.rsplit("/", 1)[0]
+                model_config = data_registry.fetch_predictive_model_config(forecast_id)
+                sensors = model_config.get("attributes", [])
+                sensors = [sensor["key"] for sensor in sensors if "key" in sensor]
+                device_id = device_id or model_config.get("device_id")
+                model = ForecastModel(
+                    sensors=sensors,
+                    name=model_id,
+                    algorithm_name="prophet",
+                    lookback=20,
+                    device_id=device_id,
+                    data_registry=data_registry,
+                    group_by_ms_per_sensor=group_by_ms_per_sensor,
+                    aggregation_funcs=aggregation_funcs,
+                )
+                model.load(model_dir)
+                interval = 5
+            else:
+                add_model_log(model_id, "error", f"Unknown model type: {model_type}")
+                return
+
+            add_model_log(
+                model_id,
+                "info",
+                f"Model loaded successfully, running predictions every {interval}s",
+            )
+            iteration = 0
+            while True:
+                should_break = self._inner_loop(
+                    model_id,
+                    model_type,
+                    device_id,
+                    model,
+                    hourly_models,
+                    iteration,
+                    data_registry,
+                )
+                if should_break:
+                    break
+                iteration += 1
+                threading.Event().wait(interval)
+        except Exception as e:
+            add_model_log(model_id, "error", f"Job worker crashed: {str(e)}")
+        finally:
+            with self._lock:
+                if model_id in self._jobs:
+                    self._jobs[model_id]["status"] = "stopped"
+            add_model_log(model_id, "info", "Job worker terminated")
+
+    def _inner_loop(
+        self,
+        model_id: str,
+        model_type: str,
+        device_id: str,
+        model,
+        hourly_models: dict,
+        iteration: int,
+        data_registry,
+    ) -> bool:
+        with self._lock:
+            if model_id not in self._jobs or self._jobs[model_id]["status"] != "running":
+                add_model_log(model_id, "info", "Job stopped by user")
+                return True
+
+            if self._jobs[model_id].get("paused", False):
+                threading.Event().wait(1)
+                return False
+
+            self._jobs[model_id]["iterations"] = iteration
+            self._jobs[model_id]["last_run"] = datetime.now().isoformat() + "Z"
+
+        try:
+            add_model_log(model_id, "info", f"Running prediction iteration #{iteration}")
+
+            if model_type == "AnomalyPredictor":
+                anomaly_predict_model(
+                    model_id, iteration, device_id, hourly_models, data_registry
+                )
+            elif model_type == "ForecastModel":
+                forecast_predict_model(model_id, iteration, device_id, model, data_registry)
+        except Exception as e:
+            error_details = traceback.format_exc()
+            add_model_log(model_id, "error", f"Prediction failed: {str(e)}")
+            add_model_log(model_id, "error", f"Traceback: {error_details}")
         return False
 
 
@@ -455,165 +484,3 @@ def save_prediction(data_registry, model_id: str, message, source):
         error_details = traceback.format_exc()
         add_model_log(model_id, "error", f"Failed to save prediction: {str(e)}")
         add_model_log(model_id, "error", f"Save traceback: {error_details}")
-
-
-def start_prediction_job(
-    model_id: str,
-    model_type: str,
-    device_id: str = None,
-    group_by_ms_per_sensor: dict = None,
-    aggregation_funcs: dict = None,
-) -> bool:
-    with job_lock:
-        if model_id in active_jobs and active_jobs[model_id]["status"] == "running":
-            add_model_log(model_id, "warn", "Job already running")
-            return False
-
-        job_thread = threading.Thread(
-            target=prediction_job_worker,
-            args=(model_id, model_type, device_id, group_by_ms_per_sensor, aggregation_funcs),
-            daemon=True,
-        )
-
-        active_jobs[model_id] = {
-            "model_id": model_id,
-            "model_type": model_type,
-            "device_id": device_id,
-            "status": "running",
-            "paused": False,
-            "start_time": datetime.now().isoformat() + "Z",
-            "last_run": None,
-            "iterations": 0,
-            "thread": job_thread,
-        }
-
-        job_thread.start()
-        add_model_log(model_id, "info", f"Job started successfully")
-        return True
-
-
-def stop_prediction_job(model_id: str) -> bool:
-    with job_lock:
-        if model_id not in active_jobs:
-            return False
-
-        active_jobs[model_id]["status"] = "stopped"
-        add_model_log(model_id, "info", "Job stop requested")
-        return True
-
-
-def pause_prediction_job(model_id: str) -> bool:
-    with job_lock:
-        if model_id not in active_jobs:
-            return False
-
-        if active_jobs[model_id]["status"] != "running":
-            return False
-
-        active_jobs[model_id]["paused"] = True
-        add_model_log(model_id, "info", "Job paused")
-        return True
-
-
-def unpause_prediction_job(model_id: str) -> bool:
-    with job_lock:
-        if model_id not in active_jobs:
-            return False
-
-        if active_jobs[model_id]["status"] != "running":
-            return False
-
-        active_jobs[model_id]["paused"] = False
-        add_model_log(model_id, "info", "Job resumed")
-        return True
-
-
-def get_model_logs(model_id: str, level: str = "all", limit: int = 100) -> list:
-    if model_id not in model_logs:
-        return []
-
-    logs = list(model_logs[model_id])
-    if level.upper() != "ALL":
-        logs = [log for log in logs if log["level"] == level.upper()]
-
-    logs = logs[-limit:]
-
-    return logs
-
-
-def subscribe_to_logs(model_id: str, callback: Callable) -> None:
-    with broadcaster_lock:
-        if model_id not in log_broadcasters:
-            log_broadcasters[model_id] = set()
-        log_broadcasters[model_id].add(callback)
-        logger.info(f"WebSocket subscribed to logs for {model_id}")
-
-
-def unsubscribe_from_logs(model_id: str, callback: Callable) -> None:
-    with broadcaster_lock:
-        if model_id in log_broadcasters:
-            log_broadcasters[model_id].discard(callback)
-            if not log_broadcasters[model_id]:
-                del log_broadcasters[model_id]
-            logger.info(f"WebSocket unsubscribed from logs for {model_id}")
-
-
-def subscribe_to_job_status(model_id: str, callback: Callable, rand_id: int) -> None:
-    logger.info(f"Subscribing to job status for {model_id}", extra={"rand_id": rand_id})
-    job = get_or_create_job_status(model_id, rand_id)
-    logger.info(f"Got job status for {model_id}: {job}", extra={"rand_id": rand_id})
-    with job["read_lock"]:
-        logger.info(
-            f"Inside read_lock for subscribing to job status for {model_id}",
-            extra={"rand_id": rand_id},
-        )
-        _len = len(job.get("job_status_subscribers", set()))
-        logger.info(
-            f"Acquired read_lock for subscribing to job status for {model_id}",
-            extra={"rand_id": rand_id},
-        )
-        if "job_status_subscribers" not in job:
-            logger.info(
-                f"Initializing job_status_subscribers set for {model_id}",
-                extra={"rand_id": rand_id},
-            )
-            job["job_status_subscribers"] = set()
-        logger.info(
-            f"Adding subscriber callback for job status for {model_id}",
-            extra={"rand_id": rand_id},
-        )
-        job["job_status_subscribers"].add(callback)
-        logger.info(
-            f"WebSocket subscribed to job status for {model_id}", extra={"rand_id": rand_id}
-        )
-        subscribers_len = len(job["job_status_subscribers"])
-        logger.info(
-            f"Total job status subscribers for {model_id} ({_len} before): {subscribers_len}",
-            extra={"rand_id": rand_id},
-        )
-
-
-def unsubscribe_from_job_status(model_id: str, callback: Callable) -> None:
-    job = get_job_status(model_id)
-    if job:
-        with job["read_lock"]:
-            if "job_status_subscribers" in job:
-                job["job_status_subscribers"].discard(callback)
-                if not job["job_status_subscribers"]:
-                    del job["job_status_subscribers"]
-                logger.info(f"WebSocket unsubscribed from job status for {model_id}")
-
-
-def notify_job_status_update(model_id: str) -> None:
-    logger.info(f"Notifying job status update for {model_id}")
-    job = get_job_status(model_id)
-    logger.info(f"Job status for {model_id}: {job}")
-    if job:
-        subscribers = job["job_status_subscribers"].copy()
-        logger.info(f"Notifying {len(subscribers)} subscribers for job status of {model_id}")
-        for callback in subscribers:
-            try:
-                logger.info(f"Notifying subscriber {callback} for job status of {model_id}")
-                callback(job)
-            except Exception as e:
-                logger.error(f"Error notifying job status subscriber: {str(e)}")

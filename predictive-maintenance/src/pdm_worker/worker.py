@@ -8,13 +8,7 @@ from confluent_kafka.serialization import StringDeserializer
 
 from src.logger import logger
 from src.model import job as job_module
-from src.model import shared as shared_module
-from src.model.job import (
-    pause_prediction_job,
-    start_prediction_job,
-    stop_prediction_job,
-    unpause_prediction_job,
-)
+from src.model.job import PredictionJobManager
 from src.pdm_worker.activation import activate_forecast
 from src.pdm_worker.config import WorkerConfig, load_config
 from src.pdm_worker.events import PdmEventPublisher
@@ -30,6 +24,7 @@ class PdmKafkaWorker:
             event_topic=config.event_topic,
             schema_dir=config.schema_dir,
         )
+        self._jobs = PredictionJobManager()
         self._consumer = self._build_consumer(config)
         self._install_event_hooks()
 
@@ -99,13 +94,14 @@ class PdmKafkaWorker:
                 forecast_id,
                 device_id=device_id,
                 model_type=self._config.worker_model_type,
+                job_manager=self._jobs,
                 progress_callback=self._publisher.progress,
             )
             return
 
         if command_type == "INFER":
             target_model_id = self._target_model_id(forecast_id)
-            handled = start_prediction_job(
+            handled = self._jobs.start(
                 target_model_id,
                 self._source_model_type(target_model_id),
                 device_id=device_id,
@@ -116,11 +112,11 @@ class PdmKafkaWorker:
 
         target_model_id = self._target_model_id(forecast_id)
         if command_type == "STOP":
-            handled = stop_prediction_job(target_model_id)
+            handled = self._jobs.stop(target_model_id)
         elif command_type == "PAUSE":
-            handled = pause_prediction_job(target_model_id)
+            handled = self._jobs.pause(target_model_id)
         elif command_type == "UNPAUSE":
-            handled = unpause_prediction_job(target_model_id)
+            handled = self._jobs.unpause(target_model_id)
         else:
             raise ValueError(f"Unsupported commandType={command_type}")
 
@@ -129,7 +125,6 @@ class PdmKafkaWorker:
 
     def _install_event_hooks(self) -> None:
         original_add_model_log = job_module.add_model_log
-        original_update_training_progress = shared_module.update_training_progress
 
         def add_model_log(model_id: str, level: str, message: Any) -> None:
             original_add_model_log(model_id, level, message)
@@ -143,16 +138,7 @@ class PdmKafkaWorker:
                     result=message.get("result", message),
                 )
 
-        def update_training_progress(
-            model_id: str,
-            progress: dict[str, Any],
-            rand_id: str | None = None,
-        ) -> None:
-            original_update_training_progress(model_id, progress, rand_id)
-            self._publisher.progress(model_id, progress)
-
         job_module.add_model_log = add_model_log
-        shared_module.update_training_progress = update_training_progress
 
     def _handles_model_type(self, command_model_type: str) -> bool:
         return command_model_type == "BOTH" or command_model_type == self._config.worker_model_type

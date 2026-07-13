@@ -11,3 +11,5 @@ README.md
 
 **/.DS_Store
 **/*.iml
+
+tb-quarkus/gateway/src/main/resources/META-INF/openapi.yaml

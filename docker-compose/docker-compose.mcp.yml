@@ -95,10 +95,13 @@ services:
       MAX_OBSERVATION_CHARS: "${TINY_AGENT_MAX_OBSERVATION_CHARS:-2000}"
       PORT: "8300"
       PANDAS_MCP_SERVER_URL: "http://pandas-mcp:8000/sse"
+      PDM_MCP_SERVER_URL: "http://tb-quarkus:8081/mcp/sse"
     ports:
       - "${TINY_AGENT_PORT:-8300}:8300"
     depends_on:
       thingsboard-mcp:
+        condition: service_healthy
+      tb-quarkus:
         condition: service_healthy
       # ollama:
       #   condition: service_healthy

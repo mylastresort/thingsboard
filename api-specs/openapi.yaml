@@ -699,6 +699,79 @@ paths:
           $ref: '#/components/responses/Error'
         '500':
           $ref: '#/components/responses/Error'
+  /api/notify-new-alarm:
+    post:
+      tags:
+        - Notify
+      operationId: notifyNewAlarm
+      summary: Send a WhatsApp notification for a new alarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifyAlarmBody"
+      responses:
+        "200":
+          description: Notification send count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifySentResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /api/notify-claim-assignee:
+    post:
+      tags:
+        - Notify
+      operationId: notifyClaimAssignee
+      summary: Send a WhatsApp notification to a claim assignee by email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifyClaimAssigneeRequest"
+      responses:
+        "200":
+          description: Notification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifyStatusResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
+  /api/notify-alarm-assignee:
+    post:
+      tags:
+        - Notify
+      operationId: notifyAlarmAssignee
+      summary: Send a WhatsApp alarm notification to a user assignee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotifyAlarmAssigneeRequest"
+      responses:
+        "200":
+          description: Notification status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotifyStatusResponse"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
 
 components:
   parameters:
@@ -810,6 +883,63 @@ components:
           type: object
           additionalProperties: true
           description: Hyperparameter schema/defaults for this model type; shape varies per model_name.
+    NotifyAlarmBody:
+      type: object
+      required:
+        - severity
+        - type
+        - startTs
+      properties:
+        severity:
+          type: string
+        type:
+          type: string
+        startTs:
+          type: integer
+          format: int64
+    NotifyClaimAssigneeRequest:
+      type: object
+      required:
+        - email
+        - body
+      properties:
+        email:
+          type: string
+          format: email
+        body:
+          $ref: "#/components/schemas/NotifyAlarmBody"
+    NotifyAlarmAssigneeRequest:
+      type: object
+      required:
+        - assigneeId
+        - severity
+        - type
+        - startTs
+      properties:
+        assigneeId:
+          type: string
+          format: uuid
+        severity:
+          type: string
+        type:
+          type: string
+        startTs:
+          type: integer
+          format: int64
+    NotifySentResponse:
+      type: object
+      required:
+        - sent
+      properties:
+        sent:
+          type: integer
+    NotifyStatusResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
     PdmSeedMachineRequest:
       type: object
       required:

@@ -3,7 +3,6 @@ Shared utilities and constants for model services
 """
 
 import os
-import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -13,7 +12,6 @@ from library import AnomalyPredictor, ForecastModel
 from library.core.data_registry import DataRegistry
 from library.models.anomaly_predictor import save_models, train_model
 from src.logger import logger
-from src.model.utils import active_jobs, get_job_status, get_or_create_job_status, job_lock
 from src.settings import settings
 
 
@@ -62,56 +60,11 @@ MODEL_TYPE_MAP_CLASS = {
     },
 }
 
-training_results = None
-
-
-def _update_training_progress_impl(model_id: str, progress: dict, rand_id: str = None):
-    """
-    Internal implementation of update_training_progress that runs in a thread.
-
-    Args:
-        model_id: The model ID
-        progress: Dictionary with progress information (step, message, progress percentage)
-        rand_id: Random ID for tracking
-    """
-
+def update_training_progress(model_id: str, progress: dict | None, rand_id: str = None):
     logger.info(
         f"{rand_id} - Updating training progress for model_id={model_id}: {progress}",
         extra={"rand_id": rand_id},
     )
-    job = get_job_status(model_id)
-    logger.info(
-        f"{rand_id} - Retrieved job for model_id={model_id}: {job}",
-        extra={"rand_id": rand_id},
-    )
-    if job is not None:
-        with job["read_lock"]:
-            logger.info(
-                f"{rand_id} - Acquired read_lock for model_id={model_id}",
-                extra={"rand_id": rand_id},
-            )
-            job["training_progress"] = progress
-
-    # Notify subscribers after updating
-    from src.model.job import notify_job_status_update
-
-    notify_job_status_update(model_id)
-
-
-def update_training_progress(model_id: str, progress: dict, rand_id: str = None):
-    """
-    Update the training progress for a model in active_jobs and notify subscribers.
-    This is non-blocking - runs in a background thread.
-
-    Args:
-        model_id: The model ID
-        progress: Dictionary with progress information (step, message, progress percentage)
-        rand_id: Random ID for tracking
-    """
-    thread = threading.Thread(
-        target=_update_training_progress_impl, args=(model_id, progress, rand_id), daemon=True
-    )
-    thread.start()
 
 
 def train_and_save_model(
@@ -145,27 +98,6 @@ def train_and_save_model(
     model_dir.mkdir(parents=True, exist_ok=True)
 
     rand_id = os.urandom(4).hex()
-
-    logger.info(
-        f"{rand_id} - Creating active job entry for model_id={model_id} if not exists",
-        extra={"rand_id": rand_id},
-    )
-    get_or_create_job_status(
-        model_id,
-        {
-            "model_id": model_id,
-            "model_type": model_type,
-            "device_id": device_id,
-            "status": "training",
-            "paused": False,
-            "start_time": datetime.now().isoformat() + "Z",
-            "last_run": None,
-            "iterations": 0,
-            "training_progress": None,
-            "thread": None,
-        },
-        rand_id=rand_id,
-    )
 
     if model_type == "AnomalyPredictor":
         train_start_date = kwargs.get(
@@ -348,17 +280,7 @@ def train_and_save_model(
 
         model.save(model_dir)
 
-    # Clear training progress and remove training status when complete
     update_training_progress(model_id, None, rand_id=rand_id)
-
-    logger.info(
-        f"{rand_id} - Removing active job entry for model_id={model_id} after training completion",
-        extra={"rand_id": rand_id},
-    )
-    with job_lock:
-        if model_id in active_jobs and active_jobs[model_id]["status"] == "training":
-            # Remove the job entry since training is done (will be recreated by start_prediction_job)
-            del active_jobs[model_id]
 
     return {
         "status": "success",

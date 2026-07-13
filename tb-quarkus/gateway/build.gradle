@@ -69,12 +69,17 @@ openApiGenerate {
 }
 
 tasks.register('copyOpenApiSpec', Copy) {
-    dependsOn tasks.openApiGenerate   // only runs if openApiGenerate succeeded
     from "$projectDir/../../api-specs/openapi.yaml"
-    into "$projectDir/src/main/resources/META-INF"
+    into "$buildDir/generated/openapi/META-INF"
 }
 
-processResources.dependsOn copyOpenApiSpec
+processResources {
+    dependsOn copyOpenApiSpec
+    exclude "META-INF/openapi.yaml"
+    from("$buildDir/generated/openapi/META-INF") {
+        into "META-INF"
+    }
+}
 
 tasks.register('copyAvroSchemas', Copy) {
     from "$projectDir/src/main/avro"

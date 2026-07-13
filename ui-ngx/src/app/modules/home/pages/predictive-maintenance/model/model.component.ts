@@ -432,7 +432,7 @@ export class ModelComponent
             results.forEach((predictionItem: any) => {
               if (predictionItem.failure_predicted === true) {
                 const anomaly = this.processAnomalyPrediction(predictionItem);
-                this.anomaliesComponent?.addAnomaly(anomaly);
+                this.predictiveModelsService.sendAnomaly(anomaly);
               }
             });
           }
@@ -1726,9 +1726,12 @@ export class ModelComponent
         : [],
       id:
         predictionResult.id ||
-        `${this.trueId || "forecast"}-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}`,
+        [
+          this.trueId || "forecast",
+          predictionResult.datetime || "",
+          predictionResult.predicted_failing_component || "",
+          predictionResult.prediction_index || "",
+        ].join("-"),
       reportEntity: this.deviceId,
       errorName: predictionResult.predicted_failing_component || "",
       severity,

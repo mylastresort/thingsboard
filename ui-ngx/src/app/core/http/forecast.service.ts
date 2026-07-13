@@ -56,7 +56,8 @@ export class PredictiveModelsService {
   // websocket service, not a REST call) — kept as-is, nothing to generate.
   anomaliesDataSubject = new Subject<AnomalyReport>();
   anomaliesData$ = this.anomaliesDataSubject.asObservable();
-  anomalies = [];
+  anomalies: AnomalyReport[] = [];
+  private anomaliesById = new Map<string, AnomalyReport>();
 
   constructor(
     private api: DefaultService,
@@ -65,8 +66,17 @@ export class PredictiveModelsService {
   ) {}
 
   sendAnomaly(anomaly: AnomalyReport) {
-    this.anomalies.push(anomaly);
+    if (!anomaly?.id) {
+      return;
+    }
+    this.anomaliesById.set(anomaly.id, anomaly);
+    this.anomalies = Array.from(this.anomaliesById.values());
     this.anomaliesDataSubject.next(anomaly);
+  }
+
+  clearAnomalies() {
+    this.anomalies = [];
+    this.anomaliesById.clear();
   }
 
   getAvailableModels() {
