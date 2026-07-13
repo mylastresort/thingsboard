@@ -4,7 +4,6 @@ services:
       context: ./go-toolbox
       dockerfile: Dockerfile
       target: base
-    container_name: tb-lts43-monolith-go-toolbox-interpreter
     working_dir: /src
     volumes:
       - ./go-toolbox:/src
@@ -25,7 +24,6 @@ services:
       context: ./go-toolbox
       dockerfile: Dockerfile
       target: dash
-    container_name: tb-lts43-monolith-dash
     volumes:
       - ./go-mod-cache:/go/pkg/mod
       - ./go-build-cache:/root/.cache/go-build

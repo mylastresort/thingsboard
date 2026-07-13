@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://um6p.pdm/schemas/job-state-hash.schema.json",
+  "title": "job:{model_id} Redis hash",
+  "description": "Live cache mirror of pdm-job-state-value.avsc, minus modelId which is the Redis key itself. Redis hash fields are strings on the wire.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "paused", "iterations", "model_type"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["INITIALIZED", "TRAINING", "RUNNING", "PAUSED", "STOPPED", "ERROR"]
+    },
+    "paused": {
+      "type": "string",
+      "enum": ["0", "1"]
+    },
+    "iterations": {
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+    "model_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_run": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

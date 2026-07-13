@@ -1,9 +1,15 @@
 services:
+  proxy:
+    environment:
+      QUARKUS_BACKEND_HOST: tb-quarkus
+    depends_on:
+      tb-quarkus:
+        condition: service_healthy
+
   ws-events:
     build:
       context: ./send-telemetry
       dockerfile: ws-events.Dockerfile
-    container_name: tb-lts43-monolith-ws-events
     volumes:
       - .:/app
     depends_on:
@@ -11,10 +17,11 @@ services:
         condition: service_healthy
 
   tb-web-ui-dev:
+    profiles:
+      - dev
     build:
       context: ./ui-ngx
       dockerfile: .Dockerfile
-    container_name: tb-lts43-monolith-tb-web-ui-dev
     working_dir: /app
     volumes:
       - ./ui-ngx:/app
@@ -32,10 +39,11 @@ services:
         condition: service_healthy
 
   tb-quarkus-dev:
+    profiles:
+      - dev
     build:
       context: .
       dockerfile: tb-quarkus/gateway/src/main/docker/Dockerfile.dev
-    container_name: tb-lts43-monolith-tb-quarkus-dev
     working_dir: /workspace/tb-quarkus/gateway
     volumes:
       - ./tb-quarkus:/workspace/tb-quarkus
@@ -51,11 +59,21 @@ services:
       - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
       - TB_PASSWORD=${TB_PASSWORD:-tenant}
       - PDM_SEED_DATA=${PDM_SEED_DATA:-/data}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - QUARKUS_REDIS_HOSTS=redis://redis:6379
+      - QUARKUS_PROFILE=dev
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       kafka:
         condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     ports:
       - "8082:8081"
       - "5005:5005"
@@ -65,13 +83,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
-    command: ./gradlew quarkusDev --no-daemon -Dquarkus.http.host=0.0.0.0 -Dquarkus.http.port=8081
+    command: ./gradlew quarkusDev --no-daemon -Dquarkus.profile=dev -Dquarkus.http.host=0.0.0.0 -Dquarkus.http.port=8081
 
   tb-quarkus-cmd-dev:
     build:
       context: .
       dockerfile: tb-quarkus/cmd/Dockerfile
-    container_name: tb-lts43-monolith-tb-quarkus-cmd-dev
     environment:
       TB_URL: http://thingsboard:8080
       TB_USERNAME: ${TB_USERNAME:-tenant@thingsboard.org}
@@ -82,29 +99,3 @@ services:
     depends_on:
       thingsboard:
         condition: service_healthy
-
-  tb-quarkus-kafka:
-    image: apache/kafka:4.2.0
-    container_name: tb-lts43-monolith-tb-quarkus-kafka
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://tb-quarkus-kafka:9092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@tb-quarkus-kafka:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-    volumes:
-      - ./tb-quarkus-kafka-data:/var/lib/kafka/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12

@@ -8,6 +8,17 @@ cat <<'EOF'
 
 EOF
 
+if [ "${PDM_PROCESS_ROLE,,}" = "worker" ]; then
+  cat <<'EOF'
+  MODE: KAFKA WORKER
+  INBOUND API: DISABLED
+
+============================================================
+
+EOF
+  exec python -m src.pdm_worker
+fi
+
 # Check if ENABLE_FILE_WATCH is set to true (case-insensitive)
 if [ "${ENABLE_FILE_WATCH,,}" = "true" ]; then
   cat <<'EOF'

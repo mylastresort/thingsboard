@@ -1395,8 +1395,9 @@ export class ModelComponent
             .requestModelStatus(this.trueId)
             .subscribe((msg: any) => {
               if (msg.forecastId != params.id) return;
-              if (msg?.data?.status) {
-                const modelStatus = msg.data.status.toLowerCase();
+              const statusPayload = msg?.data?.data || msg?.data;
+              if (statusPayload?.status) {
+                const modelStatus = statusPayload.status.toLowerCase();
                 if (
                   modelStatus === "inactive" ||
                   modelStatus === "pending" ||
@@ -1408,14 +1409,18 @@ export class ModelComponent
                 }
                 if (
                   modelStatus === "pending" &&
-                  msg.data.trainingProgress !== undefined
+                  typeof statusPayload.trainingProgress === "number"
                 ) {
                   this.progressMessage = {
-                    step: msg.data.trainingStep || "Training",
-                    progress: msg.data.trainingProgress || 0,
+                    step: statusPayload.trainingStep || "Training",
+                    progress: statusPayload.trainingProgress || 0,
                   };
                 } else if (modelStatus !== "pending") {
                   this.progressMessage = null;
+                  if (modelStatus === "active") {
+                    this.activationComplete = true;
+                    this.isActivating = false;
+                  }
                 }
               }
             });
@@ -1476,12 +1481,18 @@ export class ModelComponent
       return;
     }
 
+    const payload = msg?.data?.data || msg?.data || msg;
     switch (msg.type) {
       case "progress":
-        this.progressMessage = {
-          step: msg.step || "Processing",
-          progress: msg.progress || 0,
-        };
+        if (
+          typeof payload.trainingProgress === "number" ||
+          typeof payload.progress === "number"
+        ) {
+          this.progressMessage = {
+            step: payload.trainingStep || payload.step || "Processing",
+            progress: payload.trainingProgress ?? payload.progress,
+          };
+        }
         this.status = "pending";
         break;
       case "complete":
@@ -1493,6 +1504,15 @@ export class ModelComponent
       case "error":
         this.progressMessage = null;
         this.status = "failed";
+        break;
+      case "model_status":
+      case "response":
+        if (payload.status === "active") {
+          this.progressMessage = null;
+          this.activationComplete = true;
+          this.isActivating = false;
+          this.status = "active";
+        }
         break;
     }
   }

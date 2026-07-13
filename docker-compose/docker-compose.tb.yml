@@ -3,7 +3,6 @@ services:
   # if you add a second tb-node later; drop it and unset CACHE_TYPE if not.
   redis:
     image: "redis:7.2-alpine"
-    container_name: tb-lts43-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -19,7 +18,6 @@ services:
   # Single-node KRaft mode — no Zookeeper needed.
   kafka:
     image: apache/kafka:3.7.0
-    container_name: tb-lts43-kafka
     restart: unless-stopped
     ports:
       - "9092:9092"
@@ -45,10 +43,39 @@ services:
       timeout: 5s
       retries: 10
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.7.1
+    restart: unless-stopped
+    ports:
+      - "8085:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/subjects >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  kafka-init:
+    image: apache/kafka:3.7.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-lc"]
+    command: >
+      "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-commands --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 &&
+       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-events --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 &&
+       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-job-state --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 --config cleanup.policy=compact"
+    restart: "no"
+
   thingsboard:
     # restart: always
     image: "${DOCKER_REPO:-thingsboard}/${TB_NODE_DOCKER_NAME:-tb-node}:${TB_VERSION:-4.3.1.3}"
-    container_name: tb-lts43-monolith-node
     volumes:
       - ./tb-config:/config
     ports:
@@ -79,8 +106,7 @@ services:
       TB_QUEUE_TYPE: kafka
       TB_KAFKA_SERVERS: kafka:9092
 
-      FASTAPI_BASE_URL: http://model:8000/api/v1/
-      FASTAPI_WS_URL: ws://model:8000/models/ws/unified
+      PDM_WS_URL: ws://tb-quarkus:8081/models/ws/unified
       LOGGING_LEVEL_ORG_THINGSBOARD: INFO
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_TRANSPORT: DEBUG
@@ -100,7 +126,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # model:
-      #   condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
     env_file:
       - .env

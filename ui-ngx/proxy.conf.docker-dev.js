@@ -20,8 +20,9 @@ const PROXY_CONFIG = {
   // All API/static/auth traffic now goes through the HAProxy gateway,
   // which owns the routing to thingsboard vs model. The dev server
   // no longer needs to know about either backend directly.
-  "/api": {
-    target: gatewayUrl,
+  "/api/models/ws": {
+    target: wsGatewayUrl,
+    ws: true,
     secure: false,
   },
   "/api/ws": {
@@ -29,9 +30,8 @@ const PROXY_CONFIG = {
     ws: true,
     secure: false,
   },
-  "/api/forecasts": {
+  "/api": {
     target: gatewayUrl,
-    ws: true,
     secure: false,
   },
   "/static/rulenode": {

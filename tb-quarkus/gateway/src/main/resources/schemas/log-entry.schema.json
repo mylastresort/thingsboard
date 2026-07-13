@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://um6p.pdm/schemas/log-entry.schema.json",
+  "title": "logs:{model_id} Redis list entry",
+  "description": "Shape of each JSON string pushed via RPUSH to logs:{model_id}. List is LTRIM'd to the last 1000 entries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["level", "source", "message", "timestamp"],
+  "properties": {
+    "level": {
+      "type": "string",
+      "enum": ["debug", "info", "warning", "error", "critical"]
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

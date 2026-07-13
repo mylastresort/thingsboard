@@ -2,7 +2,6 @@ services:
   postgres:
     restart: always
     image: "postgres:18"
-    container_name: tb-lts43-monolith-postgres
     ports:
       - "5431:5432"
     environment:

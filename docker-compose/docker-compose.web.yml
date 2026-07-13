@@ -3,7 +3,6 @@ services:
     build:
       context: . # ← repo root
       dockerfile: msa/web-ui/Dockerfile
-    container_name: tb-lts43-monolith-tb-web-ui
     ports:
       - "8090:8090"
     environment:
@@ -21,7 +20,6 @@ services:
   #   build:
   #     context: ./assetopsbench/assetops-client
   #     dockerfile: Dockerfile
-  #   container_name: assetops-client
   #   restart: unless-stopped
   #   environment:
   #     # ASSETOPS_PROJECT_ROOT: ${ASSETOPS_PROJECT_ROOT:-${PWD}/assetopsbench}

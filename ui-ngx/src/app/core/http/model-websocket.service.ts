@@ -97,10 +97,9 @@ export class ModelWebSocketService {
 
   connect() {
     if (!this.ws$ || this.ws$.closed) {
-      // model:8000 is exposed directly on the host — esbuild dev server can't proxy WS upgrades.
       const token = AuthService.getJwtToken();
-      const host = window.location.hostname;
-      const wsUrl = `ws://${host}:8000/models/ws/unified?token=${token}`;
+      const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const wsUrl = `${wsProtocol}://${window.location.host}/api/models/ws/unified?token=${token}`;
 
       this.ws$ = webSocket<KnownCommand>({
         url: wsUrl,

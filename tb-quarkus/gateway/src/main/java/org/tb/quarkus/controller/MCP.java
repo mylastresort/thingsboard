@@ -6,10 +6,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.tb.quarkus.model.*;
 import org.tb.quarkus.service.FailureModeRecordService;
+import org.tb.quarkus.service.PdmCommandService;
 import org.tb.quarkus.service.PredictiveModelsRestService;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,6 +24,8 @@ public class MCP {
     FailureModeRecordService service;
     @Inject
     PredictiveModelsRestService predictiveModelsRestService;
+    @Inject
+    PdmCommandService pdmCommandService;
 
     // --- Models / forecasts (read) ---
 
@@ -102,6 +107,73 @@ public class MCP {
         return predictiveModelsRestService.createForecast(body);
     }
 
+    @Tool(description = "Create a predictive maintenance model configuration. MUTATING.")
+    public Map<String, Object> createPredictiveModel(
+            @ToolArg(description = "Predictive model definition as key-value map") Map<String, Object> body) {
+        return predictiveModelsRestService.createForecast(body);
+    }
+
+    @Tool(description = "Create a predictive maintenance model configuration and queue training over Kafka. MUTATING.")
+    public Map<String, Object> createAndTrainPredictiveModel(
+            @ToolArg(description = "Predictive model definition as key-value map") Map<String, Object> body,
+            @ToolArg(description = "Model type to train: FORECAST, ANOMALY, or BOTH") String modelType) {
+        Map<String, Object> model = predictiveModelsRestService.createForecast(body);
+        String forecastId = forecastId(model);
+        var trainRequest = new LinkedHashMap<String, Object>();
+        trainRequest.put("modelType", defaultString(modelType, "BOTH"));
+        trainRequest.put("deviceId", deviceId(model));
+        Map<String, Object> train = pdmCommandService.train(forecastId, trainRequest);
+        return Map.of("model", model, "training", train);
+    }
+
+    @Tool(description = "Queue predictive maintenance model training over Kafka. MUTATING.")
+    public Map<String, Object> trainPredictiveModel(
+            @ToolArg(description = "Forecast/predictive model id") String forecastId,
+            @ToolArg(description = "Model type to train: FORECAST, ANOMALY, or BOTH") String modelType,
+            @ToolArg(description = "Optional ThingsBoard device id override") String deviceId) {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("modelType", defaultString(modelType, "BOTH"));
+        request.put("deviceId", defaultString(deviceId, deviceId(predictiveModelsRestService.getForecast(forecastId))));
+        return pdmCommandService.train(forecastId, request);
+    }
+
+    @Tool(description = "Start or resume predictive maintenance inference for trained models over Kafka. MUTATING.")
+    public Map<String, Object> inferPredictiveModel(
+            @ToolArg(description = "Forecast/predictive model id") String forecastId,
+            @ToolArg(description = "Model type to infer: FORECAST, ANOMALY, or BOTH") String modelType,
+            @ToolArg(description = "Optional ThingsBoard device id override") String deviceId) {
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("modelType", defaultString(modelType, "BOTH"));
+        request.put("deviceId", defaultString(deviceId, deviceId(predictiveModelsRestService.getForecast(forecastId))));
+        return pdmCommandService.infer(forecastId, request);
+    }
+
+    @Tool(description = "Poll predictive maintenance inference results and job status for a configured time window.")
+    public Map<String, Object> pollPredictiveModelInference(
+            @ToolArg(description = "Forecast/predictive model id") String forecastId,
+            @ToolArg(description = "Model type to poll: FORECAST, ANOMALY, or BOTH") String modelType,
+            @ToolArg(description = "Range start, epoch millis. If omitted, windowMs is used.") Long startTs,
+            @ToolArg(description = "Range end, epoch millis. Defaults to now.") Long endTs,
+            @ToolArg(description = "Lookback window in millis when startTs is omitted") Long windowMs,
+            @ToolArg(description = "Max predictions per model type") Integer limit) {
+        long resolvedEndTs = endTs == null ? Instant.now().toEpochMilli() : endTs;
+        Long resolvedStartTs = startTs == null && windowMs != null ? resolvedEndTs - windowMs : startTs;
+
+        var response = new LinkedHashMap<String, Object>();
+        response.put("forecastId", forecastId);
+        response.put("modelType", defaultString(modelType, "FORECAST").toUpperCase());
+        response.put("startTs", resolvedStartTs);
+        response.put("endTs", resolvedEndTs);
+        response.put("status", pdmCommandService.status(forecastId));
+        if ("BOTH".equalsIgnoreCase(modelType)) {
+            response.put("forecast", pdmCommandService.predictions(forecastId, "FORECAST", resolvedStartTs, resolvedEndTs, limit));
+            response.put("anomaly", pdmCommandService.predictions(forecastId, "ANOMALY", resolvedStartTs, resolvedEndTs, limit));
+        } else {
+            response.put("inference", pdmCommandService.predictions(forecastId, defaultString(modelType, "FORECAST"), resolvedStartTs, resolvedEndTs, limit));
+        }
+        return response;
+    }
+
     @Tool(description = "Update an existing forecast/model. MUTATING.")
     public Map<String, Object> updateForecast(
             @ToolArg(description = "Forecast id") String forecastId,
@@ -156,5 +228,27 @@ public class MCP {
             @ToolArg(description = "Record type") String recordType) {
         var stream = new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
         return service.importCsv(stream, recordType);
+    }
+
+    private String forecastId(Map<String, Object> forecast) {
+        Object id = forecast.get("id");
+        if (id instanceof Map<?, ?> map) {
+            Object value = map.get("id");
+            return value == null ? null : value.toString();
+        }
+        return id == null ? null : id.toString();
+    }
+
+    private String deviceId(Map<String, Object> forecast) {
+        Object id = forecast.get("deviceId");
+        if (id instanceof Map<?, ?> map) {
+            Object value = map.get("id");
+            return value == null ? null : value.toString();
+        }
+        return id == null ? null : id.toString();
+    }
+
+    private String defaultString(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

@@ -20,7 +20,7 @@ COPY api-specs /workspace/api-specs
 RUN --mount=type=cache,target=/root/.gradle \
     --mount=type=cache,target=/root/.npm \
     chmod +x ./gradlew \
-    && ./gradlew --no-daemon build -Dquarkus.package.jar.type=fast-jar -x test
+    && ./gradlew --no-daemon --info --stacktrace --warning-mode all build -Dquarkus.package.jar.type=fast-jar -x test
 
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24
 

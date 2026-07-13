@@ -1,0 +1,94 @@
+{
+  "type": "record",
+  "name": "PdmEvent",
+  "namespace": "com.um6p.pdm.events",
+  "fields": [
+    {
+      "name": "eventType",
+      "type": {
+        "type": "enum",
+        "name": "EventType",
+        "symbols": ["PROGRESS", "PREDICTION", "ALARM", "LOG"]
+      }
+    },
+    { "name": "forecastId", "type": "string" },
+    { "name": "modelId", "type": "string" },
+    { "name": "iteration", "type": ["null", "int"], "default": null },
+    {
+      "name": "timestamp",
+      "type": { "type": "long", "logicalType": "timestamp-millis" }
+    },
+    {
+      "name": "progress",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "ProgressPayload",
+          "fields": [
+            { "name": "step", "type": "string" },
+            { "name": "message", "type": "string" },
+            { "name": "percent", "type": "int" }
+          ]
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "prediction",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "PredictionPayload",
+          "fields": [
+            { "name": "modelType", "type": "string" },
+            { "name": "sensor", "type": ["null", "string"], "default": null },
+            { "name": "resultJson", "type": "string" }
+          ]
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "alarm",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "AlarmPayload",
+          "fields": [
+            { "name": "deviceId", "type": "string" },
+            {
+              "name": "severity",
+              "type": {
+                "type": "enum",
+                "name": "AlarmSeverity",
+                "symbols": ["CRITICAL", "MAJOR", "MINOR"]
+              }
+            },
+            { "name": "confidenceScore", "type": "double" },
+            { "name": "detailsJson", "type": "string" }
+          ]
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "log",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "LogPayload",
+          "fields": [
+            { "name": "level", "type": "string" },
+            { "name": "source", "type": "string" },
+            { "name": "message", "type": "string" }
+          ]
+        }
+      ],
+      "default": null
+    }
+  ]
+}

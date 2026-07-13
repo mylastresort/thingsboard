@@ -1,8 +1,14 @@
-PROJECT         := thingsboard-dev
+PROJECT         ?= thingsboard
 TB_SERVICE      := thingsboard
 WEB_SERVICE     := tb-web-ui-dev
 WEB_PROD        := tb-web-ui
-MODEL_SERVICE   := model
+PDM_FORECAST_WORKER := pdm-forecast-worker
+PDM_ANOMALY_WORKER  := pdm-anomaly-worker
+PDM_FORECAST_WORKERS ?= 5
+PDM_ANOMALY_WORKERS  ?= 5
+PDM_KAFKA_PARTITIONS ?= 16
+PDM_KAFKA_TOPICS := pdm-commands pdm-events pdm-job-state
+RESET_PDM_STATE_ON_RECREATE ?= true
 CONFIG_SERVICE  := config-api
 MCP_SERVICE     := thingsboard-mcp
 POSTGRES        := postgres
@@ -44,15 +50,59 @@ help:
 
 .PHONY: up
 up: ## Start the full dev stack (core + toolbox + dev web ui)
-	$(COMPOSE) up -d
+	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
+
+up-recreate: maybe-reset-pdm-state ## Recreate dev stack and reset PdM Kafka/Redis state by default
+	$(COMPOSE) up -d --force-recreate --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
+
+.PHONY: make-recreate
+make-recreate: up-recreate ## Alias for up-recreate
+
+.PHONY: maybe-reset-pdm-state
+maybe-reset-pdm-state:
+	@if [ "$(RESET_PDM_STATE_ON_RECREATE)" = "true" ]; then \
+		$(MAKE) reset-pdm-state; \
+	else \
+		echo "Skipping PdM state reset; RESET_PDM_STATE_ON_RECREATE=$(RESET_PDM_STATE_ON_RECREATE)"; \
+	fi
+
+.PHONY: reset-pdm-state
+reset-pdm-state: reset-pdm-kafka reset-pdm-redis ## Clear PdM Kafka topics and Redis runtime state
+
+.PHONY: reset-pdm-kafka
+reset-pdm-kafka: ## Delete and recreate PdM Kafka topics
+	$(COMPOSE) up -d --wait kafka
+	@set -eu; \
+	for spec in "kafka kafka:9092"; do \
+		svc=$$(echo $$spec | awk '{print $$1}'); \
+		bootstrap=$$(echo $$spec | awk '{print $$2}'); \
+		if [ -n "$$($(COMPOSE) ps -q $$svc 2>/dev/null)" ]; then \
+			echo "Resetting PdM Kafka topics on $$svc ($$bootstrap)"; \
+			for topic in $(PDM_KAFKA_TOPICS); do \
+				$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --delete --topic $$topic >/dev/null 2>&1 || true; \
+			done; \
+			sleep 2; \
+			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-commands --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor 1; \
+			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-events --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor 1; \
+			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-job-state --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor 1 --config cleanup.policy=compact; \
+		fi; \
+	done
+
+.PHONY: reset-pdm-redis
+reset-pdm-redis: ## Clear PdM Redis job/log/prediction keys
+	$(COMPOSE) up -d redis
+	@for pattern in 'job:*' 'logs:*' 'predictions:*'; do \
+		echo "Deleting Redis keys matching $$pattern"; \
+		$(COMPOSE) exec -T redis sh -lc "redis-cli --scan --pattern '$$pattern' | xargs -r redis-cli del"; \
+	done
 
 .PHONY: up-ui
 up-ui: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d $(WEB_SERVICE)
 
 .PHONY: up-prod
-up-prod: ## Start prod-only stack (core: tb, model, config-api)
-	docker compose --project-directory . $(CORE_FILES) up -d
+up-prod: ## Start prod-only stack (core: tb, quarkus, pdm workers, config-api)
+	docker compose --project-directory . $(CORE_FILES) -p $(PROJECT) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 .PHONY: down
 down: ## Stop and remove containers (keep volumes)
@@ -74,9 +124,9 @@ restart-tb: ## Restart only thingsboard
 restart-web: ## Restart only tb-web-ui-dev
 	$(COMPOSE) restart $(WEB_SERVICE)
 
-.PHONY: restart-model
-restart-model: ## Restart only the predictive-maintenance model service
-	$(COMPOSE) restart $(MODEL_SERVICE)
+.PHONY: restart-pdm-workers
+restart-pdm-workers: ## Restart predictive-maintenance Kafka workers
+	$(COMPOSE) restart $(PDM_FORECAST_WORKER) $(PDM_ANOMALY_WORKER)
 
 # ─── install / seed ──────────────────────────────────────────────────────────
 
@@ -158,9 +208,9 @@ logs-web: ## Tail tb-web-ui-dev logs
 logs-pg: ## Tail postgres logs
 	$(COMPOSE) logs -f $(POSTGRES)
 
-.PHONY: logs-model
-logs-model: ## Tail predictive-maintenance model logs
-	$(COMPOSE) logs -f $(MODEL_SERVICE)
+.PHONY: logs-pdm-workers
+logs-pdm-workers: ## Tail predictive-maintenance Kafka worker logs
+	$(COMPOSE) logs -f $(PDM_FORECAST_WORKER) $(PDM_ANOMALY_WORKER)
 
 .PHONY: logs-config
 logs-config: ## Tail config-api logs
@@ -207,10 +257,6 @@ shell-web: ## Open a shell in tb-web-ui-dev
 .PHONY: shell-pg
 shell-pg: ## Open a psql shell in postgres
 	$(COMPOSE) exec $(POSTGRES) psql -U postgres -d thingsboard
-
-.PHONY: shell-model
-shell-model: ## Open a shell in the model service
-	$(COMPOSE) exec $(MODEL_SERVICE) bash
 
 .PHONY: shell-tb-quarkus
 shell-tb-quarkus: ## Open a shell in tb-quarkus
@@ -345,12 +391,12 @@ ai-agent-stdio: ## Interactive ai-agent conversation over stdin/stdout with one 
 .PHONY: ai-agent-repl
 ai-agent-repl: ai-agent-stdio ## Alias for the interactive ai-agent conversation target
 
-# ─── lifecycle (add alongside restart-model) ─────────────────────────────────
+# ─── lifecycle ───────────────────────────────────────────────────────────────
 .PHONY: restart-mcp
 restart-mcp: ## Restart only thingsboard-mcp
 	$(COMPOSE) restart $(MCP_SERVICE)
 
-# ─── shell access (add alongside shell-model) ────────────────────────────────
+# ─── shell access ────────────────────────────────────────────────────────────
 .PHONY: shell-mcp
 shell-mcp: ## Open a shell in thingsboard-mcp
 	$(COMPOSE) exec $(MCP_SERVICE) sh

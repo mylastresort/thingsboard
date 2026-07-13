@@ -2,6 +2,52 @@ mp:
   openapi:
     scan:
       disable: true
+  messaging:
+    connector:
+      smallrye-kafka:
+        bootstrap:
+          servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+        schema:
+          registry:
+            url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+        apicurio:
+          registry:
+            url: ${APICURIO_REGISTRY_URL:${SCHEMA_REGISTRY_URL:http://schema-registry:8081}}
+    outgoing:
+      pdm-commands-out:
+        connector: smallrye-kafka
+        topic: pdm-commands
+        key:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+        value:
+          serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+        schema:
+          registry:
+            url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+      pdm-job-state-out:
+        connector: smallrye-kafka
+        topic: pdm-job-state
+        key:
+          serializer: org.apache.kafka.common.serialization.StringSerializer
+        value:
+          serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+        schema:
+          registry:
+            url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+    incoming:
+      pdm-events-in:
+        connector: smallrye-kafka
+        topic: pdm-events
+        key:
+          deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value:
+          deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+        schema:
+          registry:
+            url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+        specific:
+          avro:
+            reader: false
 
 quarkus:
   http:
@@ -93,6 +139,9 @@ quarkus:
   kafka:
     devservices:
       enabled: false
+
+  redis:
+    hosts: ${QUARKUS_REDIS_HOSTS:redis://redis:6379}
 
 kafka:
   bootstrap:

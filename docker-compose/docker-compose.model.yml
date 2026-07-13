@@ -1,39 +1,78 @@
 services:
-  model:
+  pdm-forecast-worker:
     build:
       context: ./predictive-maintenance
       dockerfile: .Dockerfile
-    container_name: tb-lts43-monolith-model
     volumes:
       - .:/app
       - ./pip-cache:/root/.cache/pip
       - ./models-cache:/models
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       thingsboard:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
-      - WAIT_HOSTS=postgres:5432
+      - PDM_PROCESS_ROLE=worker
+      - PDM_WORKER_MODEL_TYPE=FORECAST
+      - PDM_WORKER_GROUP=pdm-python-forecast-workers
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
       - THINGSBOARD_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
       - TB_HOST=${TB_HOST:-http://thingsboard:8080}
       - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
       - TB_PASSWORD=${TB_PASSWORD:-tenant}
       - MODELS_PATH=/models
-      - AUTO_START_PREDICTION_JOBS=${AUTO_START_PREDICTION_JOBS:-false}
-      - ENABLE_FILE_WATCH=false
+      - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PhoneNumberID=${PHONE_NUMBER_ID:-123456789}
-      - WB_TOKEN=${WB_TOKEN:-defaultWBToken}
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 2m
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
+  pdm-anomaly-worker:
+    build:
+      context: ./predictive-maintenance
+      dockerfile: .Dockerfile
+    volumes:
+      - .:/app
+      - ./pip-cache:/root/.cache/pip
+      - ./models-cache:/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      thingsboard:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - PDM_PROCESS_ROLE=worker
+      - PDM_WORKER_MODEL_TYPE=ANOMALY
+      - PDM_WORKER_GROUP=pdm-python-anomaly-workers
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - THINGSBOARD_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - TB_HOST=${TB_HOST:-http://thingsboard:8080}
+      - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
+      - TB_PASSWORD=${TB_PASSWORD:-tenant}
+      - MODELS_PATH=/models
+      - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}

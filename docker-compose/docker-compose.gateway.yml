@@ -1,7 +1,9 @@
 services:
   proxy:
     image: haproxy:2.9-alpine
-    container_name: tb-lts43-monolith-gateway
+    environment:
+      QUARKUS_BACKEND_HOST: ${QUARKUS_BACKEND_HOST:-tb-quarkus}
+      QUARKUS_BACKEND_HOST_DEV: ${QUARKUS_BACKEND_HOST_DEV:-tb-quarkus-dev}
     ports:
       # - "8088:80"      # no longer needs browser access, but harmless to keep mapped for curl/debugging
       - "9999:9999"
@@ -10,10 +12,8 @@ services:
     depends_on:
       thingsboard:
         condition: service_healthy
-      model:
+      tb-quarkus:
         condition: service_healthy
-      # tb-quarkus:
-      #   condition: service_healthy
     healthcheck:
       test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
       interval: 15s
@@ -25,7 +25,6 @@ services:
     build:
       context: .
       dockerfile: ${TB_QUARKUS_DOCKERFILE:-tb-quarkus/gateway/src/main/docker/Dockerfile.jvm}
-    container_name: tb-lts43-monolith-tb-quarkus
     environment:
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-thingsboard}?currentSchema=tb_quarkus
       - QUARKUS_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
@@ -34,6 +33,9 @@ services:
       - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
       - TB_PASSWORD=${TB_PASSWORD:-tenant}
       - PDM_SEED_DATA=${PDM_SEED_DATA:-/data}
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - QUARKUS_REDIS_HOSTS=redis://redis:6379
     volumes:
       - ./tb-quarkus-cache:/deployments/cache
       - ./application/src/main/resources/predictive-maintenance/data:/data:ro
@@ -41,6 +43,14 @@ services:
       postgres:
         condition: service_healthy
       thingsboard:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      redis:
         condition: service_healthy
     ports:
       - "8083:8081"

@@ -1,7 +1,6 @@
 services:
   config-db:
     image: postgres:16
-    container_name: tb-lts43-monolith-config-db
     restart: on-failure:3
     environment:
       POSTGRES_USER: config_user
@@ -22,7 +21,6 @@ services:
     build:
       context: ./config-api
       dockerfile: Dockerfile
-    container_name: tb-lts43-monolith-config-api
     restart: on-failure:3
     ports:
       - "9000:9000"

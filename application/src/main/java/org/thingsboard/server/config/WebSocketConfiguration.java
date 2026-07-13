@@ -24,7 +24,6 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 import org.thingsboard.server.controller.plugin.TbWebSocketHandler;
-import org.thingsboard.server.controller.ws.ModelWebSocketHandler;
 import org.thingsboard.server.queue.util.TbCoreComponent;
 
 @Configuration
@@ -39,13 +38,10 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
     private static final String WS_API_MAPPING = "/api/ws/**";
 
     private final TbWebSocketHandler tbWebSocketHandler;
-    private final ModelWebSocketHandler modelWebSocketHandler;
 
     public WebSocketConfiguration(
-            @Qualifier("tbWebSocketHandler") TbWebSocketHandler tbWebSocketHandler,
-            ModelWebSocketHandler modelWebSocketHandler) {
+            @Qualifier("tbWebSocketHandler") TbWebSocketHandler tbWebSocketHandler) {
         this.tbWebSocketHandler = tbWebSocketHandler;
-        this.modelWebSocketHandler = modelWebSocketHandler;
     }
 
     @Value("${server.ws.max_text_message_buffer_size:32768}")
@@ -70,9 +66,6 @@ public class WebSocketConfiguration implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         log.info("Registering ThingsBoard WebSocket handler at {}", WS_API_MAPPING);
         registry.addHandler(tbWebSocketHandler, WS_API_MAPPING).setAllowedOriginPatterns("*");
-
-        log.info("Registering Model WebSocket handler at {}", WS_MODEL_ENDPOINT);
-        registry.addHandler(modelWebSocketHandler, WS_MODEL_ENDPOINT).setAllowedOriginPatterns("*");
     }
 
 }

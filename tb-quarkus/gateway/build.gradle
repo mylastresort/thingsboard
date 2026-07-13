@@ -2,11 +2,14 @@ plugins {
     id 'java'
     id 'io.quarkus'
     id 'org.openapi.generator' version '7.8.0'
+    id 'com.github.imflog.kafka-schema-registry-gradle-plugin' version '2.1.1'
 }
 
 repositories {
     mavenCentral()
     mavenLocal()
+    maven { url 'https://packages.confluent.io/maven/' }
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -14,6 +17,7 @@ dependencies {
     implementation enforcedPlatform("${quarkusPlatformGroupId}:quarkus-mcp-server-bom:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-messaging-kafka'
+    implementation 'io.quarkus:quarkus-redis-client'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
@@ -28,6 +32,10 @@ dependencies {
 
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'io.quarkus:quarkus-avro'
+    implementation 'org.apache.avro:avro:1.11.3'
+    implementation 'io.quarkus:quarkus-confluent-registry-avro'
+    implementation 'io.confluent:kafka-avro-serializer:7.7.1'
 }
 
 group = 'org.tb-quarkus.dev'
@@ -68,6 +76,13 @@ tasks.register('copyOpenApiSpec', Copy) {
 
 processResources.dependsOn copyOpenApiSpec
 
+tasks.register('copyAvroSchemas', Copy) {
+    from "$projectDir/src/main/avro"
+    into "$buildDir/resources/main/avro"
+}
+
+processResources.dependsOn copyAvroSchemas
+
 compileJava.dependsOn tasks.openApiGenerate
 
 sourceSets {
@@ -88,14 +103,26 @@ tasks.register('generateAsyncApiModels', Exec) {
     doFirst { file(outDir).mkdirs() }
 
     workingDir = projectDir
-    commandLine 'npx', '--yes', '@asyncapi/cli', 'generate', 'models', 'java',
+    commandLine 'npx', '--yes', '@asyncapi/modelina-cli', 'generate', 'java',
         specFile,
         '--packageName=org.tb.quarkus.event.model',
-        "--output=$outDir",
+        "-o", outDir,
         '--javaJackson',
         '--javaIncludeComments',
-        '--javaArrayType=List',
-        '--no-interactive'
+        '--javaArrayType=List'
 }
 
 compileJava.dependsOn tasks.generateAsyncApiModels
+
+schemaRegistry {
+    url = "${findProperty('schemaRegistryUrl') ?: 'http://localhost:8081'}"
+    compatibility {
+        subject('pdm-commands-value', 'src/main/avro/pdm-commands-value.avsc', 'BACKWARD')
+        subject('pdm-events-value', 'src/main/avro/pdm-events-value.avsc', 'BACKWARD')
+        subject('pdm-job-state-value', 'src/main/avro/pdm-job-state-value.avsc', 'FULL')
+    }
+}
+
+if (providers.gradleProperty('schemaRegistryCompatibilityCheck').map { it.toBoolean() }.getOrElse(false)) {
+    check.dependsOn testSchemasCompatibility
+}
