@@ -20,8 +20,6 @@ import pandas as pd
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer
-from fastapi_mcp import FastApiMCP  # noqa: F811
 
 from library.core.data_registry import DataRegistry
 from src.logger import logger  # Global logger
@@ -61,23 +59,6 @@ app.add_middleware(
 app.include_router(model_router)
 app.include_router(notify_router)
 
-token_auth_scheme = HTTPBearer()
-
-# async def verify_mcp_auth(token=Depends(token_auth_scheme)):
-#     if token.credentials != settings.mcp_api_token:
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
-#     return token.credentials
-
-mcp = FastApiMCP(
-    app,
-    name=settings.app_name,
-    description=settings.app_description,
-    exclude_operations=[],
-    include_tags=["predictive-maintenance"],
-    # auth_config=AuthConfig(dependencies=[Depends(verify_mcp_auth)]),
-)
-
-mcp.mount_http()
 # Log startup with current log level
 logger.info("Predictive Maintenance Service Starting")
 
