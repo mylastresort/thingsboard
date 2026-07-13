@@ -11,10 +11,6 @@ ENV PATH=$GOPATH/bin:$PATH
 WORKDIR /src
 COPY . .
 
-FROM base AS load
-RUN go install ./cmd/load
-CMD ["load"]
-
 FROM base AS interpreter
 RUN go install ./cmd/interpreter
 CMD ["interpreter"]
