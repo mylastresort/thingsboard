@@ -70,7 +70,6 @@ prompt_toolkit==3.0.48
 prophet==1.1.5
 protobuf==5.28.3
 psutil==6.1.0
-psycopg2-binary==2.9.10
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pycparser==3.0
@@ -94,7 +93,6 @@ scikit-learn==1.5.2
 scipy==1.14.1
 setuptools==75.6.0
 six==1.16.0
-SQLAlchemy==2.0.36
 stack-data==0.6.3
 stanio==0.5.1
 statsmodels==0.14.4

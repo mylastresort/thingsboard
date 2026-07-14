@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import joblib
 import matplotlib.pyplot as plt
@@ -132,7 +132,7 @@ class ForecastModel(BaseModel):
         column_name = sensor_key if sensor_key else "y"
         return pd.DataFrame({"datetime": timestamps, column_name: values})
 
-    def train(self):
+    def train(self, progress_callback: Callable[[dict[str, Any]], None] | None = None):
         logger.info(f"Starting to fetch training data for sensors: {self.sensors}")
         data = self.fetch(
             sensor_keys=self.sensors,
@@ -158,7 +158,22 @@ class ForecastModel(BaseModel):
             f"epochs={EPOCHS}, batch_size={BATCH_SIZE}"
         )
 
-        for sensor_key, df in data.items():
+        total_sensors = max(len(data), 1)
+
+        for sensor_index, (sensor_key, df) in enumerate(data.items(), start=1):
+            sensor_start_percent = 50 + int(((sensor_index - 1) / total_sensors) * 30)
+            sensor_end_percent = 50 + int((sensor_index / total_sensors) * 30)
+            _emit_training_progress(
+                progress_callback,
+                step=f"ForecastModel {sensor_key} preparing",
+                message=(
+                    f"ForecastModel training sensor {sensor_key}: "
+                    f"preparing data ({sensor_index}/{total_sensors})"
+                ),
+                progress=sensor_start_percent,
+                sensor=sensor_key,
+                model="ForecastModel",
+            )
             logger.info(f"Processing sensor: {sensor_key} with {len(df)} data points")
             sensor = prepare_sensor_data(df, sensor=sensor_key)
             logger.info(f"Prepared sensor data for {sensor_key}")
@@ -185,7 +200,25 @@ class ForecastModel(BaseModel):
             logger.info(f"Building LSTM model for {sensor_key}")
             model = build_lstm_model(self.lookback, LSTM_UNITS, use_gpu=USE_GPU)
             logger.info(f"Training LSTM model for {sensor_key} with {EPOCHS} epochs...")
-            model = train_lstm_model(model, train_x, train_y, EPOCHS, BATCH_SIZE)
+            model = train_lstm_model(
+                model,
+                train_x,
+                train_y,
+                EPOCHS,
+                BATCH_SIZE,
+                progress_callback=(
+                    _sensor_epoch_progress_callback(
+                        progress_callback,
+                        sensor_key=sensor_key,
+                        sensor_index=sensor_index,
+                        total_sensors=total_sensors,
+                        start_percent=sensor_start_percent,
+                        end_percent=sensor_end_percent,
+                    )
+                    if progress_callback
+                    else None
+                ),
+            )
             logger.info(f"Finished training LSTM model for {sensor_key}")
 
             models[sensor_key] = {
@@ -700,6 +733,69 @@ def create_optimized_dataset(
     return dataset
 
 
+def _emit_training_progress(
+    progress_callback: Callable[[dict[str, Any]], None] | None,
+    *,
+    step: str,
+    message: str,
+    progress: int,
+    sensor: str | None = None,
+    model: str = "ForecastModel",
+    epoch: int | None = None,
+    total_epochs: int | None = None,
+) -> None:
+    if not progress_callback:
+        return
+
+    payload: dict[str, Any] = {
+        "step": step,
+        "message": message,
+        "progress": max(0, min(100, progress)),
+        "model": model,
+    }
+    if sensor is not None:
+        payload["sensor"] = sensor
+    if epoch is not None:
+        payload["epoch"] = epoch
+    if total_epochs is not None:
+        payload["total_epochs"] = total_epochs
+
+    progress_callback(payload)
+
+
+def _sensor_epoch_progress_callback(
+    progress_callback: Callable[[dict[str, Any]], None],
+    *,
+    sensor_key: str,
+    sensor_index: int,
+    total_sensors: int,
+    start_percent: int,
+    end_percent: int,
+) -> tf.keras.callbacks.Callback:
+    class ForecastEpochProgressCallback(tf.keras.callbacks.Callback):
+        def on_epoch_end(self, epoch: int, logs: dict[str, Any] | None = None) -> None:
+            current_epoch = epoch + 1
+            total_epochs = int(self.params.get("epochs") or current_epoch)
+            epoch_ratio = current_epoch / max(total_epochs, 1)
+            progress = start_percent + int((end_percent - start_percent) * epoch_ratio)
+            _emit_training_progress(
+                progress_callback,
+                step=f"ForecastModel {sensor_key} epoch {current_epoch}/{total_epochs}",
+                message=(
+                    f"ForecastModel training sensor {sensor_key}: "
+                    f"epoch {current_epoch}/{total_epochs} "
+                    f"({sensor_index}/{total_sensors} sensors)"
+                ),
+                progress=progress,
+                sensor=sensor_key,
+                model="ForecastModel",
+                epoch=current_epoch,
+                total_epochs=total_epochs,
+            )
+
+    return ForecastEpochProgressCallback()
+
+
 def train_lstm_model(
     model: Sequential,
     train_x: np.ndarray,
@@ -708,6 +804,7 @@ def train_lstm_model(
     batch_size: int = 128,
     use_optimized_pipeline: bool = True,
     validation_split: float = 0.2,
+    progress_callback: tf.keras.callbacks.Callback | None = None,
 ) -> Sequential:
     """
     Train the LSTM model with optimized data pipeline for GPU.
@@ -755,10 +852,18 @@ def train_lstm_model(
         logger.info(
             f"Training samples: {len(train_x_split)}, Validation samples: {len(val_x_split)}"
         )
-        model.fit(train_dataset, validation_data=val_dataset, epochs=epochs, verbose=1)
+        callbacks = [progress_callback] if progress_callback else None
+        model.fit(
+            train_dataset,
+            validation_data=val_dataset,
+            epochs=epochs,
+            verbose=1,
+            callbacks=callbacks,
+        )
         logger.info("Model training completed using optimized pipeline.")
     else:
         logger.info("Using standard training pipeline.")
+        callbacks = [progress_callback] if progress_callback else None
         model.fit(
             train_x,
             train_y,
@@ -766,6 +871,7 @@ def train_lstm_model(
             batch_size=batch_size,
             validation_split=validation_split,
             verbose=1,
+            callbacks=callbacks,
         )
         logger.info("Model training completed using standard pipeline.")
 

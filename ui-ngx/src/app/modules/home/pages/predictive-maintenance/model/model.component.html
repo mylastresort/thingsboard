@@ -69,34 +69,11 @@
     </button>
     <mat-icon
       class="status-icon-option pending"
-      *ngIf="status.toLowerCase() === 'pending' && !progressMessage"
+      *ngIf="status.toLowerCase() === 'pending'"
       aria-label="Pending Status"
       matTooltip="Pending"
       >schedule</mat-icon
     >
-    <span
-      class="status-progress pending"
-      *ngIf="status.toLowerCase() === 'pending' && progressMessage"
-      aria-label="Building Progress"
-      [matTooltip]="
-        'Building: ' +
-        progressMessage.step +
-        ' (' +
-        progressMessage.progress +
-        '%)'
-      "
-      style="
-        display: inline-flex;
-        align-items: center;
-        font-weight: bold;
-        color: #ffa726;
-        gap: 4px;
-      "
-    >
-      <!-- <mat-icon style="vertical-align: middle;">hourglass_empty</mat-icon> -->
-      <!-- <span>{{ progressMessage.progress }}%</span> -->
-      {{ progressMessage.progress }}%
-    </span>
     <mat-icon
       class="status-icon-option failed"
       *ngIf="status.toLowerCase() === 'failed'"
@@ -207,6 +184,24 @@
 </div>
 
 <div class="model-dashboard">
+  <div
+    class="global-training-progress"
+    *ngIf="shouldShowGlobalTrainingProgress()"
+    [matTooltip]="getGlobalTrainingProgressTooltip()"
+  >
+    <div class="global-progress-header">
+      <span class="global-progress-label">
+        {{ getGlobalTrainingProgressLabel() }}
+      </span>
+    </div>
+    <div class="global-progress-track" aria-hidden="true">
+      <div
+        class="global-progress-fill"
+        [style.width.%]="getGlobalTrainingProgressValue()"
+      ></div>
+    </div>
+  </div>
+
   <!-- Dashboard Tabs -->
   <div class="dashboard-tabs" role="tablist">
     <button
@@ -217,8 +212,20 @@
       [attr.aria-selected]="activeDashboardTab === 'forecast'"
       (click)="activeDashboardTab = 'forecast'"
     >
-      <mat-icon>sensors</mat-icon>
-      <span>Forecast</span>
+      <span class="tab-main">
+        <mat-icon>sensors</mat-icon>
+        <span
+          class="tab-circle-progress"
+          *ngIf="shouldShowForecastTrainingSummary()"
+          [matTooltip]="getForecastSensorProgressTooltip()"
+        >
+          {{ getForecastTrainedSensorCount() }}/{{ getForecastSensorTotal() }}
+        </span>
+        <span>Forecast</span>
+      </span>
+      <span class="tab-progress-label" *ngIf="getForecastTabProgressLabel()">
+        {{ getForecastTabProgressLabel() }}
+      </span>
     </button>
     <button
       type="button"
@@ -229,8 +236,19 @@
       [attr.aria-selected]="activeDashboardTab === 'anomalies'"
       (click)="activeDashboardTab = 'anomalies'"
     >
-      <mat-icon>bug_report</mat-icon>
-      <span>Anomalies</span>
+      <span class="tab-main">
+        <mat-icon>bug_report</mat-icon>
+        <mat-icon
+          class="tab-pending-icon"
+          *ngIf="anomalyModelPending"
+          matTooltip="Anomaly model pending"
+          >schedule</mat-icon
+        >
+        <span>Anomalies</span>
+      </span>
+      <span class="tab-progress-label" *ngIf="getAnomalyTabProgressLabel()">
+        {{ getAnomalyTabProgressLabel() }}
+      </span>
     </button>
     <button
       type="button"
@@ -240,8 +258,10 @@
       [attr.aria-selected]="activeDashboardTab === 'failure-mode'"
       (click)="activeDashboardTab = 'failure-mode'"
     >
-      <mat-icon>precision_manufacturing</mat-icon>
-      <span>Failure Mode</span>
+      <span class="tab-main">
+        <mat-icon>precision_manufacturing</mat-icon>
+        <span>Failure Mode</span>
+      </span>
     </button>
   </div>
 
@@ -263,6 +283,14 @@
                 <span class="algorithm-label" *ngIf="forecastAlgorithm">{{
                   forecastAlgorithm
                 }}</span>
+                <span
+                  class="sensor-training-progress"
+                  *ngIf="getSensorTrainingProgress(attribute.key) as sensorProgress"
+                  [matTooltip]="getProgressTooltip(sensorProgress)"
+                >
+                  <span>{{ sensorProgress.progress }}%</span>
+                  <span>{{ getProgressLabel(sensorProgress) }}</span>
+                </span>
               </h3>
             </div>
             <div class="chart-content">
@@ -511,7 +539,7 @@
 
 <!-- Anomaly Alerts - Stacked notifications in bottom right -->
 <tb-anomaly-alerts
-  [logsObservable]="logsObservable"
+  [logsObservable]="liveLogsObservable"
   [maxAlerts]="5"
   [autoCloseDelay]="15000"
 ></tb-anomaly-alerts>

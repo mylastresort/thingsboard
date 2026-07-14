@@ -12,8 +12,11 @@ import org.tb.quarkus.entity.pdm.PredictionEntity;
 import org.tb.quarkus.entity.pdm.PredictiveMaintenanceConfigEntity;
 import org.tb.quarkus.entity.pdm.PredictiveModelLoadModelConfigEntity;
 import org.tb.quarkus.model.AvailableModelOption;
+import org.tb.quarkus.model.PredictionCreateRequest;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -174,6 +177,20 @@ public class PredictiveModelsRestService {
     }
 
     @Transactional
+    public Map<String, Object> createAnomalyHistoryPrediction(String modelId, String predictionType,
+                                                              PredictionCreateRequest body) {
+        var entity = new PredictionEntity();
+        entity.modelId = UUID.fromString(modelId);
+        entity.createdTime = body.getCreatedTime() == null ? System.currentTimeMillis() : body.getCreatedTime();
+        entity.createdAt = instantOrNow(body.getCreatedAt());
+        entity.predictionTime = instantOrNow(body.getPredictionTime());
+        entity.predictionType = predictionType;
+        entity.predictionValue = mapper.valueToTree(body.getPredictionValue() == null ? Map.of() : body.getPredictionValue());
+        entity.persist();
+        return toPrediction(entity);
+    }
+
+    @Transactional
     public Map<String, Object> deleteAnomalyHistoryPredictions(String modelId, String predictionType) {
         long deleted;
         UUID modelUuid = UUID.fromString(modelId);
@@ -238,6 +255,16 @@ public class PredictiveModelsRestService {
         prediction.put("predictionType", entity.predictionType);
         prediction.put("predictionValue", toPlainJson(entity.predictionValue, Map.of()));
         return prediction;
+    }
+
+    private static Instant instantOrNow(Object value) {
+        if (value == null) {
+            return Instant.now();
+        }
+        if (value instanceof Date date) {
+            return date.toInstant();
+        }
+        return Instant.parse(value.toString());
     }
 
     private Map<String, Object> page(List<Map<String, Object>> data, long total, int pageSize, int offset) {

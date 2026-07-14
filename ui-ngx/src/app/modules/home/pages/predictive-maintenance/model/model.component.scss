@@ -303,6 +303,33 @@
     animation-fill-mode: forwards;
   }
 
+  .sensor-training-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: min(280px, 40vw);
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 167, 38, 0.12);
+    color: #ef8f00;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.4;
+    vertical-align: middle;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    span:first-child {
+      flex: 0 0 auto;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
   // ── Status icons ──────────────────────────────────────────────────────────
 
   ::ng-deep {
@@ -442,6 +469,44 @@
 
   // ── Dashboard tabs ───────────────────────────────────────────────────────
 
+  .global-training-progress {
+    padding: 0 0 10px;
+    flex-shrink: 0;
+
+    .global-progress-header {
+      display: flex;
+      align-items: center;
+      min-height: 18px;
+      margin-bottom: 5px;
+    }
+
+    .global-progress-label {
+      max-width: min(680px, 100%);
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .global-progress-track {
+      height: 4px;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .global-progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: #7e8ce0;
+      transition: width 0.25s ease;
+    }
+  }
+
   .dashboard-tabs {
     display: flex;
     align-items: center;
@@ -453,9 +518,12 @@
 
     .dashboard-tab {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 3px;
+      min-height: 48px;
+      padding: 8px 16px;
       border: none;
       background: transparent;
       cursor: pointer;
@@ -487,6 +555,46 @@
       &.active {
         color: #fff;
         border-bottom-color: #3f51b5;
+      }
+
+      .tab-main {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .tab-circle-progress {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid rgba(126, 140, 224, 0.85);
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .tab-pending-icon {
+        color: #ff9800;
+      }
+
+      .tab-progress-label {
+        max-width: 240px;
+        color: rgba(255, 255, 255, 0.52);
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: 0;
+        text-transform: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }
@@ -1378,6 +1486,10 @@
   .dark-theme :host .unread-dot {
     background: #cc7a00;
   }
+  .dark-theme :host .sensor-training-progress {
+    background: rgba(181, 108, 0, 0.12);
+    color: #ffa725;
+  }
   .dark-theme :host ::ng-deep .status-icon-option.active {
     color: #61ba65;
   }
@@ -1424,6 +1536,15 @@
   .dark-theme :host ::ng-deep .model-select-panel .mat-mdc-option .status-icon-option.failed {
     color: #ff2a53;
   }
+  .dark-theme :host .global-training-progress .global-progress-label {
+    color: rgba(232, 230, 227, 0.58);
+  }
+  .dark-theme :host .global-training-progress .global-progress-track {
+    background: rgba(24, 26, 27, 0.1);
+  }
+  .dark-theme :host .global-training-progress .global-progress-fill {
+    background: #1c2977;
+  }
   .dark-theme :host .dashboard-tabs {
     border-bottom: 1px solid rgba(48, 52, 54, 0.08);
   }
@@ -1438,6 +1559,16 @@
   .dark-theme :host .dashboard-tabs .dashboard-tab.active {
     color: #e8e6e3;
     border-bottom-color: #2f3c87;
+  }
+  .dark-theme :host .dashboard-tabs .dashboard-tab .tab-circle-progress {
+    border: 2px solid rgba(29, 42, 121, 0.85);
+    color: rgba(232, 230, 227, 0.88);
+  }
+  .dark-theme :host .dashboard-tabs .dashboard-tab .tab-pending-icon {
+    color: #ffa21a;
+  }
+  .dark-theme :host .dashboard-tabs .dashboard-tab .tab-progress-label {
+    color: rgba(232, 230, 227, 0.52);
   }
   .dark-theme :host .model-dashboard .chart-section .section-header, .dark-theme :host .model-dashboard .anomalies-section .section-header {
     background: rgba(24, 26, 27, 0.05);

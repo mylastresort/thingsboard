@@ -89,6 +89,38 @@ paths:
                 additionalProperties: true
         "500":
           $ref: "#/components/responses/Error"
+    post:
+      operationId: createAnomalyHistoryPrediction
+      summary: Create anomaly history prediction
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: prediction_type
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PredictionCreateRequest"
+      responses:
+        "200":
+          description: Created prediction
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/Error"
+        "500":
+          $ref: "#/components/responses/Error"
   /models/anomaly-history-predictions/{model_id}:
     delete:
       operationId: deleteAnomalyHistoryPredictions
@@ -1093,6 +1125,24 @@ components:
         root_cause:
           type: string
           nullable: true
+    PredictionCreateRequest:
+      type: object
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdTime:
+          type: integer
+          format: int64
+          nullable: true
+        predictionTime:
+          type: string
+          format: date-time
+          nullable: true
+        predictionValue:
+          type: object
+          additionalProperties: true
     FailureModeRecordResponse:
       type: object
       required:

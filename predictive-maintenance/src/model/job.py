@@ -9,13 +9,13 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import text
 from tb_ce_client.models import Alarm, AlarmSeverity, AlarmStatus, EntityId, EntityType, TenantId
 
 from library import AnomalyPredictor, ForecastModel
 from library.models.anomaly_predictor import feature_cols, load_models, predict_failure
 from src.logger import logger
 from src.model.client import get_client
+from src.model.quarkus_client import get_quarkus_client
 from src.settings import settings
 
 from .shared import get_data_registry
@@ -442,7 +442,6 @@ class PredictionJobManager:
 
 def save_prediction(data_registry, model_id: str, message, source):
     """Save the prediction result to the database or any persistent storage"""
-    _id = uuid.uuid4().hex
     _model_id = model_id.split("/")[0] if "/" in model_id else model_id
     created_at = datetime.now().isoformat() + "Z"
     created_time = int(time.time() * 1000)
@@ -459,27 +458,16 @@ def save_prediction(data_registry, model_id: str, message, source):
             )
 
     try:
-        with data_registry.engine.connect() as conn:
-            query = text(
-                """
-                INSERT INTO tb_quarkus_pdm.predictions
-                (model_id, created_at, created_time, prediction_time, prediction_type, prediction_value)
-                VALUES (:model_id, :created_at, :created_time, :prediction_time, :prediction_type, :prediction_value)
-                """
-            )
-
-            conn.execute(
-                query,
-                {
-                    "model_id": _model_id,
-                    "created_at": created_at,
-                    "created_time": created_time,
-                    "prediction_time": created_at,
-                    "prediction_type": source,
-                    "prediction_value": json.dumps(message, default=to_native),
-                },
-            )
-            conn.commit()
+        get_quarkus_client().create_anomaly_history_prediction(
+            model_id=_model_id,
+            prediction_type=source,
+            body={
+                "createdAt": created_at,
+                "createdTime": created_time,
+                "predictionTime": created_at,
+                "predictionValue": message,
+            },
+        )
     except Exception as e:
         error_details = traceback.format_exc()
         add_model_log(model_id, "error", f"Failed to save prediction: {str(e)}")

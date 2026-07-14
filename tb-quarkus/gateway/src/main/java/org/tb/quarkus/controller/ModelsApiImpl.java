@@ -43,6 +43,12 @@ public class ModelsApiImpl implements ModelsApi {
     }
 
     @Override
+    public Map<String, Object> createAnomalyHistoryPrediction(String modelId, String predictionType,
+                                                              PredictionCreateRequest body) {
+        return predictiveModelsRestService.createAnomalyHistoryPrediction(modelId, predictionType, body);
+    }
+
+    @Override
     public Map<String, Object> deleteAnomalyHistoryPredictions(String modelId, String predictionType) {
         return predictiveModelsRestService.deleteAnomalyHistoryPredictions(modelId, predictionType);
     }

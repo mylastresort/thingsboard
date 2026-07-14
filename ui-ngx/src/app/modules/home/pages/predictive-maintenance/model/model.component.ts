@@ -70,6 +70,16 @@ import { ForecastPredictionLogEntry } from "@core/event-models/ForecastPredictio
 import { AnomalyPredictionLogEntry } from "@app/core/event-models/AnomalyPredictionLogEntry";
 import { GenericLogEntry } from "@core/event-models/GenericLogEntry";
 
+interface TrainingProgressMessage {
+  step: string;
+  progress: number;
+  message?: string;
+  model?: string;
+  sensor?: string;
+  epoch?: number;
+  totalEpochs?: number;
+}
+
 @Component({
   selector: "tb-forecast",
   standalone: true,
@@ -224,6 +234,10 @@ export class ModelComponent
     AnomalyPredictionLogEntry | ForecastPredictionLogEntry | GenericLogEntry
   >;
 
+  liveLogsObservable!: Observable<
+    AnomalyPredictionLogEntry | ForecastPredictionLogEntry | GenericLogEntry
+  >;
+
   forecastJobRunning = false;
 
   forecastJobPaused = false;
@@ -240,7 +254,18 @@ export class ModelComponent
 
   isActivating = false;
 
-  progressMessage: { step: string; progress: number } | null = null;
+  progressMessage: TrainingProgressMessage | null = null;
+
+  forecastTrainingProgressBySensor: { [sensor: string]: TrainingProgressMessage } = {};
+
+  forecastTrainingState: TrainingProgressMessage | null = null;
+
+  anomalyTrainingState: TrainingProgressMessage | null = null;
+
+  forecastModelPending = false;
+
+  anomalyModelPending = false;
+
   private subscriptions: Array<any> = [];
 
   private notifierSubscription: any = null;
@@ -395,7 +420,7 @@ export class ModelComponent
   }
 
   subscribeToAnomalyPredictions() {
-    const anomalyPredictionLogs$ = this.logsObservable!.pipe(
+    const anomalyPredictionLogs$ = this.liveLogsObservable!.pipe(
       filter(
         (log) =>
           !!(
@@ -487,6 +512,29 @@ export class ModelComponent
     );
 
     this.subscriptions.push(forecastLogsSubscription);
+  }
+
+  subscribeToForecastTrainingProgress() {
+    const trainingLogsSubscription = this.liveLogsObservable
+      ?.pipe(
+        filter(
+          (log) =>
+            !!(
+              log.type?.toLowerCase() === "forecast" &&
+              log.level?.toLowerCase() === "info"
+            )
+        )
+      )
+      .subscribe((log) => {
+        const parsed = this.parseForecastTrainingProgressLog(log);
+        if (parsed) {
+          this.applyTrainingProgress(parsed);
+        }
+      });
+
+    if (trainingLogsSubscription) {
+      this.subscriptions.push(trainingLogsSubscription);
+    }
   }
 
   changeModel(value: any) {
@@ -908,6 +956,7 @@ export class ModelComponent
           this.progressMessage = {
             step: "Starting rebuild",
             progress: 0,
+            model: "ForecastModel",
           };
           this.activateModel();
         } else {
@@ -1013,6 +1062,11 @@ export class ModelComponent
     this.isActivating = true;
     this.activationProgress = "";
     this.activationComplete = false;
+    this.forecastTrainingProgressBySensor = {};
+    this.forecastTrainingState = null;
+    this.anomalyTrainingState = null;
+    this.forecastModelPending = true;
+    this.anomalyModelPending = true;
     this.predictions = null;
     this.logs = [];
     if (!this.progressMessage) {
@@ -1103,6 +1157,108 @@ export class ModelComponent
       return "Anomalies Only";
     }
     return "No Views Selected";
+  }
+
+  getProgressLabel(progress: TrainingProgressMessage): string {
+    if (!progress) {
+      return "";
+    }
+
+    if (progress.sensor && progress.epoch && progress.totalEpochs) {
+      return `${progress.sensor}: epoch ${progress.epoch}/${progress.totalEpochs}`;
+    }
+
+    return progress.message || progress.step || "Training";
+  }
+
+  getProgressTooltip(progress: TrainingProgressMessage): string {
+    const label = this.getProgressLabel(progress);
+    return `${progress.model || "Model"} training: ${label} (${progress.progress}%)`;
+  }
+
+  getSensorTrainingProgress(sensor: string): TrainingProgressMessage | null {
+    if (!this.forecastModelPending) {
+      return null;
+    }
+    return this.forecastTrainingProgressBySensor[sensor] || null;
+  }
+
+  shouldShowForecastTrainingSummary(): boolean {
+    return this.forecastModelPending;
+  }
+
+  getForecastSensorTotal(): number {
+    return this.attributes?.length || 0;
+  }
+
+  getForecastTrainedSensorCount(): number {
+    const total = this.getForecastSensorTotal();
+    if (!total) {
+      return 0;
+    }
+    return this.attributes.filter((attribute) => {
+      const progress = this.forecastTrainingProgressBySensor[attribute.key];
+      return !!(
+        progress &&
+        progress.epoch &&
+        progress.totalEpochs &&
+        progress.epoch >= progress.totalEpochs
+      );
+    }).length;
+  }
+
+  getForecastSensorProgressTooltip(): string {
+    return `${this.getForecastTrainedSensorCount()}/${this.getForecastSensorTotal()} forecast sensors trained`;
+  }
+
+  getForecastTabProgressLabel(): string {
+    if (!this.forecastModelPending) {
+      return "";
+    }
+    if (
+      this.getForecastSensorTotal() > 0 &&
+      this.getForecastTrainedSensorCount() === this.getForecastSensorTotal()
+    ) {
+      return "100% Forecast training complete";
+    }
+    if (!this.forecastTrainingState) {
+      return "";
+    }
+    return `${this.forecastTrainingState.progress}% ${this.getProgressLabel(this.forecastTrainingState)}`;
+  }
+
+  getAnomalyTabProgressLabel(): string {
+    if (!this.anomalyTrainingState || !this.anomalyModelPending) {
+      return "";
+    }
+    return `${this.anomalyTrainingState.progress}% ${this.getProgressLabel(this.anomalyTrainingState)}`;
+  }
+
+  shouldShowGlobalTrainingProgress(): boolean {
+    return (
+      this.status.toLowerCase() === "pending" &&
+      !!this.getGlobalTrainingProgress()
+    );
+  }
+
+  getGlobalTrainingProgressValue(): number {
+    return this.clampProgress(this.getGlobalTrainingProgress()?.progress || 0);
+  }
+
+  getGlobalTrainingProgressLabel(): string {
+    const progress = this.getGlobalTrainingProgress();
+    if (!progress) {
+      return "";
+    }
+    return `${progress.progress}% ${this.getProgressLabel(progress)}`;
+  }
+
+  getGlobalTrainingProgressTooltip(): string {
+    const progress = this.getGlobalTrainingProgress();
+    if (!progress) {
+      return "";
+    }
+    return `${progress.model || "Predictive model"} training: ${this.getProgressLabel(progress)}`;
   }
 
   shouldShowForecastChart(): boolean {
@@ -1378,7 +1534,8 @@ export class ModelComponent
           this.initializeUnreadLogsState();
           this.subscriptions.forEach((sub) => sub.unsubscribe());
           this.subscriptions = [];
-          this.logsObservable = this.modelWebSocketService
+          const liveLogStartedAt = Date.now();
+          const logMessages$ = this.modelWebSocketService
             .requestJobLogs(this.trueId)
             .pipe(
               filter((msg) => {
@@ -1387,9 +1544,19 @@ export class ModelComponent
                   msg.forecastId == params.id || msg.forecast_id == params.id
                 );
               }),
-              mergeMap((msg) => flatMap(msg.data.logs)),
               share()
             );
+
+          this.logsObservable = logMessages$.pipe(
+            mergeMap((msg) => flatMap(msg.data.logs)),
+            share()
+          );
+
+          this.liveLogsObservable = logMessages$.pipe(
+            mergeMap((msg) => flatMap(msg.data.logs)),
+            filter((log) => this.logTimestamp(log) > liveLogStartedAt),
+            share()
+          );
 
           const modelStatusSubscription = this.modelWebSocketService
             .requestModelStatus(this.trueId)
@@ -1407,6 +1574,8 @@ export class ModelComponent
                   this.status =
                     modelStatus === "error" ? "failed" : modelStatus;
                 }
+                this.applyForecastStatusProgress(statusPayload.forecast);
+                this.applyAnomalyStatusProgress(statusPayload.anomaly);
                 if (
                   modelStatus === "pending" &&
                   typeof statusPayload.trainingProgress === "number"
@@ -1414,10 +1583,12 @@ export class ModelComponent
                   this.progressMessage = {
                     step: statusPayload.trainingStep || "Training",
                     progress: statusPayload.trainingProgress || 0,
+                    model: "Predictive model",
                   };
                 } else if (modelStatus !== "pending") {
                   this.progressMessage = null;
                   if (modelStatus === "active") {
+                    this.markForecastTrainingComplete();
                     this.activationComplete = true;
                     this.isActivating = false;
                   }
@@ -1428,6 +1599,7 @@ export class ModelComponent
           this.fetchAnomalyHistoryPredictions();
           this.subscribeToAnomalyPredictions();
           this.subscribeToForecastPredictions(params.id);
+          this.subscribeToForecastTrainingProgress();
         }
 
         if (this.notifierSubscription) {
@@ -1488,33 +1660,192 @@ export class ModelComponent
           typeof payload.trainingProgress === "number" ||
           typeof payload.progress === "number"
         ) {
-          this.progressMessage = {
-            step: payload.trainingStep || payload.step || "Processing",
-            progress: payload.trainingProgress ?? payload.progress,
-          };
+          this.applyTrainingProgress(this.progressFromPayload(payload));
         }
         this.status = "pending";
         break;
       case "complete":
         this.progressMessage = null;
+        this.markForecastTrainingComplete();
+        this.anomalyModelPending = false;
+        this.anomalyTrainingState = null;
         this.activationComplete = true;
         this.status = "active";
         this.anomaliesComponent?.setStreamStatus(true, null);
         break;
       case "error":
         this.progressMessage = null;
+        this.forecastModelPending = false;
+        this.anomalyModelPending = false;
         this.status = "failed";
         break;
       case "model_status":
       case "response":
         if (payload.status === "active") {
           this.progressMessage = null;
+          this.markForecastTrainingComplete();
+          this.anomalyModelPending = false;
+          this.anomalyTrainingState = null;
           this.activationComplete = true;
           this.isActivating = false;
           this.status = "active";
         }
         break;
     }
+  }
+
+  private progressFromPayload(payload: any): TrainingProgressMessage {
+    const epoch = payload.epoch ?? payload.currentEpoch;
+    const totalEpochs = payload.total_epochs ?? payload.totalEpochs;
+    return {
+      step: payload.trainingStep || payload.step || "Processing",
+      message: payload.message,
+      progress: payload.trainingProgress ?? payload.progress ?? 0,
+      model: payload.model || "ForecastModel",
+      sensor: payload.sensor,
+      epoch: typeof epoch === "number" ? epoch : undefined,
+      totalEpochs: typeof totalEpochs === "number" ? totalEpochs : undefined,
+    };
+  }
+
+  private applyTrainingProgress(progress: TrainingProgressMessage): void {
+    this.progressMessage = progress;
+    if (progress.model === "ForecastModel" || progress.sensor) {
+      this.forecastTrainingState = progress;
+      this.forecastModelPending = true;
+    }
+    if (progress.sensor) {
+      this.forecastTrainingProgressBySensor = {
+        ...this.forecastTrainingProgressBySensor,
+        [progress.sensor]: progress,
+      };
+    }
+    this.cdr.detectChanges();
+  }
+
+  private applyForecastStatusProgress(forecastStatus: any): void {
+    if (!forecastStatus) {
+      this.forecastModelPending = false;
+      return;
+    }
+
+    const status = (forecastStatus.status || "").toLowerCase();
+    this.forecastModelPending = status === "training" || status === "pending";
+    if (status === "running" || status === "active") {
+      this.forecastModelPending = false;
+    }
+    if (typeof forecastStatus.trainingProgress === "number") {
+      this.forecastTrainingState = {
+        step: forecastStatus.trainingStep || "Forecast training",
+        progress: this.clampProgress(forecastStatus.trainingProgress),
+        model: "ForecastModel",
+      };
+    }
+  }
+
+  private applyAnomalyStatusProgress(anomalyStatus: any): void {
+    if (!anomalyStatus) {
+      this.anomalyModelPending = false;
+      this.anomalyTrainingState = null;
+      return;
+    }
+
+    const status = (anomalyStatus.status || "").toLowerCase();
+    this.anomalyModelPending = status === "training" || status === "pending";
+    if (typeof anomalyStatus.trainingProgress === "number") {
+      this.anomalyTrainingState = {
+        step: anomalyStatus.trainingStep || "Anomaly training",
+        progress: this.clampProgress(anomalyStatus.trainingProgress),
+        model: "AnomalyPredictor",
+      };
+    } else if (this.anomalyModelPending && !this.anomalyTrainingState) {
+      this.anomalyTrainingState = {
+        step: anomalyStatus.trainingStep || "Anomaly training pending",
+        progress: 0,
+        model: "AnomalyPredictor",
+      };
+    }
+    if (!this.anomalyModelPending && status !== "training") {
+      this.anomalyTrainingState = null;
+    }
+  }
+
+  private markForecastTrainingComplete(): void {
+    const sensors = this.attributes || [];
+    if (sensors.length) {
+      const completedProgress = sensors.reduce(
+        (acc, attribute) => {
+          const current = this.forecastTrainingProgressBySensor[attribute.key];
+          return {
+            ...acc,
+            [attribute.key]: {
+              ...current,
+              step: current?.step || `ForecastModel ${attribute.key} complete`,
+              message: current?.message || `${attribute.key}: epoch 1/1`,
+              progress: 100,
+              model: "ForecastModel",
+              sensor: attribute.key,
+              epoch: current?.epoch || 1,
+              totalEpochs: current?.totalEpochs || 1,
+            },
+          };
+        },
+        {} as { [sensor: string]: TrainingProgressMessage }
+      );
+      this.forecastTrainingProgressBySensor = {
+        ...this.forecastTrainingProgressBySensor,
+        ...completedProgress,
+      };
+    }
+    this.forecastTrainingState = {
+      step: "Forecast training complete",
+      progress: 100,
+      model: "ForecastModel",
+    };
+    this.forecastModelPending = false;
+  }
+
+  private getGlobalTrainingProgress(): TrainingProgressMessage | null {
+    return (
+      this.progressMessage ||
+      this.forecastTrainingState ||
+      this.anomalyTrainingState
+    );
+  }
+
+  private clampProgress(progress: number): number {
+    return Math.max(0, Math.min(100, Math.round(progress)));
+  }
+
+  private parseForecastTrainingProgressLog(
+    log: GenericLogEntry | AnomalyPredictionLogEntry | ForecastPredictionLogEntry
+  ): TrainingProgressMessage | null {
+    const message = (log as any)?.message;
+    if (typeof message !== "string" || !message.includes("ForecastModel training sensor")) {
+      return null;
+    }
+
+    const percentMatch = message.match(/\[(\d+)%\]/);
+    const sensorMatch = message.match(/sensor\s+([^:\s]+):/i);
+    const epochMatch = message.match(/epoch\s+(\d+)\/(\d+)/i);
+    const progress = percentMatch ? Number(percentMatch[1]) : 0;
+    const sensor = sensorMatch?.[1];
+
+    if (!sensor) {
+      return null;
+    }
+
+    return {
+      step: epochMatch
+        ? `ForecastModel ${sensor} epoch ${epochMatch[1]}/${epochMatch[2]}`
+        : `ForecastModel ${sensor} training`,
+      message: message.replace(/^\[\d+%\]\s*/, ""),
+      progress,
+      model: "ForecastModel",
+      sensor,
+      epoch: epochMatch ? Number(epochMatch[1]) : undefined,
+      totalEpochs: epochMatch ? Number(epochMatch[2]) : undefined,
+    };
   }
 
   private loadCollapsedStates(): void {
@@ -1690,6 +2021,13 @@ export class ModelComponent
     const key = this.LAST_READ_LOG_KEY_PREFIX + this.trueId;
     localStorage.setItem(key, Date.now().toString());
     this.lastReadLogTimestamp = Date.now();
+  }
+
+  private logTimestamp(
+    log: GenericLogEntry | AnomalyPredictionLogEntry | ForecastPredictionLogEntry
+  ): number {
+    const timestamp = log?.timestamp ? new Date(log.timestamp).getTime() : 0;
+    return Number.isNaN(timestamp) ? 0 : timestamp;
   }
 
   private processAnomalyPrediction(predictionResult: any): AnomalyReport {

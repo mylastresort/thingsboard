@@ -8,7 +8,7 @@ services:
       - ./pip-cache:/root/.cache/pip
       - ./models-cache:/models
     depends_on:
-      postgres:
+      tb-quarkus:
         condition: service_healthy
       thingsboard:
         condition: service_healthy
@@ -29,8 +29,7 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SCHEMA_REGISTRY_URL=http://schema-registry:8081
       - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
-      - THINGSBOARD_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - QUARKUS_API_URL=http://tb-quarkus:8081/api/v1
       - TB_HOST=${TB_HOST:-http://thingsboard:8080}
       - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
       - TB_PASSWORD=${TB_PASSWORD:-tenant}
@@ -47,7 +46,7 @@ services:
       - ./pip-cache:/root/.cache/pip
       - ./models-cache:/models
     depends_on:
-      postgres:
+      tb-quarkus:
         condition: service_healthy
       thingsboard:
         condition: service_healthy
@@ -68,8 +67,7 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SCHEMA_REGISTRY_URL=http://schema-registry:8081
       - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
-      - THINGSBOARD_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-thingsboard}
+      - QUARKUS_API_URL=http://tb-quarkus:8081/api/v1
       - TB_HOST=${TB_HOST:-http://thingsboard:8080}
       - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
       - TB_PASSWORD=${TB_PASSWORD:-tenant}

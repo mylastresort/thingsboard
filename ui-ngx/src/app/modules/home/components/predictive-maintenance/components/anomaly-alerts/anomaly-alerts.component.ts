@@ -29,7 +29,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { Observable, Subscription } from 'rxjs';
-import { filter, tap } from 'rxjs/operators';
+import { filter } from 'rxjs/operators';
 import {
   trigger,
   state,
@@ -104,17 +104,13 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
   ) {}
 
   ngOnInit(): void {
-    console.log('[AnomalyAlerts] ngOnInit - logsObservable:', !!this.logsObservable);
     if (this.logsObservable) {
       this.subscribeToAnomalyPredictions();
     }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    console.log('[AnomalyAlerts] ngOnChanges:', changes);
     if (changes.logsObservable && this.logsObservable) {
-      console.log('[AnomalyAlerts] logsObservable changed, subscribing...');
-      // Unsubscribe from previous subscription
       if (this.subscription) {
         this.subscription.unsubscribe();
       }
@@ -129,35 +125,15 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private subscribeToAnomalyPredictions(): void {
-    console.log('[AnomalyAlerts] Subscribing to anomaly predictions...');
-    
     if (!this.logsObservable) {
-      console.error('[AnomalyAlerts] logsObservable is null/undefined!');
       return;
     }
-    
-    // Subscribe to ALL logs first to see what's coming through
-    const allLogsSubscription = this.logsObservable.pipe(
-      tap((log: LogEntry) => {
-        console.log('[AnomalyAlerts] RAW LOG RECEIVED:', JSON.stringify({
-          type: log.type,
-          level: log.level,
-          source: log.source,
-          hasMessage: !!log.message,
-          messageType: typeof log.message
-        }));
-      })
-    ).subscribe();
-    
-    // Store for cleanup
+
     if (this.subscription) {
       this.subscription.unsubscribe();
     }
 
     const anomalyPredictionLogs$ = this.logsObservable.pipe(
-      tap((log: LogEntry) => {
-        console.log('[AnomalyAlerts] Checking log - type:', log.type, 'level:', log.level);
-      }),
       filter((log: LogEntry) =>
         !!log.type && log.type.toLowerCase() === 'anomaly' &&
         !!log.level && log.level.toLowerCase() === 'prediction'
@@ -165,15 +141,11 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
     ) as Observable<AnomalyPredictionLogEntry>;
 
     this.subscription = anomalyPredictionLogs$.subscribe(log => {
-      console.log('[AnomalyAlerts] Filtered anomaly prediction log:', log);
       if (typeof log.message !== 'string' && log.message?.result) {
         const results = Array.isArray(log.message.result) ? log.message.result : [log.message.result];
 
         results.forEach((predictionItem: AnomalyPrediction) => {
-          console.log('[AnomalyAlerts] Processing prediction item:', predictionItem);
-          // Only process results that predict a failure
           if (predictionItem.failure_predicted === true) {
-            console.log('[AnomalyAlerts] Failure predicted! Adding alert...');
             this.ngZone.run(() => {
               this.addAlert(predictionItem);
             });
@@ -181,13 +153,9 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
         });
       }
     });
-    
-    console.log('[AnomalyAlerts] Subscription created successfully');
   }
 
   private addAlert(prediction: AnomalyPrediction): void {
-    console.log('[AnomalyAlerts] addAlert called with prediction:', prediction);
-    
     const probability = prediction.general_failure_probability || 0;
     const severity = this.getSeverity(probability);
     const component = prediction.predicted_failing_component || 'Unknown Component';
@@ -202,21 +170,14 @@ export class AnomalyAlertsComponent implements OnInit, OnDestroy, OnChanges {
       dismissed: false
     };
 
-    console.log('[AnomalyAlerts] Created alert:', alert);
-
-    // Add to the beginning of the array (newest first)
     this.alerts.unshift(alert);
 
-    console.log('[AnomalyAlerts] Alerts array now has', this.alerts.length, 'items');
-
-    // Limit the number of alerts
     if (this.alerts.length > this.maxAlerts) {
       this.alerts = this.alerts.slice(0, this.maxAlerts);
     }
 
     this.cdr.detectChanges();
 
-    // Auto-close after delay if enabled
     if (this.autoCloseDelay > 0) {
       setTimeout(() => {
         this.dismissAlert(alert.id);

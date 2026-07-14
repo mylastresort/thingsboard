@@ -68,6 +68,17 @@ openApiGenerate {
     ]
 }
 
+tasks.register('generatePythonApiClient', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    generatorName = "python"
+    inputSpec = "$projectDir/../../api-specs/openapi.yaml"
+    outputDir = "$projectDir/../../predictive-maintenance"
+    packageName = "quarkus_api_client"
+    additionalProperties = [
+        generateSourceCodeOnly: "true",
+        packageVersion: "0.1.0"
+    ]
+}
+
 tasks.register('copyOpenApiSpec', Copy) {
     from "$projectDir/../../api-specs/openapi.yaml"
     into "$buildDir/generated/openapi/META-INF"

@@ -16,12 +16,7 @@ from src.settings import settings
 
 
 def get_data_registry() -> DataRegistry:
-    database_url = os.getenv(
-        "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/thingsboard"
-    )
-
     return DataRegistry(
-        database_url=database_url,
         telemetry_keys=settings.telemetry_keys,
         error_keys=settings.error_keys,
         component_keys=settings.component_keys,
@@ -262,7 +257,7 @@ def train_and_save_model(
                 {"step": "training", "message": "Training ForecastModel...", "progress": 50}
             )
 
-        model.train()
+        model.train(progress_callback=progress_callback)
 
         logger.info(
             f"{rand_id} - ForecastModel trained for model_id={model_id}", extra={"rand_id": rand_id}

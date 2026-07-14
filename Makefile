@@ -49,10 +49,10 @@ help:
 # ─── lifecycle ───────────────────────────────────────────────────────────────
 
 .PHONY: up
-up: ## Start the full dev stack (core + toolbox + dev web ui)
+up: pdm-gen-openapi-client ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
-up-recreate: maybe-reset-pdm-state ## Recreate dev stack and reset PdM Kafka/Redis state by default
+up-recreate: pdm-gen-openapi-client maybe-reset-pdm-state ## Recreate dev stack and reset PdM Kafka/Redis state by default
 	$(COMPOSE) up -d --force-recreate --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 .PHONY: make-recreate
@@ -101,7 +101,7 @@ up-ui: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d $(WEB_SERVICE)
 
 .PHONY: up-prod
-up-prod: ## Start prod-only stack (core: tb, quarkus, pdm workers, config-api)
+up-prod: pdm-gen-openapi-client ## Start prod-only stack (core: tb, quarkus, pdm workers, config-api)
 	docker compose --project-directory . $(CORE_FILES) -p $(PROJECT) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 .PHONY: down
@@ -368,6 +368,10 @@ tb-quarkus-dev-smoke: tb-quarkus-dev-up tb-quarkus-dev-wait tb-quarkus-dev-curl 
 .PHONY: tb-quarkus-gen-openapi
 tb-quarkus-gen-openapi:
 	$(COMPOSE) run --rm $(TB_QUARKUS_DEV) ./gradlew openApiGenerate
+
+.PHONY: pdm-gen-openapi-client
+pdm-gen-openapi-client: ## Generate ignored Python Quarkus API client for PdM workers
+	cd tb-quarkus/gateway && ./gradlew generatePythonApiClient
 
 # ─── cleanup ─────────────────────────────────────────────────────────────────
 

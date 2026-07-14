@@ -73,7 +73,6 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 # Suppress noisy third-party loggers
-logging.getLogger("sqlalchemy").setLevel(logging.ERROR)
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("absl").setLevel(logging.ERROR)
 logging.getLogger("tensorflow").setLevel(logging.ERROR)

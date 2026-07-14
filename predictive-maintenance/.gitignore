@@ -1,1 +1,8 @@
 .venv
+
+# Generated from ../api-specs/openapi.yaml by:
+# cd ../tb-quarkus/gateway && ./gradlew generatePythonApiClient
+.openapi-generator/
+.openapi-generator-ignore
+quarkus_api_client/
+quarkus_api_client_README.md
