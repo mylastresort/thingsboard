@@ -12,6 +12,7 @@ RESET_PDM_STATE_ON_RECREATE ?= true
 CONFIG_SERVICE  := config-api
 MCP_SERVICE     := thingsboard-mcp
 POSTGRES        := postgres
+CASSANDRA_SERVICE := cassandra
 TB_QUARKUS      := tb-quarkus
 TB_QUARKUS_DEV  := tb-quarkus-dev
 TB_PREV_VERSION ?= 4.2.2.2
@@ -137,6 +138,53 @@ db-up: ## Start postgres and wait until pg_isready passes
 		echo "waiting for postgres..."; \
 		sleep 2; \
 	done
+
+install-cassandra: export COMPOSE_PROFILES = cassandra
+install-cassandra: export DATABASE_TS_TYPE = cassandra
+install-cassandra: export DATABASE_TS_LATEST_TYPE = cassandra
+
+.PHONY: install-cassandra
+install-cassandra: db-up ## Run TB schema installation with Cassandra enabled as the time-series backend (sets COMPOSE_PROFILES, DATABASE_TS_TYPE, DATABASE_TS_LATEST_TYPE=cassandra for this invocation)
+	$(COMPOSE) up -d $(CASSANDRA_SERVICE)
+	@cid="$$($(COMPOSE) ps -q $(CASSANDRA_SERVICE))"; \
+	if [ -z "$$cid" ]; then echo "$(CASSANDRA_SERVICE) is not running"; exit 1; fi; \
+	for i in $$(seq 1 60); do \
+		status="$$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$$cid")"; \
+		echo "$(CASSANDRA_SERVICE) health: $$status"; \
+		if [ "$$status" = "healthy" ]; then break; fi; \
+		if [ "$$status" = "exited" ] || [ "$$status" = "dead" ]; then $(COMPOSE) logs --tail=120 $(CASSANDRA_SERVICE); exit 1; fi; \
+		if [ "$$i" = "60" ]; then echo "$(CASSANDRA_SERVICE) never became healthy"; $(COMPOSE) logs --tail=120 $(CASSANDRA_SERVICE); exit 1; fi; \
+		sleep 3; \
+	done
+	$(COMPOSE) run --rm --no-deps \
+		-e INSTALL_TB=true \
+		$(TB_SERVICE)
+
+up-cassandra: export COMPOSE_PROFILES = cassandra
+up-cassandra: export DATABASE_TS_TYPE = cassandra
+up-cassandra: export DATABASE_TS_LATEST_TYPE = cassandra
+
+.PHONY: up-cassandra
+# Attention: migrating database from postgres is not tested and may cause Undefined Behavior.
+up-cassandra: pdm-gen-openapi-client ## Start the full dev stack with Cassandra enabled as the time-series backend. Auto-installs the Cassandra schema on first run if the thingsboard keyspace doesn't exist yet.
+	$(COMPOSE) up -d $(CASSANDRA_SERVICE)
+	@cid="$$($(COMPOSE) ps -q $(CASSANDRA_SERVICE))"; \
+	if [ -z "$$cid" ]; then echo "$(CASSANDRA_SERVICE) is not running"; exit 1; fi; \
+	for i in $$(seq 1 60); do \
+		status="$$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$$cid")"; \
+		echo "$(CASSANDRA_SERVICE) health: $$status"; \
+		if [ "$$status" = "healthy" ]; then break; fi; \
+		if [ "$$status" = "exited" ] || [ "$$status" = "dead" ]; then $(COMPOSE) logs --tail=120 $(CASSANDRA_SERVICE); exit 1; fi; \
+		if [ "$$i" = "60" ]; then echo "$(CASSANDRA_SERVICE) never became healthy"; $(COMPOSE) logs --tail=120 $(CASSANDRA_SERVICE); exit 1; fi; \
+		sleep 3; \
+	done
+	@if $(COMPOSE) exec -T $(CASSANDRA_SERVICE) cqlsh -e "DESCRIBE KEYSPACE thingsboard" >/dev/null 2>&1; then \
+		echo "thingsboard keyspace already present, skipping install"; \
+	else \
+		echo "thingsboard keyspace not found — running install-cassandra first"; \
+		exit 1; \
+	fi
+	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 .PHONY: install
 install: db-up ## Run TB schema installation (INSTALL_TB=true)

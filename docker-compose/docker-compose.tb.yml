@@ -73,6 +73,34 @@ services:
        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-job-state --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 --config cleanup.policy=compact"
     restart: "no"
 
+  # Optional time-series backend — only created when the "cassandra" profile
+  # is active. Activate it by setting COMPOSE_PROFILES=cassandra in .env
+  # alongside DATABASE_TS_TYPE=cassandra (see note on thingsboard's env below;
+  # Compose can't branch a service's existence on another service's env var,
+  # so the two toggles have to be kept in sync manually).
+  cassandra:
+    image: cassandra:4.1
+    restart: unless-stopped
+    profiles: ["cassandra"]
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: thingsboard
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      # Single-node dev/staging ring. For real HA you need >=3 nodes and RF=3 —
+      # see the reliability note in the accompanying review.
+      MAX_HEAP_SIZE: ${CASSANDRA_MAX_HEAP_SIZE:-2G}
+      HEAP_NEWSIZE: ${CASSANDRA_HEAP_NEWSIZE:-512M}
+    volumes:
+      - ./cassandra-data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+
   thingsboard:
     # restart: always
     image: "${DOCKER_REPO:-thingsboard}/${TB_NODE_DOCKER_NAME:-tb-node}:${TB_VERSION:-4.3.1.3}"
@@ -106,6 +134,16 @@ services:
       TB_QUEUE_TYPE: kafka
       TB_KAFKA_SERVERS: kafka:9092
 
+      # Time-series backend — "sql" keeps everything in Postgres (default);
+      # set DATABASE_TS_TYPE=cassandra in .env (and enable the cassandra
+      # profile, see above) to switch time-series writes to Cassandra.
+      # Entities, attributes, relations, alarms, and events always stay
+      # in Postgres regardless of this setting.
+      DATABASE_TS_TYPE: ${DATABASE_TS_TYPE:-sql}
+      DATABASE_TS_LATEST_TYPE: ${DATABASE_TS_LATEST_TYPE:-sql}
+      CASSANDRA_URL: cassandra:9042
+      CASSANDRA_LOCAL_DATACENTER: datacenter1
+
       PDM_WS_URL: ws://tb-quarkus:8081/models/ws/unified
       LOGGING_LEVEL_ORG_THINGSBOARD: INFO
       LOGGING_LEVEL_ORG_THINGSBOARD_SERVER_CONTROLLER: DEBUG
@@ -130,5 +168,12 @@ services:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
+      # Optional: only waited on when the "cassandra" profile is active.
+      # required: false means this is silently skipped (no error) when
+      # DATABASE_TS_TYPE=sql and the cassandra profile isn't enabled.
+      # Requires Compose v2.20.2+.
+      cassandra:
+        condition: service_healthy
+        required: false
     env_file:
       - .env
