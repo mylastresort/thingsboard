@@ -1109,6 +1109,12 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
     // Add forecast series if forecast data is available
     if (this.forecastDataPoints && this.forecastDataPoints.length > 0) {
+      // trim forecast points older than max sensor realtime data point 
+      const max = Math.max(...this.telemetryData.map(d => d[0]), 0);
+      this.forecastDataPoints = this.forecastDataPoints.filter(
+        point => point[0] >= max
+      );
+
       this.forecastDataPoints.sort((a, b) => a[0] - b[0]);
       // console.log('[TIME-SERIES] Adding forecast series to chart with', this.forecastDataPoints.length, 'points');
       // console.log('[TIME-SERIES] Forecast data sample:', this.forecastDataPoints.slice(0, 3));
