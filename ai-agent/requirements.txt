@@ -6,3 +6,4 @@ mcp
 pytest
 uvicorn
 orjson
+google-adk[eval]

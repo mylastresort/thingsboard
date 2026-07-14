@@ -21,6 +21,7 @@ TB_QUARKUS_CACHE_DEV_DIR ?= ./tb_quarkus_dev_cache
 TB_QUARKUS_DOCKERFILE ?= src/main/docker/Dockerfile.jvm
 TB_QUARKUS_SMOKE_URL ?= http://localhost:8081/models/failure-mode-history?limit=1
 TB_QUARKUS_DEV_SMOKE_URL ?= http://localhost:8082/models/failure-mode-history?limit=1
+AI_AGENT       := ai-agent-py
 
 # ─── compose file sets ───────────────────────────────────────────────────────
 COMPOSE_DIR := docker-compose
@@ -237,6 +238,12 @@ build-web-prod: ## Build / rebuild the production tb-web-ui image
 .PHONY: pull
 pull: ## Pull latest base images
 	$(COMPOSE) pull
+
+.PHONY: agent-test
+agent-test: ## Run pdm_agent eval tests inside the ai-agent service (brings up its deps first)
+	$(COMPOSE) build $(AI_AGENT)
+	$(COMPOSE) up -d $(AI_AGENT)
+	$(COMPOSE) exec -T $(AI_AGENT) sh scripts/run-agent-evals.sh
 
 # ─── logs ────────────────────────────────────────────────────────────────────
 

@@ -12,7 +12,7 @@ from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
 
-from shared.settings import Settings
+from .settings import Settings
 from .scope import (
     build_scoped_instruction,
     build_scoped_tool_filter,

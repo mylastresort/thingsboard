@@ -1,0 +1,231 @@
+{
+  "eval_set_id": "find_site_asset_skill",
+  "name": "find-site-asset skill resolution",
+  "description": "Regression tests for the find-site-asset skill: exact name match, name/label mismatch fallback cascade, ambiguous multiple matches, device-vs-asset misdirection, and no-match handling.",
+  "eval_cases": [
+    {
+      "eval_id": "exact_unique_name_match",
+      "conversation": [
+        {
+          "invocation_id": "turn_1_exact_match",
+          "user_content": {
+            "parts": [{ "text": "What's the asset id for Building 1?" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Building 1 resolves to asset id 68e85d20-6620-11ef-9061-853a958a524a"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": { "skill_name": "find-site-asset" }
+              },
+              {
+                "name": "assets_agent",
+                "args": {
+                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"Building 1\"}"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "thingsboard_ops_agent",
+        "user_id": "eval_user_01",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "label_name_mismatch_fallback",
+      "conversation": [
+        {
+          "invocation_id": "turn_1_label_fallback",
+          "user_content": {
+            "parts": [{ "text": "Give me the asset id for building 1" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "\"building 1\" resolves to asset building_1, id 68e85d20-6620-11ef-9061-853a958a524a (type: building)."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": { "skill_name": "find-site-asset" }
+              },
+              {
+                "name": "assets_agent",
+                "args": {
+                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"building 1\"}"
+                }
+              },
+              {
+                "name": "assets_agent",
+                "args": {
+                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"building_1\"}"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "thingsboard_ops_agent",
+        "user_id": "eval_user_01",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "ambiguous_multiple_matches",
+      "conversation": [
+        {
+          "invocation_id": "turn_1_ambiguous",
+          "user_content": {
+            "parts": [{ "text": "Find the asset id for Plant" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "I found more than one matching asset: Plant A (id 68e85d20-6620-11ef-9061-853a958a524a, type plant) and Plant B (id 68e85d20-6620-11ef-9061-853a958a524b, type plant). Which one did you mean?"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": { "skill_name": "find-site-asset" }
+              },
+              {
+                "name": "assets_agent",
+                "args": {
+                  "request": "{\"action\": \"getTenantAssets\", \"textSearch\": \"Plant\"}"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "thingsboard_ops_agent",
+        "user_id": "eval_user_01",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "name_belongs_to_device_not_asset",
+      "conversation": [
+        {
+          "invocation_id": "turn_1_device_not_asset",
+          "user_content": {
+            "parts": [{ "text": "What's the asset id for PdM-Machine-1?" }],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "PdM-Machine_1 is a device, not a site or building asset, so I can't return an asset id for it. Did you mean to look up the device instead?"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": { "skill_name": "find-site-asset" }
+              },
+              {
+                "name": "assets_agent",
+                "args": {
+                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"PdM-Machine-1\"}"
+                }
+              },
+              {
+                "name": "devices_agent",
+                "args": {
+                  "request": "{\"action\": \"getDeviceByName\", \"deviceName\": \"PdM-Machine-1\"}"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "thingsboard_ops_agent",
+        "user_id": "eval_user_01",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "no_match_found",
+      "conversation": [
+        {
+          "invocation_id": "turn_1_no_match",
+          "user_content": {
+            "parts": [
+              { "text": "What's the asset id for Nonexistent-Site-99?" }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "I couldn't find an asset matching \"Nonexistent-Site-99\" under any name or label variant. Could you confirm the exact name, or would you like me to list available sites?"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": { "skill_name": "find-site-asset" }
+              },
+              {
+                "name": "assets_agent",
+                "args": {
+                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"Nonexistent-Site-99\"}"
+                }
+              },
+              {
+                "name": "assets_agent",
+                "args": {
+                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"Nonexistent_Site_99\"}"
+                }
+              },
+              {
+                "name": "assets_agent",
+                "args": { "request": "{\"action\": \"getTenantAssets\"}" }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "thingsboard_ops_agent",
+        "user_id": "eval_user_01",
+        "state": {}
+      }
+    }
+  ]
+}

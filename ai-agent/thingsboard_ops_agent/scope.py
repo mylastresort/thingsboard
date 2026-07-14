@@ -10,7 +10,7 @@ from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.tools.base_tool import BaseTool
 from google.adk.tools.tool_context import ToolContext
 
-from shared.settings import Settings
+from .settings import Settings
 import re
 
 AUTHORITY_KEY = "tb:authority"

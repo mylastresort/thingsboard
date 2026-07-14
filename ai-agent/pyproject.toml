@@ -1,7 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ai-agent"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi>=0.139.0",
+    "google-adk[eval]>=2.4.0",
+    "httpx>=0.28.1",
+    "litellm>=1.85.7",
+    "mcp>=1.28.1",
+    "orjson>=3.11.9",
+    "pytest>=9.1.1",
+    "uvicorn>=0.51.0",
+]
+

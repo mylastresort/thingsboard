@@ -1,0 +1,78 @@
+{
+  "eval_set_id": "pdm_agent_train_existing_device",
+  "name": "PDM agent \u2014 train existing device",
+  "description": "Resolves an existing device, trains forecast+anomaly models, infers, and reports predictions without creating a device.",
+  "eval_cases": [
+    {
+      "eval_id": "train_pdm_machine_1",
+      "conversation": [
+        {
+          "invocation_id": "inv-001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Train a predictive maintenance model on device \"PdM-Machine-1\" using its vibration telemetry. Forecast with lstm and detect anomalies with random_forest over the last 30 days, then run inference and give me the prediction counts."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Training complete. Forecast: 30 predictions (latest 2026-07-13). Anomalies: 2 flagged (latest 2026-07-12)."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "getDeviceByName",
+                "args": {
+                  "name": "PdM-Machine-1"
+                }
+              },
+              {
+                "name": "getAvailableModels",
+                "args": {}
+              },
+              {
+                "name": "createAndTrainPredictiveModel",
+                "args": {
+                  "forecastAlgorithm": "lstm",
+                  "anomalyAlgorithm": "random_forest",
+                  "attributes": [
+                    {
+                      "key": "vibration",
+                      "aggregation": "average",
+                      "groupByMs": 5000
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "inferPredictiveModel",
+                "args": {
+                  "modelType": "BOTH"
+                }
+              },
+              {
+                "name": "pollPredictiveModelInference",
+                "args": {}
+              },
+              {
+                "name": "getAnomalyHistoryPredictions",
+                "args": {}
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "root_agent",
+        "user_id": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

@@ -7,8 +7,8 @@ from google.adk.tools.agent_tool import AgentTool
 
 from .subagents import build_model, build_subagents, build_pandas_agent, build_pdm_agent
 from .scope import build_scope_resolver, harvest_known_ids
-from shared.settings import load_settings, Settings
-from shared.datetime_tool import get_current_datetime
+from .settings import load_settings, Settings
+from .datetime_tool import get_current_datetime
 
 SKILLS_DIR = pathlib.Path(__file__).parent / "skills"
 
