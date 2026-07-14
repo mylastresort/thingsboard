@@ -29,10 +29,10 @@ public class MCP {
 
     // --- Models / forecasts (read) ---
 
-    // @Tool(description = "Get available predictive maintenance algorithms to train models")
-    // public Map<String, List<AvailableModelOption>> getAvailableModels() {
-    //     return predictiveModelsRestService.getAvailableModels();
-    // }
+    @Tool(description = "Get available predictive maintenance algorithms to train models")
+    public Map<String, List<AvailableAlgorithmOption>> getAvailableAlgorithmsMap() {
+        return predictiveModelsRestService.getAvailableAlgorithms();
+    }
 
     @Tool(description = "Get all saved model load configurations")
     public Map<String, Object> getLoadModelConfigs() {
@@ -166,10 +166,13 @@ public class MCP {
         response.put("endTs", resolvedEndTs);
         response.put("status", pdmCommandService.status(forecastId));
         if ("BOTH".equalsIgnoreCase(modelType)) {
-            response.put("forecast", pdmCommandService.predictions(forecastId, "FORECAST", resolvedStartTs, resolvedEndTs, limit));
-            response.put("anomaly", pdmCommandService.predictions(forecastId, "ANOMALY", resolvedStartTs, resolvedEndTs, limit));
+            response.put("forecast",
+                    pdmCommandService.predictions(forecastId, "FORECAST", resolvedStartTs, resolvedEndTs, limit));
+            response.put("anomaly",
+                    pdmCommandService.predictions(forecastId, "ANOMALY", resolvedStartTs, resolvedEndTs, limit));
         } else {
-            response.put("inference", pdmCommandService.predictions(forecastId, defaultString(modelType, "FORECAST"), resolvedStartTs, resolvedEndTs, limit));
+            response.put("inference", pdmCommandService.predictions(forecastId, defaultString(modelType, "FORECAST"),
+                    resolvedStartTs, resolvedEndTs, limit));
         }
         return response;
     }

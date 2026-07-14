@@ -11,7 +11,7 @@ import jakarta.ws.rs.NotFoundException;
 import org.tb.quarkus.entity.pdm.PredictionEntity;
 import org.tb.quarkus.entity.pdm.PredictiveMaintenanceConfigEntity;
 import org.tb.quarkus.entity.pdm.PredictiveModelLoadModelConfigEntity;
-import org.tb.quarkus.model.AvailableModelOption;
+import org.tb.quarkus.model.AvailableAlgorithmOption;
 import org.tb.quarkus.model.PredictionCreateRequest;
 
 import java.time.Instant;
@@ -25,21 +25,23 @@ import java.util.UUID;
 @ApplicationScoped
 public class PredictiveModelsRestService {
 
-    @Inject EntityManager em;
-    @Inject ObjectMapper mapper;
+    @Inject
+    EntityManager em;
+    @Inject
+    ObjectMapper mapper;
 
-    public Map<String, List<AvailableModelOption>> getAvailableModels() {
+    public Map<String, List<AvailableAlgorithmOption>> getAvailableAlgorithms() {
         return Map.of(
                 "AnomalyPredictor", List.of(
-                        modelOption("random_forest", Map.of()),
-                        modelOption("xgboost", Map.of())),
+                        algorithmOption("random_forest", Map.of()),
+                        algorithmOption("xgboost", Map.of())),
                 "ForecastModel", List.of(
-                        modelOption("lstm", Map.of()),
-                        modelOption("xgboost", Map.of())));
+                        algorithmOption("lstm", Map.of()),
+                        algorithmOption("xgboost", Map.of())));
     }
 
-    private AvailableModelOption modelOption(String name, Map<String, Object> parameters) {
-        AvailableModelOption option = new AvailableModelOption();
+    private AvailableAlgorithmOption algorithmOption(String name, Map<String, Object> parameters) {
+        AvailableAlgorithmOption option = new AvailableAlgorithmOption();
         option.setModelName(name);
         option.setModelParameters(parameters);
         return option;
@@ -47,7 +49,8 @@ public class PredictiveModelsRestService {
 
     public Map<String, Object> getLoadModelConfigs() {
         var configs = new LinkedHashMap<String, Object>();
-        for (PredictiveModelLoadModelConfigEntity entity : PredictiveModelLoadModelConfigEntity.<PredictiveModelLoadModelConfigEntity>listAll()) {
+        for (PredictiveModelLoadModelConfigEntity entity : PredictiveModelLoadModelConfigEntity
+                .<PredictiveModelLoadModelConfigEntity>listAll()) {
             configs.put(entity.name, toPlainJson(entity.config, Map.of()));
         }
         return configs;
@@ -67,7 +70,7 @@ public class PredictiveModelsRestService {
     }
 
     public Map<String, Object> listForecasts(Integer pageSize, Integer page, String sortProperty,
-                                             String sortOrder, String textSearch) {
+            String sortOrder, String textSearch) {
         int size = pageSize == null ? 10 : pageSize;
         int pageNumber = page == null ? 0 : page;
         int offset = pageNumber * size;
@@ -101,6 +104,7 @@ public class PredictiveModelsRestService {
     @Transactional
     public Map<String, Object> createForecast(Object body) {
         JsonNode node = mapper.valueToTree(body);
+        System.out.println(node.toPrettyString());
         var entity = new PredictiveMaintenanceConfigEntity();
         entity.id = UUID.randomUUID();
         entity.createdTime = System.currentTimeMillis();
@@ -147,7 +151,7 @@ public class PredictiveModelsRestService {
     }
 
     public Map<String, Object> getAnomalyHistoryPredictions(String modelId, String predictionType,
-                                                            Long startTs, Long endTs, Integer limit) {
+            Long startTs, Long endTs, Integer limit) {
         List<Object> params = new ArrayList<>();
         StringBuilder query = new StringBuilder("modelId = ?1");
         params.add(UUID.fromString(modelId));
@@ -178,14 +182,15 @@ public class PredictiveModelsRestService {
 
     @Transactional
     public Map<String, Object> createAnomalyHistoryPrediction(String modelId, String predictionType,
-                                                              PredictionCreateRequest body) {
+            PredictionCreateRequest body) {
         var entity = new PredictionEntity();
         entity.modelId = UUID.fromString(modelId);
         entity.createdTime = body.getCreatedTime() == null ? System.currentTimeMillis() : body.getCreatedTime();
         entity.createdAt = instantOrNow(body.getCreatedAt());
         entity.predictionTime = instantOrNow(body.getPredictionTime());
         entity.predictionType = predictionType;
-        entity.predictionValue = mapper.valueToTree(body.getPredictionValue() == null ? Map.of() : body.getPredictionValue());
+        entity.predictionValue = mapper
+                .valueToTree(body.getPredictionValue() == null ? Map.of() : body.getPredictionValue());
         entity.persist();
         return toPrediction(entity);
     }
@@ -214,12 +219,14 @@ public class PredictiveModelsRestService {
         entity.anomalyEndDate = longOr(node.get("anomalyEndDate"), 0);
         entity.viewPreferences = jsonNodeOr(
                 node.get("viewPreferences"),
-                creating ? mapper.valueToTree(Map.of("selectedViews", List.of("forecast", "anomalies"))) : mapper.createObjectNode());
+                creating ? mapper.valueToTree(Map.of("selectedViews", List.of("forecast", "anomalies")))
+                        : mapper.createObjectNode());
         entity.additionalData = jsonNodeOr(node.get("additionalData"), mapper.createObjectNode());
     }
 
     private PredictiveMaintenanceConfigEntity findForecastOrThrow(String forecastId) {
-        PredictiveMaintenanceConfigEntity entity = PredictiveMaintenanceConfigEntity.findById(UUID.fromString(forecastId));
+        PredictiveMaintenanceConfigEntity entity = PredictiveMaintenanceConfigEntity
+                .findById(UUID.fromString(forecastId));
         if (entity == null) {
             throw new NotFoundException("Forecast not found");
         }
@@ -325,8 +332,10 @@ public class PredictiveModelsRestService {
     }
 
     private String nestedId(JsonNode node) {
-        if (node == null || node.isNull() || node.isMissingNode()) return null;
-        if (node.isTextual()) return node.asText();
+        if (node == null || node.isNull() || node.isMissingNode())
+            return null;
+        if (node.isTextual())
+            return node.asText();
         JsonNode id = node.get("id");
         return id == null || id.isNull() ? null : id.asText();
     }

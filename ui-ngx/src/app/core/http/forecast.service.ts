@@ -38,13 +38,13 @@ import type {
   AgenticBenchmarkRow,
   AgenticBenchmarkRowRequest,
   AgenticBenchmarkSubset,
-  AvailableModelOption,
+  AvailableAlgorithmOption,
   PdmSeedMachineOptions,
   PdmSeedMachineRequest,
   PdmSeedMachineResult,
 } from '@app/core/api-client';
 
-export type AvailableModelsResponse = Record<string, AvailableModelOption[]>;
+export type AvailableModelsResponse = Record<string, AvailableAlgorithmOption[]>;
 
 export type FailureModeRecordType = 'maintenance' | 'errors' | 'failures';
 
@@ -80,7 +80,7 @@ export class PredictiveModelsService {
   }
 
   getAvailableModels() {
-    return this.api.getAvailableModels();
+    return this.api.getAvailableAlgorithms();
   }
 
   getLoadModelConfigs() {

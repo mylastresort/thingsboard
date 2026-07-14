@@ -249,11 +249,14 @@ PDM_DOMAIN: tuple[str, tuple[str, list[str]]] = (
         "Runs predictive-maintenance workflows through the Quarkus PdM MCP "
         "endpoint. Use it to seed a new machine, create/update model configs, "
         "train models, start inference, poll model/job status, and fetch "
-        "forecast or anomaly prediction history.",
+        "forecast or anomaly prediction history."
+        "When creating a new model, you must first call getAvailableAlgorithms to see "
+        "the available algorithms for Forecast/AnomalyPredictor models, "
+        "then pass the algorithm name and any parameters to ",
         [
             "getSeedMachineOptions",
             "seedMachine",
-            # "getAvailableModels",
+            "getAvailableAlgorithms",
             "createForecast",
             "createPredictiveModel",
             "createAndTrainPredictiveModel",

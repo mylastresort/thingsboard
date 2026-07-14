@@ -9,15 +9,15 @@ servers:
 paths:
   /models/available:
     get:
-      operationId: getAvailableModels
-      summary: Get available model types to train
+      operationId: getAvailableAlgorithms
+      summary: Get available algorithms to train models
       responses:
         "200":
           description: Available model types and algorithms
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AvailableModelsResponse"
+                $ref: "#/components/schemas/AvailableAlgorithmsResponse"
         "500":
           $ref: "#/components/responses/Error"
   /models/saveLoadConfig:
@@ -894,17 +894,17 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
   schemas:
-    AvailableModelsResponse:
+    AvailableAlgorithmsResponse:
       type: object
       additionalProperties:
         type: array
         items:
-          $ref: "#/components/schemas/AvailableModelOption"
+          $ref: "#/components/schemas/AvailableAlgorithmOption"
       description: >
         Keyed by model category (e.g. "ForecastModel", "AnomalyPredictor").
         Keys are not fixed — new categories may appear without a schema change.
 
-    AvailableModelOption:
+    AvailableAlgorithmOption:
       type: object
       required:
         - model_name

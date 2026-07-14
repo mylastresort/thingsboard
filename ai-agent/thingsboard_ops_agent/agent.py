@@ -19,6 +19,7 @@ detect_machinery_anomalies_skill = load_skill_from_dir(
     SKILLS_DIR / "detect-machinery-anomalies"
 )
 seed_train_infer_pdm_skill = load_skill_from_dir(SKILLS_DIR / "seed-train-infer-pdm")
+train_existing_device_pdm = load_skill_from_dir(SKILLS_DIR / "train-existing-device-pdm")
 
 ROOT_INSTRUCTION = (
     # --- Identity & tool inventory -------------------------------------
@@ -129,7 +130,8 @@ def build_root_agent(settings: Settings) -> LlmAgent:
                     find_devices_in_site_skill,
                     get_timeseries_data_skill,
                     detect_machinery_anomalies_skill,
-                    seed_train_infer_pdm_skill,
+                    # seed_train_infer_pdm_skill,
+                    train_existing_device_pdm
                 ]
             ),
             get_current_datetime,

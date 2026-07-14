@@ -79,7 +79,7 @@ services:
     environment:
       OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://ollama:11434}"
       OLLAMA_MODEL: "${TINY_AGENT_MODEL:-glm-4.7-flash:q4_K_M}"
-      OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-65536}"
+      OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-120000}"
       MAX_STEPS: "30"
       MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
       # Prompt: Detect unusual vibration, temperature, or pressure changes in machinery in building 1

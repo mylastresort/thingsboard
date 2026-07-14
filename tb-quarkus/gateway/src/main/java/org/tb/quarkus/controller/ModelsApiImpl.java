@@ -17,13 +17,16 @@ import java.io.InputStream;
 @ApplicationScoped
 public class ModelsApiImpl implements ModelsApi {
 
-    @Inject FailureModeRecordService service;
-    @Inject PredictiveModelsRestService predictiveModelsRestService;
-    @Inject PdmSeedService pdmSeedService;
+    @Inject
+    FailureModeRecordService service;
+    @Inject
+    PredictiveModelsRestService predictiveModelsRestService;
+    @Inject
+    PdmSeedService pdmSeedService;
 
     @Override
-    public Map<String, List<AvailableModelOption>> getAvailableModels() {
-        return predictiveModelsRestService.getAvailableModels();
+    public Map<String, List<AvailableAlgorithmOption>> getAvailableAlgorithms() {
+        return predictiveModelsRestService.getAvailableAlgorithms();
     }
 
     @Override
@@ -38,13 +41,13 @@ public class ModelsApiImpl implements ModelsApi {
 
     @Override
     public Map<String, Object> getAnomalyHistoryPredictions(String modelId, String predictionType,
-                                                             Long startTs, Long endTs, Integer limit) {
+            Long startTs, Long endTs, Integer limit) {
         return predictiveModelsRestService.getAnomalyHistoryPredictions(modelId, predictionType, startTs, endTs, limit);
     }
 
     @Override
     public Map<String, Object> createAnomalyHistoryPrediction(String modelId, String predictionType,
-                                                              PredictionCreateRequest body) {
+            PredictionCreateRequest body) {
         return predictiveModelsRestService.createAnomalyHistoryPrediction(modelId, predictionType, body);
     }
 
@@ -55,7 +58,7 @@ public class ModelsApiImpl implements ModelsApi {
 
     @Override
     public Map<String, Object> getPredictiveModelsByPage(Integer pageSize, Integer page,
-                                                          String sortProperty, String sortOrder, String textSearch) {
+            String sortProperty, String sortOrder, String textSearch) {
         return predictiveModelsRestService.listForecasts(pageSize, page, sortProperty, sortOrder, textSearch);
     }
 
