@@ -253,7 +253,7 @@ PDM_DOMAIN: tuple[str, tuple[str, list[str]]] = (
         [
             "getSeedMachineOptions",
             "seedMachine",
-            "getAvailableModels",
+            # "getAvailableModels",
             "createForecast",
             "createPredictiveModel",
             "createAndTrainPredictiveModel",

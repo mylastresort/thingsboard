@@ -5,3 +5,4 @@ litellm
 mcp
 pytest
 uvicorn
+orjson
