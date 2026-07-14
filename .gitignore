@@ -57,3 +57,4 @@ psql_data-model
 pip-cache
 docs/superpowers/
 models-cache
+cassandra-data
