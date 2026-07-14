@@ -223,9 +223,6 @@
         </span>
         <span>Forecast</span>
       </span>
-      <span class="tab-progress-label" *ngIf="getForecastTabProgressLabel()">
-        {{ getForecastTabProgressLabel() }}
-      </span>
     </button>
     <button
       type="button"
@@ -245,9 +242,6 @@
           >schedule</mat-icon
         >
         <span>Anomalies</span>
-      </span>
-      <span class="tab-progress-label" *ngIf="getAnomalyTabProgressLabel()">
-        {{ getAnomalyTabProgressLabel() }}
       </span>
     </button>
     <button
@@ -299,6 +293,7 @@
                 [selectedSensor]="attribute.key"
                 [forecastMaxSteps]="forecastMaxSteps"
                 [modelId]="trueId"
+                [forecastData]="forecastData"
                 [title]="attribute.key"
                 [timewindow]="timewindowsPerSensor[attribute.key] || timewindow"
                 (timewindowChange)="
@@ -326,6 +321,13 @@
         isWidgetVisible('anomalies')
       "
     >
+      <div
+        class="tab-content-progress-label"
+        *ngIf="getAnomalyTabProgressLabel()"
+        [matTooltip]="getGlobalTrainingProgressTooltip()"
+      >
+        {{ getAnomalyTabProgressLabel() }}
+      </div>
       <div class="widgets-grid-container anomalies-grid-container">
         <div class="chart-section anomalies-section">
           <div class="section-header">

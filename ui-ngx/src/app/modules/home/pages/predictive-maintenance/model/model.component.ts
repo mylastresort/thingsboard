@@ -266,6 +266,8 @@ export class ModelComponent
 
   anomalyModelPending = false;
 
+  anomalyTrainingComplete = false;
+
   private subscriptions: Array<any> = [];
 
   private notifierSubscription: any = null;
@@ -546,6 +548,8 @@ export class ModelComponent
     this.forecastAlgorithm = "";
     this.anomalyAlgorithm = "";
     this.forecastGrouping = "hourly";
+    this.forecastData = {};
+    this.anomalyTrainingComplete = false;
     this.fetchPredictiveModelConfig(value);
   }
 
@@ -1065,6 +1069,8 @@ export class ModelComponent
     this.forecastTrainingProgressBySensor = {};
     this.forecastTrainingState = null;
     this.anomalyTrainingState = null;
+    this.anomalyTrainingComplete = false;
+    this.forecastData = {};
     this.forecastModelPending = true;
     this.anomalyModelPending = true;
     this.predictions = null;
@@ -1237,28 +1243,31 @@ export class ModelComponent
   shouldShowGlobalTrainingProgress(): boolean {
     return (
       this.status.toLowerCase() === "pending" &&
-      !!this.getGlobalTrainingProgress()
+      !!this.getGlobalTrainingProgressSummary()
     );
   }
 
   getGlobalTrainingProgressValue(): number {
-    return this.clampProgress(this.getGlobalTrainingProgress()?.progress || 0);
+    return this.getGlobalTrainingProgressSummary()?.progress || 0;
   }
 
   getGlobalTrainingProgressLabel(): string {
-    const progress = this.getGlobalTrainingProgress();
-    if (!progress) {
+    const summary = this.getGlobalTrainingProgressSummary();
+    if (!summary) {
       return "";
     }
-    return `${progress.progress}% ${this.getProgressLabel(progress)}`;
+    return `${summary.completedUnits}/${summary.totalUnits} models trained (${summary.progress}%)`;
   }
 
   getGlobalTrainingProgressTooltip(): string {
-    const progress = this.getGlobalTrainingProgress();
-    if (!progress) {
+    const summary = this.getGlobalTrainingProgressSummary();
+    if (!summary) {
       return "";
     }
-    return `${progress.model || "Predictive model"} training: ${this.getProgressLabel(progress)}`;
+    const anomalyText = summary.anomalyIncluded
+      ? `, anomaly model ${summary.anomalyComplete ? "trained" : "pending"}`
+      : "";
+    return `${summary.completedUnits}/${summary.totalUnits} models trained: forecast sensors ${summary.completedForecastSensors}/${summary.forecastSensors}${anomalyText}`;
   }
 
   shouldShowForecastChart(): boolean {
@@ -1669,6 +1678,7 @@ export class ModelComponent
         this.markForecastTrainingComplete();
         this.anomalyModelPending = false;
         this.anomalyTrainingState = null;
+        this.anomalyTrainingComplete = true;
         this.activationComplete = true;
         this.status = "active";
         this.anomaliesComponent?.setStreamStatus(true, null);
@@ -1677,6 +1687,7 @@ export class ModelComponent
         this.progressMessage = null;
         this.forecastModelPending = false;
         this.anomalyModelPending = false;
+        this.anomalyTrainingComplete = false;
         this.status = "failed";
         break;
       case "model_status":
@@ -1686,6 +1697,7 @@ export class ModelComponent
           this.markForecastTrainingComplete();
           this.anomalyModelPending = false;
           this.anomalyTrainingState = null;
+          this.anomalyTrainingComplete = true;
           this.activationComplete = true;
           this.isActivating = false;
           this.status = "active";
@@ -1758,14 +1770,21 @@ export class ModelComponent
         progress: this.clampProgress(anomalyStatus.trainingProgress),
         model: "AnomalyPredictor",
       };
+      this.anomalyTrainingComplete = this.isTrainingUnitComplete(
+        this.anomalyTrainingState
+      );
     } else if (this.anomalyModelPending && !this.anomalyTrainingState) {
       this.anomalyTrainingState = {
         step: anomalyStatus.trainingStep || "Anomaly training pending",
         progress: 0,
         model: "AnomalyPredictor",
       };
+      this.anomalyTrainingComplete = false;
     }
     if (!this.anomalyModelPending && status !== "training") {
+      if (["active", "running", "complete", "completed"].includes(status)) {
+        this.anomalyTrainingComplete = true;
+      }
       this.anomalyTrainingState = null;
     }
   }
@@ -1805,12 +1824,66 @@ export class ModelComponent
     this.forecastModelPending = false;
   }
 
-  private getGlobalTrainingProgress(): TrainingProgressMessage | null {
-    return (
-      this.progressMessage ||
-      this.forecastTrainingState ||
-      this.anomalyTrainingState
+  private getGlobalTrainingProgressSummary(): {
+    progress: number;
+    totalUnits: number;
+    completedUnits: number;
+    forecastSensors: number;
+    completedForecastSensors: number;
+    anomalyIncluded: boolean;
+    anomalyComplete: boolean;
+  } | null {
+    const forecastSensors = this.attributes?.length || 0;
+    const hasSensorProgress =
+      Object.keys(this.forecastTrainingProgressBySensor || {}).length > 0;
+    const forecastCompletedValues = (this.attributes || []).map((attribute) => {
+      const progress = this.forecastTrainingProgressBySensor[attribute.key];
+      if (progress) {
+        return this.isTrainingUnitComplete(progress) ? 1 : 0;
+      }
+      if (!hasSensorProgress && this.forecastTrainingState) {
+        return this.isTrainingUnitComplete(this.forecastTrainingState) ? 1 : 0;
+      }
+      return 0;
+    });
+    const includeAnomaly = this.shouldShowAnomalies();
+    const anomalyComplete =
+      includeAnomaly &&
+      (this.anomalyTrainingComplete ||
+        (!!this.anomalyTrainingState &&
+          this.isTrainingUnitComplete(this.anomalyTrainingState)));
+    const completedValues = includeAnomaly
+      ? [...forecastCompletedValues, anomalyComplete ? 1 : 0]
+      : forecastCompletedValues;
+
+    if (!completedValues.length) {
+      return null;
+    }
+
+    const completedUnits = completedValues.reduce(
+      (total, value) => total + value,
+      0
     );
+    const completedForecastSensors =
+      forecastCompletedValues.filter(Boolean).length;
+    return {
+      progress: this.clampProgress(
+        (completedUnits / completedValues.length) * 100
+      ),
+      totalUnits: completedValues.length,
+      completedUnits,
+      forecastSensors,
+      completedForecastSensors,
+      anomalyIncluded: includeAnomaly,
+      anomalyComplete,
+    };
+  }
+
+  private isTrainingUnitComplete(progress: TrainingProgressMessage): boolean {
+    if (progress.epoch && progress.totalEpochs) {
+      return progress.epoch >= progress.totalEpochs;
+    }
+    return this.clampProgress(progress.progress) >= 100;
   }
 
   private clampProgress(progress: number): number {

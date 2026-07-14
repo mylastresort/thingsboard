@@ -379,7 +379,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
     // Process forecast data if available
     if (this.forecastData) {
-      // this.processForecastData();
+      this.processSensorForecastData();
     }
 
     // Fetch saved forecast predictions if model ID is available
@@ -1543,7 +1543,7 @@ export class TimeSeriesTelemetryComponent implements OnInit, OnDestroy, AfterVie
 
     // Process forecast data for the new sensor
     if (this.forecastData) {
-      // this.processForecastData();
+      this.processSensorForecastData();
     }
 
     // Update chart with new sensor color, legend, and axis labels

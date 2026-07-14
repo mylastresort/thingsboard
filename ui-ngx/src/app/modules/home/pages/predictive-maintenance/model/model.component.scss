@@ -312,7 +312,7 @@
     padding: 2px 8px;
     border-radius: 999px;
     background: rgba(255, 167, 38, 0.12);
-    color: #ef8f00;
+    color: rgba(255, 255, 255, 0.58);
     font-size: 0.76rem;
     font-weight: 600;
     line-height: 1.4;
@@ -502,7 +502,7 @@
     .global-progress-fill {
       height: 100%;
       border-radius: inherit;
-      background: #7e8ce0;
+      background: rgba(206, 143, 26, 0.536);
       transition: width 0.25s ease;
     }
   }
@@ -583,19 +583,6 @@
       .tab-pending-icon {
         color: #ff9800;
       }
-
-      .tab-progress-label {
-        max-width: 240px;
-        color: rgba(255, 255, 255, 0.52);
-        font-size: 11px;
-        font-weight: 500;
-        line-height: 1.2;
-        letter-spacing: 0;
-        text-transform: none;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
     }
   }
 
@@ -626,6 +613,20 @@
         flex-direction: column;
         flex: 1;
         min-height: 0;
+
+        .tab-content-progress-label {
+          flex: 0 0 auto;
+          align-self: flex-start;
+          max-width: min(680px, 100%);
+          margin: 0 0 10px;
+          color: #ff9800;
+          font-size: 12px;
+          font-weight: 600;
+          line-height: 1.25;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
 
         &.anomalies-tab-panel,
         &.failure-mode-tab-panel {
@@ -1488,7 +1489,7 @@
   }
   .dark-theme :host .sensor-training-progress {
     background: rgba(181, 108, 0, 0.12);
-    color: #ffa725;
+    color: rgba(232, 230, 227, 0.58);
   }
   .dark-theme :host ::ng-deep .status-icon-option.active {
     color: #61ba65;
@@ -1543,7 +1544,7 @@
     background: rgba(24, 26, 27, 0.1);
   }
   .dark-theme :host .global-training-progress .global-progress-fill {
-    background: #1c2977;
+    background: rgba(24, 26, 27, 0.42);
   }
   .dark-theme :host .dashboard-tabs {
     border-bottom: 1px solid rgba(48, 52, 54, 0.08);
@@ -1567,8 +1568,8 @@
   .dark-theme :host .dashboard-tabs .dashboard-tab .tab-pending-icon {
     color: #ffa21a;
   }
-  .dark-theme :host .dashboard-tabs .dashboard-tab .tab-progress-label {
-    color: rgba(232, 230, 227, 0.52);
+  .dark-theme :host .model-dashboard .dashboard-tab-content .tab-panel .tab-content-progress-label {
+    color: #ffa21a;
   }
   .dark-theme :host .model-dashboard .chart-section .section-header, .dark-theme :host .model-dashboard .anomalies-section .section-header {
     background: rgba(24, 26, 27, 0.05);
