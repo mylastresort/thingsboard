@@ -1,0 +1,9 @@
+title: UnpauseJobCommand
+type: object
+properties:
+  commandId: { type: integer }
+  type: { type: string, const: unpause_job }
+  forecastId: { type: string }
+  data:
+    $ref: './UnpauseJobCommandData.yaml'
+required: [commandId, type, data]

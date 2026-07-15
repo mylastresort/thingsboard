@@ -1,0 +1,5 @@
+title: JobStatusCommandData
+type: object
+properties:
+  modelType: { $ref: './ModelType.yaml' }
+required: [modelType]

@@ -1,0 +1,7 @@
+type: object
+properties:
+  result:
+    type: array
+    items: { $ref: './AnomalyPrediction.yaml' }
+  sensor: { type: string }
+  type: {}   # unconstrained -> Modelina maps to `any`

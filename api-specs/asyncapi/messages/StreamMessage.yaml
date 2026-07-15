@@ -1,0 +1,3 @@
+title: StreamMessage
+payload:
+  $ref: '../schemas/StreamMessage.yaml'

@@ -1,0 +1,4 @@
+name: pause_job
+title: PauseJobCommand
+payload:
+  $ref: '../schemas/PauseJobCommand.yaml'

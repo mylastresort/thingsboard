@@ -1,0 +1,4 @@
+name: unsubscribe_predictions
+title: UnsubscribePredictionsCommand
+payload:
+  $ref: '../schemas/UnsubscribePredictionsCommand.yaml'

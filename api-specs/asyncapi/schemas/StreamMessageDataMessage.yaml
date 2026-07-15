@@ -1,0 +1,6 @@
+title: StreamMessageDataMessage
+type: object
+properties:
+  result:
+    type: array
+    items: { $ref: './AnomalyReport.yaml' }

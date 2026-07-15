@@ -1,0 +1,8 @@
+type: object
+properties:
+  device_id: { type: string }
+  iteration: { type: integer }
+  prediction_type: { type: string, const: "forecast" }
+  result: { $ref: './ForecastResult.yaml' }
+  sensor: { type: string }
+required: [prediction_type, result]

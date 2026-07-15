@@ -61,5 +61,7 @@ cassandra-data
 
 # OpenAPI bundled output (source of truth lives in api-specs/openapi/)
 api-specs/openapi.yaml
+# AsyncAPI bundled output (source of truth lives in api-specs/asyncapi/)
+api-specs/asyncapi.yaml
 # tb-quarkus/cmd bundled spec
 tb-quarkus/cmd/openapi.yaml

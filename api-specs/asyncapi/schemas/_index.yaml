@@ -1,0 +1,86 @@
+ModelType:
+  $ref: "./ModelType.yaml"
+ActivateCommand:
+  $ref: "./ActivateCommand.yaml"
+JobStatusCommand:
+  $ref: "./JobStatusCommand.yaml"
+JobStatusCommandData:
+  $ref: "./JobStatusCommandData.yaml"
+ModelStatusCommand:
+  $ref: "./ModelStatusCommand.yaml"
+UnsubscribeModelStatusCommand:
+  $ref: "./UnsubscribeModelStatusCommand.yaml"
+UnsubscribePredictionsCommand:
+  $ref: "./UnsubscribePredictionsCommand.yaml"
+UnsubscribePredictionsCommandData:
+  $ref: "./UnsubscribePredictionsCommandData.yaml"
+UnsubscribeLogsCommand:
+  $ref: "./UnsubscribeLogsCommand.yaml"
+SubscribeLogsCommand:
+  $ref: "./SubscribeLogsCommand.yaml"
+PauseJobCommand:
+  $ref: "./PauseJobCommand.yaml"
+PauseJobCommandData:
+  $ref: "./PauseJobCommandData.yaml"
+UnpauseJobCommand:
+  $ref: "./UnpauseJobCommand.yaml"
+UnpauseJobCommandData:
+  $ref: "./UnpauseJobCommandData.yaml"
+StreamMessage:
+  $ref: "./StreamMessage.yaml"
+StreamMessageType:
+  $ref: "./StreamMessageType.yaml"
+StreamMessageData:
+  $ref: "./StreamMessageData.yaml"
+StreamMessageStatus:
+  $ref: "./StreamMessageStatus.yaml"
+StreamMessageDataType:
+  $ref: "./StreamMessageDataType.yaml"
+StreamMessageLogs:
+  $ref: "./StreamMessageLogs.yaml"
+StreamMessageDataMessage:
+  $ref: "./StreamMessageDataMessage.yaml"
+AnomalyReportSeverity:
+  $ref: "./AnomalyReportSeverity.yaml"
+AnomalyReportStatus:
+  $ref: "./AnomalyReportStatus.yaml"
+AnomalyReport:
+  $ref: "./AnomalyReport.yaml"
+LogEntryType:
+  $ref: "./LogEntryType.yaml"
+LogEntrySource:
+  $ref: "./LogEntrySource.yaml"
+AnomalyPrediction:
+  $ref: "./AnomalyPrediction.yaml"
+ForecastSensorPrediction:
+  $ref: "./ForecastSensorPrediction.yaml"
+LogEntryMessage:
+  $ref: "./LogEntryMessage.yaml"
+ForecastSensorPredictions:
+  $ref: "./ForecastSensorPredictions.yaml"
+ForecastPrediction:
+  $ref: "./ForecastPrediction.yaml"
+AnomalyPredictionLogEntryMessage:
+  $ref: "./AnomalyPredictionLogEntryMessage.yaml"
+ForecastPredictionInfo:
+  $ref: "./ForecastPredictionInfo.yaml"
+ForecastResult:
+  $ref: "./ForecastResult.yaml"
+ForecastStepMessage:
+  $ref: "./ForecastStepMessage.yaml"
+ForecastHistoryMessage:
+  $ref: "./ForecastHistoryMessage.yaml"
+ForecastPredictionLogEntryMessage:
+  $ref: "./ForecastPredictionLogEntryMessage.yaml"
+AnomalyPredictionLogEntry:
+  $ref: "./AnomalyPredictionLogEntry.yaml"
+ForecastPredictionLogEntry:
+  $ref: "./ForecastPredictionLogEntry.yaml"
+GenericLogEntryMessage:
+  $ref: "./GenericLogEntryMessage.yaml"
+GenericLogEntry:
+  $ref: "./GenericLogEntry.yaml"
+LogEntry:
+  $ref: "./LogEntry.yaml"
+AnomalyLogs:
+  $ref: "./AnomalyLogs.yaml"

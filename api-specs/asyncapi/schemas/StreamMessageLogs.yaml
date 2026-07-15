@@ -1,0 +1,12 @@
+title: StreamMessageLogs
+type: object
+properties:
+  cmdId: { type: integer }
+  type: { type: string, const: logs }
+  forecast_id: { type: string }
+  forecastId: { type: string }
+  message:
+    $ref: './StreamMessageDataMessage.yaml'
+  data: { $ref: './AnomalyLogs.yaml' }
+  timestamp: { type: string }
+required: [cmdId, type]

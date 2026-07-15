@@ -1,0 +1,2 @@
+type: string
+enum: [Active, Resolved, Investigating]

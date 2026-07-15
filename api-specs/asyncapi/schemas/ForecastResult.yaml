@@ -1,0 +1,6 @@
+type: object
+properties:
+  prediction_info: { $ref: './ForecastPredictionInfo.yaml' }
+  forecast: { type: array, items: { type: number } }
+  timestamp: { type: array, items: { type: number } }
+required: [prediction_info, forecast, timestamp]

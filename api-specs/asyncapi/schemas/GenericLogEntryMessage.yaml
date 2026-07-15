@@ -1,0 +1,9 @@
+# fallback for type: "system" | "other", or anything not PREDICTION/FORECAST_HISTORY
+type: object
+properties:
+  result:
+    oneOf:
+      - { $ref: './AnomalyPrediction.yaml' }
+      - { $ref: './ForecastSensorPrediction.yaml' }
+  sensor: { type: string }
+  prediction_type: {}

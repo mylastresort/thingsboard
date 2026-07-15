@@ -1,0 +1,11 @@
+type: object
+properties:
+  timestamp: { type: string }
+  type: { $ref: './LogEntryType.yaml' }
+  level: { type: string }
+  message:
+    oneOf:
+      - { type: string }
+      - { $ref: './GenericLogEntryMessage.yaml' }
+  source: { $ref: './LogEntrySource.yaml' }
+required: [timestamp, type, level, message]

@@ -1,0 +1,3 @@
+title: ModelType
+type: string
+enum: [anomaly, forecast]

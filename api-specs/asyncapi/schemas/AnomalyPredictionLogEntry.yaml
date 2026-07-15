@@ -1,0 +1,8 @@
+type: object
+properties:
+  timestamp: { type: string }
+  type: { type: string, const: "anomaly" }
+  level: { type: string, const: "PREDICTION" }
+  message: { $ref: './AnomalyPredictionLogEntryMessage.yaml' }
+  source: { $ref: './LogEntrySource.yaml' }
+required: [timestamp, type, level, message]

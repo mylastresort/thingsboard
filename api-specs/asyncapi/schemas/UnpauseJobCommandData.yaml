@@ -1,0 +1,5 @@
+title: UnpauseJobCommandData
+type: object
+properties:
+  modelType: { $ref: './ModelType.yaml' }
+required: [modelType]

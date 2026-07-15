@@ -1,0 +1,5 @@
+type: object
+properties:
+  forecast: { type: array, items: { type: number } }
+  timestamp: { type: array, items: { type: number } }
+required: [forecast, timestamp]

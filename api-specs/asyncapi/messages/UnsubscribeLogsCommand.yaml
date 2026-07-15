@@ -1,0 +1,4 @@
+name: unsubscribe_logs
+title: UnsubscribeLogsCommand
+payload:
+  $ref: '../schemas/UnsubscribeLogsCommand.yaml'

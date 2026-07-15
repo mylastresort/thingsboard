@@ -1,0 +1,12 @@
+title: StreamMessage
+type: object
+properties:
+  type:
+    $ref: './StreamMessageType.yaml'
+  model: { type: string }
+  cmdId: { type: integer }
+  data: { $ref: './StreamMessageData.yaml' }
+  errorCode: { type: integer }
+  errorMsg: { type: string }
+  forecastId: { type: string }
+required: [type, cmdId]

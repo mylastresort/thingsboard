@@ -1,0 +1,4 @@
+name: activate
+title: ActivateCommand
+payload:
+  $ref: '../schemas/ActivateCommand.yaml'

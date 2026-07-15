@@ -1,0 +1,22 @@
+type: object
+properties:
+  id: { type: string }
+  reportEntity: { type: string }
+  errorName: { type: string }
+  severity: { $ref: './AnomalyReportSeverity.yaml' }
+  creationDate: { type: string }
+  componentType: { type: string }
+  deviceType: { type: string }
+  location: { type: string }
+  description: { type: string }
+  status: { $ref: './AnomalyReportStatus.yaml' }
+  affectedMetrics:
+    type: array
+    items: { type: string }
+  confidence: { type: number }
+  timeRange: { type: string }
+  startTime: { type: [string, number] }
+  endTime: { type: [string, number] }
+required:
+  [id, reportEntity, errorName, severity, creationDate, componentType,
+   deviceType, location, description, status, affectedMetrics, confidence]

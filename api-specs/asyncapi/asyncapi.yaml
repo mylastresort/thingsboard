@@ -1,0 +1,72 @@
+asyncapi: 2.6.0
+
+info:
+  title: Predictive Maintenance Model WebSocket API
+  version: 1.0.0
+  description: >
+    Unified WebSocket channel used by ModelWebSocketService (Angular) to drive
+    predictive-maintenance model activation, job status polling, log
+    streaming and prediction subscriptions against the `model` service.
+    Reverse-engineered from the RxJS webSocket client implementation.
+
+defaultContentType: application/json
+
+servers:
+  local:
+    url: ws://{host}:{port}
+    protocol: ws
+    description: Direct connection to the `model` container, bypassing the Angular dev-server proxy (which cannot reliably proxy WS upgrades).
+    variables:
+      host:
+        default: localhost
+      port:
+        default: '8000'
+  production:
+    url: wss://{host}
+    protocol: wss
+    variables:
+      host:
+        default: your-tb-host.example.com
+
+channels:
+  /models/ws/unified:
+    description: >
+      Single multiplexed connection. Every request/response is correlated by
+      `commandId` (client-generated, monotonically increasing) and/or
+      `forecastId`. Authentication is via a JWT passed as a query parameter,
+      not a header.
+    bindings:
+      ws:
+        query:
+          type: object
+          properties:
+            token:
+              type: string
+              description: ThingsBoard JWT access token, obtained from AuthService.getJwtToken().
+          required:
+            - token
+    publish:
+      summary: Commands sent by the Angular client.
+      message:
+        oneOf:
+          - $ref: './messages/ActivateCommand.yaml'
+          - $ref: './messages/JobStatusCommand.yaml'
+          - $ref: './messages/ModelStatusCommand.yaml'
+          - $ref: './messages/UnsubscribeModelStatusCommand.yaml'
+          - $ref: './messages/UnsubscribePredictionsCommand.yaml'
+          - $ref: './messages/UnsubscribeLogsCommand.yaml'
+          - $ref: './messages/SubscribeLogsCommand.yaml'
+          - $ref: './messages/PauseJobCommand.yaml'
+          - $ref: './messages/UnpauseJobCommand.yaml'
+    subscribe:
+      summary: Events pushed by the model service.
+      message:
+        oneOf:
+          - $ref: './messages/StreamMessage.yaml'
+          - $ref: './messages/StreamMessageLogs.yaml'
+
+components:
+  messages:
+    $ref: './messages/_index.yaml'
+  schemas:
+    $ref: './schemas/_index.yaml'

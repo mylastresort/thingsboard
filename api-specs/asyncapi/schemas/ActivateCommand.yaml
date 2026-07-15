@@ -1,0 +1,7 @@
+title: ActivateCommand
+type: object
+properties:
+  commandId: { type: integer }
+  type: { type: string, const: activate }
+  forecastId: { type: string }
+required: [commandId, type]

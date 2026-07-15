@@ -1,0 +1,5 @@
+type: object
+properties:
+  logs: { type: array, items: { $ref: './LogEntry.yaml' } }
+  count: { type: integer }
+required: [logs, count]

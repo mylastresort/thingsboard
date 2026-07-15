@@ -1,0 +1,7 @@
+type: object
+properties:
+  forecast: { type: number }
+  prediction_info: { $ref: './ForecastPredictionInfo.yaml' }
+  prediction_type: { type: string, const: "history" }
+  sensor_name: { type: string }
+required: [prediction_type, forecast]

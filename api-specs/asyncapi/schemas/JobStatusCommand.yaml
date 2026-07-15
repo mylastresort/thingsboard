@@ -1,0 +1,9 @@
+title: JobStatusCommand
+type: object
+properties:
+  commandId: { type: integer }
+  type: { type: string, const: job_status }
+  forecastId: { type: string }
+  data:
+    $ref: './JobStatusCommandData.yaml'
+required: [commandId, type]

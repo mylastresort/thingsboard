@@ -1,0 +1,4 @@
+oneOf:
+  - { $ref: './AnomalyPredictionLogEntry.yaml' }
+  - { $ref: './ForecastPredictionLogEntry.yaml' }
+  - { $ref: './GenericLogEntry.yaml' }

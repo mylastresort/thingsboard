@@ -1,0 +1,17 @@
+title: StreamMessageData
+type: object
+properties:
+  type:
+    $ref: './StreamMessageDataType.yaml'
+  forecast_id: { type: string }
+  message: { type: string }
+  data:
+    oneOf:
+      - $ref: './AnomalyReport.yaml'
+      - type: array
+        items: { $ref: './AnomalyReport.yaml' }
+      - $ref: './AnomalyLogs.yaml'
+  timestamp: { type: string }
+  status:
+    $ref: './StreamMessageStatus.yaml'
+required: [type]

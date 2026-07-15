@@ -1,0 +1,9 @@
+title: UnsubscribePredictionsCommand
+type: object
+properties:
+  commandId: { type: integer }
+  type: { type: string, const: unsubscribe_predictions }
+  forecastId: { type: string }
+  data:
+    $ref: './UnsubscribePredictionsCommandData.yaml'
+required: [commandId, type, data]

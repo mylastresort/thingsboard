@@ -1,0 +1,22 @@
+ActivateCommand:
+  $ref: "./ActivateCommand.yaml"
+JobStatusCommand:
+  $ref: "./JobStatusCommand.yaml"
+ModelStatusCommand:
+  $ref: "./ModelStatusCommand.yaml"
+UnsubscribeModelStatusCommand:
+  $ref: "./UnsubscribeModelStatusCommand.yaml"
+UnsubscribePredictionsCommand:
+  $ref: "./UnsubscribePredictionsCommand.yaml"
+UnsubscribeLogsCommand:
+  $ref: "./UnsubscribeLogsCommand.yaml"
+SubscribeLogsCommand:
+  $ref: "./SubscribeLogsCommand.yaml"
+PauseJobCommand:
+  $ref: "./PauseJobCommand.yaml"
+UnpauseJobCommand:
+  $ref: "./UnpauseJobCommand.yaml"
+StreamMessage:
+  $ref: "./StreamMessage.yaml"
+StreamMessageLogs:
+  $ref: "./StreamMessageLogs.yaml"

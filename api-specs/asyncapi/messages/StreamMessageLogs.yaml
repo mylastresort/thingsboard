@@ -1,0 +1,4 @@
+name: logs
+title: StreamMessageLogs
+payload:
+  $ref: '../schemas/StreamMessageLogs.yaml'

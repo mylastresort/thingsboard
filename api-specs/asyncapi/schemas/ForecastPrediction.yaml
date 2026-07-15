@@ -1,0 +1,6 @@
+type: object
+properties:
+  forecast_max_steps: { type: integer }
+required: [forecast_max_steps]
+additionalProperties:
+  $ref: './ForecastSensorPrediction.yaml'

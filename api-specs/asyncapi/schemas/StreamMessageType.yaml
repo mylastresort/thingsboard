@@ -1,0 +1,3 @@
+title: StreamMessageType
+type: string
+enum: [progress, complete, error, job_status, model_status, prediction, response]

@@ -1,0 +1,4 @@
+name: unsubscribe_model_status
+title: UnsubscribeModelStatusCommand
+payload:
+  $ref: '../schemas/UnsubscribeModelStatusCommand.yaml'

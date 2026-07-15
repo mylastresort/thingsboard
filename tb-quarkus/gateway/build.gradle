@@ -128,10 +128,24 @@ sourceSets {
     }
 }
 
+tasks.register('bundleAsyncApi', Exec) {
+    def splitSpec = "$projectDir/../../api-specs/asyncapi/asyncapi.yaml"
+    def bundledOutput = "$projectDir/../../api-specs/asyncapi.yaml"
+    def mergeScript = "$projectDir/../../api-specs/asyncapi/merge-asyncapi.js"
+
+    inputs.file splitSpec
+    inputs.file mergeScript
+    outputs.file bundledOutput
+
+    workingDir = projectDir
+    commandLine 'node', mergeScript, splitSpec, bundledOutput
+}
+
 tasks.register('generateAsyncApiModels', Exec) {
     def specFile = "$projectDir/../../api-specs/asyncapi.yaml"
     def outDir = "$buildDir/asyncapi-generated/src/gen/java"
 
+    dependsOn tasks.bundleAsyncApi
     inputs.file specFile
     outputs.dir outDir
     doFirst { file(outDir).mkdirs() }

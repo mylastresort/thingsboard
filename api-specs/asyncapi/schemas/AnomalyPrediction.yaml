@@ -1,0 +1,15 @@
+type: object
+properties:
+  datetime: { type: string }
+  predicted_failing_component: { type: string }
+  general_failure_probability: { type: number }
+  component_failure_probabilities:
+    type: object
+    additionalProperties: { type: number }
+  component_probabilities:
+    type: object
+    additionalProperties: { type: number }
+  failure_predicted: { type: boolean }
+required:
+  [datetime, predicted_failing_component, general_failure_probability,
+   component_failure_probabilities, component_probabilities, failure_predicted]

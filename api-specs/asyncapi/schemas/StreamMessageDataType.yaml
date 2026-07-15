@@ -1,0 +1,3 @@
+title: StreamMessageDataType
+type: string
+enum: [connection, anomaly, historical, error]

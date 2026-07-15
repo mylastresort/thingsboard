@@ -1,0 +1,7 @@
+title: SubscribeLogsCommand
+type: object
+properties:
+  commandId: { type: integer }
+  type: { type: string, const: subscribe_logs }
+  forecastId: { type: string }
+required: [commandId, type]

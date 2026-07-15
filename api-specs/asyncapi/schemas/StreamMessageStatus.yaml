@@ -1,0 +1,3 @@
+title: StreamMessageStatus
+type: string
+enum: [pending, running, completed, failed]

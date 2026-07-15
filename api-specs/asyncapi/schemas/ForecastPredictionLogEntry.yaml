@@ -1,0 +1,11 @@
+type: object
+properties:
+  timestamp: { type: string }
+  type: { type: string, const: "forecast" }
+  level: { type: string, enum: [PREDICTION, FORECAST_HISTORY] }
+  message:
+    oneOf:
+      # - { type: string }
+      - { $ref: './ForecastPredictionLogEntryMessage.yaml' }
+  source: { $ref: './LogEntrySource.yaml' }
+required: [timestamp, type, level, message]

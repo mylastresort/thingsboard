@@ -1,0 +1,4 @@
+name: job_status
+title: JobStatusCommand
+payload:
+  $ref: '../schemas/JobStatusCommand.yaml'

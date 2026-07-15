@@ -1,0 +1,5 @@
+type: object
+properties:
+  group_by_period_ms: { type: integer }
+  recent_point_ts: { type: number }
+required: [group_by_period_ms, recent_point_ts]

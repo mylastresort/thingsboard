@@ -1,0 +1,4 @@
+name: model_status
+title: ModelStatusCommand
+payload:
+  $ref: '../schemas/ModelStatusCommand.yaml'

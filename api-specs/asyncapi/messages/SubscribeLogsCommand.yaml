@@ -1,0 +1,4 @@
+name: subscribe_logs
+title: SubscribeLogsCommand
+payload:
+  $ref: '../schemas/SubscribeLogsCommand.yaml'
