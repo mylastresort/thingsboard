@@ -1,0 +1,16 @@
+get:
+  tags:
+    - AgenticBenchmark
+  operationId: getAgenticBenchmarkSubsets
+  summary: List AssetOpsBench benchmark subsets
+  responses:
+    "200":
+      description: Benchmark subsets
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../schemas/AgenticBenchmarkSubset.yaml"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

@@ -1,0 +1,12 @@
+type: object
+required:
+  - machineId
+properties:
+  machineId:
+    type: integer
+  model:
+    type: string
+  age:
+    type: string
+  label:
+    type: string

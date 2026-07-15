@@ -55,9 +55,21 @@ compileTestJava {
     options.encoding = 'UTF-8'
 }
 
+tasks.register('bundleOpenApi', Exec) {
+    group = 'openapi tools'
+    description = 'Bundle split OpenAPI spec from api-specs/openapi/ into a single file for code generation.'
+    inputs.dir "$projectDir/../../api-specs/openapi"
+    outputs.file "$buildDir/openapi/openapi.yaml"
+    doFirst { file("$buildDir/openapi").mkdirs() }
+    commandLine 'npx', '--yes', '@redocly/cli', 'bundle',
+        "$projectDir/../../api-specs/openapi/openapi.yaml",
+        '--output', "$buildDir/openapi/openapi.yaml",
+        '--ext', 'yaml'
+}
+
 openApiGenerate {
     generatorName = "jaxrs-spec"
-    inputSpec = "$projectDir/../../api-specs/openapi.yaml"   // was META-INF/openapi.yaml
+    inputSpec = "$buildDir/openapi/openapi.yaml"
     outputDir = "$buildDir/openapi-generated"
     apiPackage = "org.tb.quarkus.api"
     modelPackage = "org.tb.quarkus.model"
@@ -68,9 +80,14 @@ openApiGenerate {
     ]
 }
 
+tasks.named('openApiGenerate') {
+    dependsOn 'bundleOpenApi'
+}
+
 tasks.register('generatePythonApiClient', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+    dependsOn 'bundleOpenApi'
     generatorName = "python"
-    inputSpec = "$projectDir/../../api-specs/openapi.yaml"
+    inputSpec = "$buildDir/openapi/openapi.yaml"
     outputDir = "$projectDir/../../predictive-maintenance"
     packageName = "quarkus_api_client"
     additionalProperties = [
@@ -80,7 +97,8 @@ tasks.register('generatePythonApiClient', org.openapitools.generator.gradle.plug
 }
 
 tasks.register('copyOpenApiSpec', Copy) {
-    from "$projectDir/../../api-specs/openapi.yaml"
+    dependsOn 'bundleOpenApi'
+    from "$buildDir/openapi/openapi.yaml"
     into "$buildDir/generated/openapi/META-INF"
 }
 

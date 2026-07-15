@@ -1,0 +1,29 @@
+type: object
+required:
+  - mode
+properties:
+  mode:
+    type: string
+    enum:
+      - maxMachines
+      - selectedMachines
+    default: maxMachines
+  machinePrefix:
+    type: string
+    description: Optional prefix for generated machine names in maxMachines mode.
+  machines:
+    type: array
+    description: Machine IDs and names to seed in selectedMachines mode.
+    items:
+      $ref: "./PdmSeedMachineSelection.yaml"
+  maxMachines:
+    type: integer
+    default: 1
+    minimum: 1
+  shiftToNow:
+    type: boolean
+    default: true
+  workers:
+    type: integer
+    default: 1
+    minimum: 1

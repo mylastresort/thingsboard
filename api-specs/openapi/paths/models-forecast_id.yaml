@@ -1,0 +1,58 @@
+get:
+  operationId: getForecast
+  summary: Get forecast config by id
+  parameters:
+    - $ref: "../parameters/_index.yaml#/ForecastId"
+  responses:
+    "200":
+      description: Forecast config
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+post:
+  operationId: updateForecast
+  summary: Update a forecast config
+  parameters:
+    - $ref: "../parameters/_index.yaml#/ForecastId"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          additionalProperties: true
+  responses:
+    "200":
+      description: Updated forecast config
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+delete:
+  operationId: deleteForecast
+  summary: Delete a forecast config
+  parameters:
+    - $ref: "../parameters/_index.yaml#/ForecastId"
+  responses:
+    "200":
+      description: Delete result
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

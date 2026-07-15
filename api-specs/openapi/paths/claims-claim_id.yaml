@@ -1,0 +1,56 @@
+get:
+  operationId: getClaim
+  summary: Get claim by id
+  parameters:
+    - $ref: "../parameters/_index.yaml#/ClaimId"
+  responses:
+    "200":
+      description: Claim
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/ClaimResponse.yaml"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+put:
+  operationId: updateClaim
+  summary: Update claim
+  parameters:
+    - $ref: "../parameters/_index.yaml#/ClaimId"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/UpdateClaimRequest.yaml"
+  responses:
+    "200":
+      description: Updated claim
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/ClaimResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+delete:
+  operationId: deleteClaim
+  summary: Delete claim
+  parameters:
+    - $ref: "../parameters/_index.yaml#/ClaimId"
+  responses:
+    "200":
+      description: Deleted claim count
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/DeleteClaimResponse.yaml"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

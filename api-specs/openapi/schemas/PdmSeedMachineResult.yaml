@@ -1,0 +1,26 @@
+type: object
+required:
+  - loadedMachines
+  - devicesReady
+  - telemetryPoints
+  - failureModeRecords
+  - shiftedMachines
+  - failedDevices
+  - machineToDevice
+properties:
+  loadedMachines:
+    type: integer
+  devicesReady:
+    type: integer
+  telemetryPoints:
+    type: integer
+  failureModeRecords:
+    type: integer
+  shiftedMachines:
+    type: integer
+  failedDevices:
+    type: integer
+  machineToDevice:
+    type: object
+    additionalProperties:
+      type: string

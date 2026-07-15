@@ -1,0 +1,9 @@
+type: object
+required:
+  - importedCount
+  - subsetCount
+properties:
+  importedCount:
+    type: integer
+  subsetCount:
+    type: integer

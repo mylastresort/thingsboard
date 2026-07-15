@@ -38,13 +38,31 @@ compileTestJava {
     options.encoding = 'UTF-8'
 }
 
+// Resolve the OpenAPI split source: host path or Docker COPY location.
+def openApiSource = file("$projectDir/../../api-specs/openapi")
+if (!openApiSource.exists()) {
+    openApiSource = file("$projectDir/openapi-source")
+}
+
+tasks.register('bundleOpenApi', Exec) {
+    group = 'openapi tools'
+    description = 'Bundle split OpenAPI spec into a single file for code generation.'
+    inputs.dir openApiSource
+    outputs.file "$projectDir/openapi.yaml"
+    commandLine 'npx', '--yes', '@redocly/cli', 'bundle',
+        "${openApiSource}/openapi.yaml",
+        '--output', "$projectDir/openapi.yaml",
+        '--ext', 'yaml'
+}
+
 // Sync the gateway's OpenAPI spec into src/main/openapi, where the
 // quarkus-openapi-generator extension picks it up automatically as
 // part of quarkusGenerateCode. See application.properties for the
 // generator config (package names, mutiny, configKey, etc).
 tasks.register('syncOpenApiSpec', Copy) {
     group = 'openapi tools'
-    description = 'Copy the gateway OpenAPI spec into src/main/openapi for code generation.'
+    description = 'Copy the bundled OpenAPI spec into src/main/openapi for code generation.'
+    dependsOn 'bundleOpenApi'
     from "$projectDir/openapi.yaml"
     into "$projectDir/src/main/openapi"
 }

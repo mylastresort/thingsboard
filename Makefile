@@ -51,10 +51,10 @@ help:
 # ─── lifecycle ───────────────────────────────────────────────────────────────
 
 .PHONY: up
-up: pdm-gen-openapi-client ## Start the full dev stack (core + toolbox + dev web ui)
+up: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
-up-recreate: pdm-gen-openapi-client maybe-reset-pdm-state ## Recreate dev stack and reset PdM Kafka/Redis state by default
+up-recreate: maybe-reset-pdm-state ## Recreate dev stack and reset PdM Kafka/Redis state by default
 	$(COMPOSE) up -d --force-recreate --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 .PHONY: make-recreate
@@ -103,7 +103,7 @@ up-ui: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d $(WEB_SERVICE)
 
 .PHONY: up-prod
-up-prod: pdm-gen-openapi-client ## Start prod-only stack (core: tb, quarkus, pdm workers, config-api)
+up-prod: ## Start prod-only stack (core: tb, quarkus, pdm workers, config-api)
 	docker compose --project-directory . $(CORE_FILES) -p $(PROJECT) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 .PHONY: down
@@ -167,7 +167,7 @@ up-cassandra: export DATABASE_TS_LATEST_TYPE = cassandra
 
 .PHONY: up-cassandra
 # Attention: migrating database from postgres is not tested and may cause Undefined Behavior.
-up-cassandra: pdm-gen-openapi-client ## Start the full dev stack with Cassandra enabled as the time-series backend. Auto-installs the Cassandra schema on first run if the thingsboard keyspace doesn't exist yet.
+up-cassandra: ## Start the full dev stack with Cassandra enabled as the time-series backend. Auto-installs the Cassandra schema on first run if the thingsboard keyspace doesn't exist yet.
 	$(COMPOSE) up -d $(CASSANDRA_SERVICE)
 	@cid="$$($(COMPOSE) ps -q $(CASSANDRA_SERVICE))"; \
 	if [ -z "$$cid" ]; then echo "$(CASSANDRA_SERVICE) is not running"; exit 1; fi; \
@@ -243,7 +243,7 @@ pull: ## Pull latest base images
 agent-test: ## Run pdm_agent eval tests inside the ai-agent service (brings up its deps first)
 	$(COMPOSE) build $(AI_AGENT)
 	$(COMPOSE) up -d $(AI_AGENT)
-	$(COMPOSE) exec -T $(AI_AGENT) sh scripts/run-agent-evals.sh
+	$(COMPOSE) exec -T $(AI_AGENT) sh scripts/run-agent-evals.sh > agent-evals.log 2>&1
 
 # ─── logs ────────────────────────────────────────────────────────────────────
 
@@ -421,12 +421,8 @@ tb-quarkus-dev-curl: ## Curl tb-quarkus dev smoke endpoint
 tb-quarkus-dev-smoke: tb-quarkus-dev-up tb-quarkus-dev-wait tb-quarkus-dev-curl ## Run, wait, and curl tb-quarkus dev
 
 .PHONY: tb-quarkus-gen-openapi
-tb-quarkus-gen-openapi:
+tb-quarkus-gen-openapi: ## Generate Java interfaces+DTOs (bundles split spec internally)
 	$(COMPOSE) run --rm $(TB_QUARKUS_DEV) ./gradlew openApiGenerate
-
-.PHONY: pdm-gen-openapi-client
-pdm-gen-openapi-client: ## Generate ignored Python Quarkus API client for PdM workers
-	cd tb-quarkus/gateway && ./gradlew generatePythonApiClient
 
 # ─── cleanup ─────────────────────────────────────────────────────────────────
 

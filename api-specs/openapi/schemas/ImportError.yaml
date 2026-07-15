@@ -1,0 +1,9 @@
+type: object
+required:
+  - row
+  - message
+properties:
+  row:
+    type: integer
+  message:
+    type: string

@@ -1,0 +1,17 @@
+type: object
+required:
+  - data
+  - totalPages
+  - totalElements
+  - hasNext
+properties:
+  data:
+    type: array
+    items:
+      $ref: "./ClaimResponse.yaml"
+  totalPages:
+    type: integer
+  totalElements:
+    type: integer
+  hasNext:
+    type: boolean

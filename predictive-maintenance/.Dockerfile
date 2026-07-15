@@ -4,6 +4,9 @@ RUN apt update
 
 RUN apt install -y mosquitto-clients less
 
+# JDK for generating Python API client from OpenAPI spec at container start
+RUN apt install -y default-jdk-headless || true
+
 WORKDIR /app/predictive-maintenance
 
 COPY requirements.txt .

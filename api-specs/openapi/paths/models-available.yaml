@@ -1,0 +1,12 @@
+get:
+  operationId: getAvailableAlgorithms
+  summary: Get available algorithms to train models
+  responses:
+    "200":
+      description: Available model types and algorithms
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/AvailableAlgorithmsResponse.yaml"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

@@ -1,0 +1,24 @@
+post:
+  tags:
+    - Notify
+  operationId: notifyAlarmAssignee
+  summary: Send a WhatsApp alarm notification to a user assignee
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/NotifyAlarmAssigneeRequest.yaml"
+  responses:
+    "200":
+      description: Notification status
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/NotifyStatusResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

@@ -1,0 +1,44 @@
+put:
+  operationId: updateFailureModeRecord
+  summary: Update failure mode record
+  parameters:
+    - $ref: "../parameters/_index.yaml#/RecordType"
+    - $ref: "../parameters/_index.yaml#/RecordId"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/FailureModeRecord.yaml"
+  responses:
+    "200":
+      description: Updated failure mode record
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/FailureModeRecordResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+delete:
+  operationId: deleteFailureModeRecord
+  summary: Delete failure mode record
+  parameters:
+    - $ref: "../parameters/_index.yaml#/RecordType"
+    - $ref: "../parameters/_index.yaml#/RecordId"
+  responses:
+    "200":
+      description: Deleted row count
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/DeleteFailureModeRecordResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

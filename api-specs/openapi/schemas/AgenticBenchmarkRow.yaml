@@ -1,0 +1,65 @@
+type: object
+required:
+  - id
+  - subsetName
+  - question
+  - createdTime
+  - updatedTime
+properties:
+  id:
+    type: string
+    format: uuid
+  subsetName:
+    type: string
+  sourceFile:
+    type: string
+    nullable: true
+  datasetRecordId:
+    type: integer
+    format: int64
+    nullable: true
+  subject:
+    type: string
+    nullable: true
+  question:
+    type: string
+  options:
+    type: array
+    items:
+      type: string
+  optionIds:
+    type: array
+    items:
+      type: string
+  correct:
+    type: array
+    items:
+      type: boolean
+  textType:
+    type: string
+    nullable: true
+  assetName:
+    type: string
+    nullable: true
+  relevancy:
+    type: string
+    nullable: true
+  questionType:
+    type: string
+    nullable: true
+  triggerStatement:
+    type: string
+    nullable: true
+  context:
+    type: string
+    nullable: true
+  rawPayload:
+    type: object
+    nullable: true
+    additionalProperties: true
+  createdTime:
+    type: integer
+    format: int64
+  updatedTime:
+    type: integer
+    format: int64

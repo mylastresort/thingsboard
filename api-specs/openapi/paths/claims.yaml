@@ -1,0 +1,47 @@
+get:
+  operationId: getClaimsByPage
+  summary: List claims with pagination
+  parameters:
+    - $ref: "../parameters/_index.yaml#/PageSize"
+    - $ref: "../parameters/_index.yaml#/Page"
+    - $ref: "../parameters/_index.yaml#/SortProperty"
+    - $ref: "../parameters/_index.yaml#/SortOrder"
+    - $ref: "../parameters/_index.yaml#/TextSearch"
+    - name: done
+      in: query
+      schema:
+        type: boolean
+    - name: assigneeId
+      in: query
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: Claim page
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/ClaimPageResponse.yaml"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+post:
+  operationId: createClaim
+  summary: Create a claim
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/CreateClaimRequest.yaml"
+  responses:
+    "200":
+      description: Created claim
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/ClaimResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

@@ -1,0 +1,63 @@
+get:
+  operationId: getAnomalyHistoryPredictions
+  summary: Fetch anomaly history predictions
+  parameters:
+    - name: model_id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: prediction_type
+      in: path
+      required: true
+      schema:
+        type: string
+    - $ref: "../parameters/_index.yaml#/StartTs"
+    - $ref: "../parameters/_index.yaml#/EndTs"
+    - name: limit
+      in: query
+      schema:
+        type: integer
+        default: 100
+  responses:
+    "200":
+      description: Prediction history
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+post:
+  operationId: createAnomalyHistoryPrediction
+  summary: Create anomaly history prediction
+  parameters:
+    - name: model_id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: prediction_type
+      in: path
+      required: true
+      schema:
+        type: string
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/PredictionCreateRequest.yaml"
+  responses:
+    "200":
+      description: Created prediction
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

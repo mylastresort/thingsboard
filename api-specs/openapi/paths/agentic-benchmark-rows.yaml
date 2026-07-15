@@ -1,0 +1,44 @@
+get:
+  tags:
+    - AgenticBenchmark
+  operationId: getAgenticBenchmarkRows
+  summary: List AssetOpsBench benchmark rows
+  parameters:
+    - $ref: "../parameters/_index.yaml#/PageSize"
+    - $ref: "../parameters/_index.yaml#/Page"
+    - name: subsetName
+      in: query
+      schema:
+        type: string
+    - $ref: "../parameters/_index.yaml#/TextSearch"
+  responses:
+    "200":
+      description: Benchmark rows page
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/AgenticBenchmarkRowsPage.yaml"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+post:
+  tags:
+    - AgenticBenchmark
+  operationId: createAgenticBenchmarkRow
+  summary: Create an AssetOpsBench benchmark row
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/AgenticBenchmarkRowRequest.yaml"
+  responses:
+    "200":
+      description: Created benchmark row
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/AgenticBenchmarkRow.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

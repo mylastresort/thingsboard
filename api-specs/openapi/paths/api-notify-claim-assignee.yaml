@@ -1,0 +1,24 @@
+post:
+  tags:
+    - Notify
+  operationId: notifyClaimAssignee
+  summary: Send a WhatsApp notification to a claim assignee by email
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/NotifyClaimAssigneeRequest.yaml"
+  responses:
+    "200":
+      description: Notification status
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/NotifyStatusResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

@@ -1,0 +1,23 @@
+post:
+  operationId: seedMachine
+  summary: Seed PdM machine telemetry into ThingsBoard
+  description: >
+    Accepts public PdM loader configuration as JSON. ThingsBoard connection
+    details and execution mode are configured server-side.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/PdmSeedMachineRequest.yaml"
+  responses:
+    "200":
+      description: Seed result
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/PdmSeedMachineResult.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

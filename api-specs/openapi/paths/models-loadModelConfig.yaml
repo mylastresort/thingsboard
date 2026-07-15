@@ -1,0 +1,13 @@
+get:
+  operationId: getLoadModelConfigs
+  summary: Get predictive maintenance load model configurations
+  responses:
+    "200":
+      description: Load model configurations by name
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

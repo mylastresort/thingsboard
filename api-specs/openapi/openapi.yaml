@@ -1,0 +1,68 @@
+openapi: 3.0.3
+info:
+  title: Quarkus PdM API
+  version: 0.1.0
+  description: |
+    This API provides endpoints for managing failure mode history and records. The API is designed to facilitate predictive maintenance by providing insights into device failures and maintenance history.
+servers:
+  - url: /api/v1
+paths:
+  /models/available:
+    $ref: "./paths/models-available.yaml"
+  /models/saveLoadConfig:
+    $ref: "./paths/models-saveLoadConfig.yaml"
+  /models/loadModelConfig:
+    $ref: "./paths/models-loadModelConfig.yaml"
+  /models/anomaly-history-predictions/{model_id}/{prediction_type}:
+    $ref: "./paths/models-anomaly-history-predictions-model_id-prediction_type.yaml"
+  /models/anomaly-history-predictions/{model_id}:
+    $ref: "./paths/models-anomaly-history-predictions-model_id.yaml"
+  /models:
+    $ref: "./paths/models.yaml"
+  /models/seed-machine/options:
+    $ref: "./paths/models-seed-machine-options.yaml"
+  /models/seed-machine:
+    $ref: "./paths/models-seed-machine.yaml"
+  /models/{forecast_id}:
+    $ref: "./paths/models-forecast_id.yaml"
+  /models/{forecast_id}/status:
+    $ref: "./paths/models-forecast_id-status.yaml"
+  /models/device/{device_id}:
+    $ref: "./paths/models-device-device_id.yaml"
+  /models/failure-mode-history:
+    $ref: "./paths/models-failure-mode-history.yaml"
+  /models/failure-mode-history/{model_id}:
+    $ref: "./paths/models-failure-mode-history-model_id.yaml"
+  /models/failure-mode-records:
+    $ref: "./paths/models-failure-mode-records.yaml"
+  /models/failure-mode-records/batch:
+    $ref: "./paths/models-failure-mode-records-batch.yaml"
+  /models/failure-mode-records/{record_type}/{record_id}:
+    $ref: "./paths/models-failure-mode-records-record_type-record_id.yaml"
+  /models/failure-mode-records/import:
+    $ref: "./paths/models-failure-mode-records-import.yaml"
+  /agentic-benchmark/subsets:
+    $ref: "./paths/agentic-benchmark-subsets.yaml"
+  /agentic-benchmark/rows:
+    $ref: "./paths/agentic-benchmark-rows.yaml"
+  /agentic-benchmark/rows/upsert-batch:
+    $ref: "./paths/agentic-benchmark-rows-upsert-batch.yaml"
+  /agentic-benchmark/rows/{row_id}:
+    $ref: "./paths/agentic-benchmark-rows-row_id.yaml"
+  /claims:
+    $ref: "./paths/claims.yaml"
+  /claims/{claim_id}:
+    $ref: "./paths/claims-claim_id.yaml"
+  /api/notify-new-alarm:
+    $ref: "./paths/api-notify-new-alarm.yaml"
+  /api/notify-claim-assignee:
+    $ref: "./paths/api-notify-claim-assignee.yaml"
+  /api/notify-alarm-assignee:
+    $ref: "./paths/api-notify-alarm-assignee.yaml"
+components:
+  parameters:
+    $ref: "./parameters/_index.yaml"
+  responses:
+    $ref: "./responses/_index.yaml"
+  schemas:
+    $ref: "./schemas/_index.yaml"

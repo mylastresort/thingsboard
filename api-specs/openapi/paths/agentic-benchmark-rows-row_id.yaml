@@ -1,0 +1,42 @@
+put:
+  tags:
+    - AgenticBenchmark
+  operationId: updateAgenticBenchmarkRow
+  summary: Update an AssetOpsBench benchmark row
+  parameters:
+    - $ref: "../parameters/_index.yaml#/AgenticBenchmarkRowId"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/AgenticBenchmarkRowRequest.yaml"
+  responses:
+    "200":
+      description: Updated benchmark row
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/AgenticBenchmarkRow.yaml"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"
+delete:
+  tags:
+    - AgenticBenchmark
+  operationId: deleteAgenticBenchmarkRow
+  summary: Delete an AssetOpsBench benchmark row
+  parameters:
+    - $ref: "../parameters/_index.yaml#/AgenticBenchmarkRowId"
+  responses:
+    "200":
+      description: Deleted row count
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/DeleteAgenticBenchmarkRowResponse.yaml"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

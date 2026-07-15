@@ -1,0 +1,22 @@
+post:
+  tags:
+    - Notify
+  operationId: notifyNewAlarm
+  summary: Send a WhatsApp notification for a new alarm
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/NotifyAlarmBody.yaml"
+  responses:
+    "200":
+      description: Notification send count
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/NotifySentResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

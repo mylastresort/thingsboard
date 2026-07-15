@@ -1,0 +1,9 @@
+type: object
+required:
+  - machineId
+  - machineName
+properties:
+  machineId:
+    type: integer
+  machineName:
+    type: string

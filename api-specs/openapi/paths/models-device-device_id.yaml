@@ -1,0 +1,27 @@
+get:
+  operationId: getForecastsByDeviceId
+  summary: Fetch forecast configs by device ID
+  parameters:
+    - name: device_id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: pageSize
+      in: query
+      schema:
+        type: integer
+        default: 1000
+        minimum: 1
+        maximum: 1000
+    - $ref: "../parameters/_index.yaml#/Page"
+  responses:
+    "200":
+      description: Forecast config page
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

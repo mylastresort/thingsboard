@@ -1,0 +1,78 @@
+StartTs:
+  name: startTs
+  in: query
+  schema:
+    type: integer
+    format: int64
+EndTs:
+  name: endTs
+  in: query
+  schema:
+    type: integer
+    format: int64
+RecordType:
+  name: record_type
+  in: path
+  required: true
+  schema:
+    type: string
+RecordId:
+  name: record_id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+ForecastId:
+  name: forecast_id
+  in: path
+  required: true
+  schema:
+    type: string
+PageSize:
+  name: pageSize
+  in: query
+  schema:
+    type: integer
+    default: 10
+    minimum: 1
+    maximum: 1000
+Page:
+  name: page
+  in: query
+  schema:
+    type: integer
+    default: 0
+    minimum: 0
+SortProperty:
+  name: sortProperty
+  in: query
+  schema:
+    type: string
+SortOrder:
+  name: sortOrder
+  in: query
+  schema:
+    type: string
+    enum:
+      - ASC
+      - DESC
+TextSearch:
+  name: textSearch
+  in: query
+  schema:
+    type: string
+ClaimId:
+  name: claim_id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+AgenticBenchmarkRowId:
+  name: row_id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid

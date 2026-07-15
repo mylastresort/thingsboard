@@ -1,0 +1,13 @@
+type: object
+required:
+  - name
+  - sourceFile
+  - rowCount
+properties:
+  name:
+    type: string
+  sourceFile:
+    type: string
+  rowCount:
+    type: integer
+    format: int64

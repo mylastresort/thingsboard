@@ -1,0 +1,17 @@
+type: object
+required:
+  - assigneeId
+  - severity
+  - type
+  - startTs
+properties:
+  assigneeId:
+    type: string
+    format: uuid
+  severity:
+    type: string
+  type:
+    type: string
+  startTs:
+    type: integer
+    format: int64

@@ -1,0 +1,11 @@
+type: object
+required:
+  - importedCount
+  - errors
+properties:
+  importedCount:
+    type: integer
+  errors:
+    type: array
+    items:
+      $ref: "./ImportError.yaml"

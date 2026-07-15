@@ -1,0 +1,68 @@
+ErrorResponse:
+  $ref: "./ErrorResponse.yaml"
+AvailableAlgorithmsResponse:
+  $ref: "./AvailableAlgorithmsResponse.yaml"
+AvailableAlgorithmOption:
+  $ref: "./AvailableAlgorithmOption.yaml"
+PredictionCreateRequest:
+  $ref: "./PredictionCreateRequest.yaml"
+FailureModeRecord:
+  $ref: "./FailureModeRecord.yaml"
+FailureModeRecordResponse:
+  $ref: "./FailureModeRecordResponse.yaml"
+FailureModeHistoryResponse:
+  $ref: "./FailureModeHistoryResponse.yaml"
+CreateFailureModeRecordsResponse:
+  $ref: "./CreateFailureModeRecordsResponse.yaml"
+DeleteFailureModeRecordResponse:
+  $ref: "./DeleteFailureModeRecordResponse.yaml"
+ImportFailureModeRecordsResponse:
+  $ref: "./ImportFailureModeRecordsResponse.yaml"
+ImportError:
+  $ref: "./ImportError.yaml"
+PdmSeedMachineRequest:
+  $ref: "./PdmSeedMachineRequest.yaml"
+PdmSeedMachineSelection:
+  $ref: "./PdmSeedMachineSelection.yaml"
+PdmSeedMachineOption:
+  $ref: "./PdmSeedMachineOption.yaml"
+PdmSeedMachineDefaults:
+  $ref: "./PdmSeedMachineDefaults.yaml"
+PdmSeedMachineOptions:
+  $ref: "./PdmSeedMachineOptions.yaml"
+PdmSeedMachineResult:
+  $ref: "./PdmSeedMachineResult.yaml"
+AgenticBenchmarkSubset:
+  $ref: "./AgenticBenchmarkSubset.yaml"
+AgenticBenchmarkRowRequest:
+  $ref: "./AgenticBenchmarkRowRequest.yaml"
+AgenticBenchmarkRow:
+  $ref: "./AgenticBenchmarkRow.yaml"
+AgenticBenchmarkRowsPage:
+  $ref: "./AgenticBenchmarkRowsPage.yaml"
+UpsertAgenticBenchmarkRowsResponse:
+  $ref: "./UpsertAgenticBenchmarkRowsResponse.yaml"
+ImportAgenticBenchmarkRowsResponse:
+  $ref: "./ImportAgenticBenchmarkRowsResponse.yaml"
+DeleteAgenticBenchmarkRowResponse:
+  $ref: "./DeleteAgenticBenchmarkRowResponse.yaml"
+ClaimResponse:
+  $ref: "./ClaimResponse.yaml"
+CreateClaimRequest:
+  $ref: "./CreateClaimRequest.yaml"
+UpdateClaimRequest:
+  $ref: "./UpdateClaimRequest.yaml"
+ClaimPageResponse:
+  $ref: "./ClaimPageResponse.yaml"
+DeleteClaimResponse:
+  $ref: "./DeleteClaimResponse.yaml"
+NotifyAlarmBody:
+  $ref: "./NotifyAlarmBody.yaml"
+NotifyClaimAssigneeRequest:
+  $ref: "./NotifyClaimAssigneeRequest.yaml"
+NotifyAlarmAssigneeRequest:
+  $ref: "./NotifyAlarmAssigneeRequest.yaml"
+NotifySentResponse:
+  $ref: "./NotifySentResponse.yaml"
+NotifyStatusResponse:
+  $ref: "./NotifyStatusResponse.yaml"

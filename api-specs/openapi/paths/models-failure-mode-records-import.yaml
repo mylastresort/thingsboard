@@ -1,0 +1,31 @@
+post:
+  operationId: importFailureModeRecords
+  summary: Import failure mode records from CSV
+  parameters:
+    - name: recordType
+      in: query
+      schema:
+        type: string
+  requestBody:
+    required: true
+    content:
+      multipart/form-data:
+        schema:
+          type: object
+          required:
+            - file
+          properties:
+            file:
+              type: string
+              format: binary
+  responses:
+    "200":
+      description: Import result
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/ImportFailureModeRecordsResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

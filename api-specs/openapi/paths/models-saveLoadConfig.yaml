@@ -1,0 +1,22 @@
+post:
+  operationId: saveLoadModelConfig
+  summary: Save predictive maintenance load model configuration
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          additionalProperties: true
+  responses:
+    "200":
+      description: Saved load model configuration
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

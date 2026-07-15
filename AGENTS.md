@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repo treats ThingsBoard as an upstream containerized dependency, not code to build or modify. The active project code is the Angular UI in `ui-ngx/`, the Quarkus gateway in `tb-quarkus/gateway/`, PdM workers in `predictive-maintenance/`, MCP services in `thingsboard-mcp/` and `pandas-mcp-server/`, and agent tooling in `ai-agent/` and `assetopsbench/`. Contracts live in `api-specs/openapi.yaml` and `api-specs/asyncapi.yaml`. ThingsBoard Java/Python API clients are generated from OpenAPI or pulled from GitHub as dependencies.
+This repo treats ThingsBoard as an upstream containerized dependency, not code to build or modify. The active project code is the Angular UI in `ui-ngx/`, the Quarkus gateway in `tb-quarkus/gateway/`, PdM workers in `predictive-maintenance/`, MCP services in `thingsboard-mcp/` and `pandas-mcp-server/`, and agent tooling in `ai-agent/` and `assetopsbench/`. Contracts live in `api-specs/openapi.yaml` (bundled output) and `api-specs/asyncapi.yaml`. The OpenAPI source is split into `api-specs/openapi/` with individual schema, parameter, and path files linked via `$ref`; `npx @redocly/cli bundle` reassembles them into the single file consumers parse. ThingsBoard Java/Python API clients are generated from OpenAPI or pulled from GitHub as dependencies.
 
 ## Local Runtime & Compose Workflow
 
@@ -21,7 +21,7 @@ Ports: ThingsBoard `8080`, Angular dev UI `4200`, web UI `8090`, Quarkus JVM `80
 
 ## Schema-First API Workflow
 
-Treat `api-specs/` as the source of truth. Edit `api-specs/openapi.yaml` before REST changes and `api-specs/asyncapi.yaml` before event model changes. Then regenerate: `cd ui-ngx && yarn generate:api` for Angular, or `make tb-quarkus-gen-openapi` / `cd tb-quarkus/gateway && ./gradlew openApiGenerate` for Quarkus. Implement or override generated Quarkus interfaces under `tb-quarkus/gateway/src/main/java/...`; do not bypass OpenAPI with standalone public endpoints.
+Treat `api-specs/` as the source of truth. Edit the split files under `api-specs/openapi/` (schemas, paths, parameters, responses) before REST changes and `api-specs/asyncapi.yaml` before event model changes. Run `make bundle-openapi` to reassemble the split files into `api-specs/openapi.yaml`, or any dependent target (`make up`, `make build`) will do it automatically. Then regenerate: `cd ui-ngx && yarn generate:api` for Angular, or `make tb-quarkus-gen-openapi` / `cd tb-quarkus/gateway && ./gradlew openApiGenerate` for Quarkus. Implement or override generated Quarkus interfaces under `tb-quarkus/gateway/src/main/java/...`; do not bypass OpenAPI with standalone public endpoints.
 
 ## ThingsBoard Upgrade Workflow
 

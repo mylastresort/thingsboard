@@ -1,0 +1,17 @@
+type: object
+required:
+  - name
+properties:
+  name:
+    type: string
+  body:
+    type: string
+    nullable: true
+  assigneeId:
+    type: string
+    format: uuid
+    nullable: true
+  tags:
+    type: object
+    additionalProperties: true
+    nullable: true

@@ -3,9 +3,10 @@
   "version": "4.3.1.3",
   "scripts": {
     "ng": "ng",
+    "bundle:openapi": "npx --yes @redocly/cli bundle ../api-specs/openapi/openapi.yaml --output ../api-specs/openapi.yaml --ext yaml",
     "generate:openapi": "openapi-generator-cli generate -i ../api-specs/openapi.yaml -g typescript-angular -o src/app/core/api-client --additional-properties=providedInRoot=true,ngVersion=20,supportsES6=true",
     "generate:events": "asyncapi generate models typescript ../api-specs/asyncapi.yaml -o src/app/core/event-models --tsModelType interface --tsExportType named --tsEnumType union --tsIncludeComments --no-interactive --tsRawPropertyNames",
-    "generate:api": "npm run generate:openapi && npm run generate:events",
+    "generate:api": "npm run bundle:openapi && npm run generate:openapi && npm run generate:events",
     "prestart": "yarn generate:api",
     "prebuild:prod": "yarn generate:api",
     "start": "node --max_old_space_size=8048 ./node_modules/@angular/cli/bin/ng serve --configuration development --host 0.0.0.0 --open",

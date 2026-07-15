@@ -1,0 +1,20 @@
+get:
+  operationId: getFailureModeHistoryAllDevices
+  summary: Fetch failure mode history for all devices
+  parameters:
+    - $ref: "../parameters/_index.yaml#/StartTs"
+    - $ref: "../parameters/_index.yaml#/EndTs"
+    - name: limit
+      in: query
+      schema:
+        type: integer
+        default: 1000
+  responses:
+    "200":
+      description: Failure mode history
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/FailureModeHistoryResponse.yaml"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

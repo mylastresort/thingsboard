@@ -1,0 +1,12 @@
+get:
+  operationId: getSeedMachineOptions
+  summary: Get PdM machine seed defaults and supported options
+  responses:
+    "200":
+      description: Seed option defaults
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/PdmSeedMachineOptions.yaml"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

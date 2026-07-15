@@ -1,0 +1,17 @@
+get:
+  operationId: getForecastStatus
+  summary: Get forecast model status
+  parameters:
+    - $ref: "../parameters/_index.yaml#/ForecastId"
+  responses:
+    "200":
+      description: Forecast status
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

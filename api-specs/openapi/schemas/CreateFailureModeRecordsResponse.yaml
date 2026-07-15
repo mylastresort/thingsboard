@@ -1,0 +1,11 @@
+type: object
+required:
+  - records
+  - createdCount
+properties:
+  records:
+    type: array
+    items:
+      $ref: "./FailureModeRecordResponse.yaml"
+  createdCount:
+    type: integer

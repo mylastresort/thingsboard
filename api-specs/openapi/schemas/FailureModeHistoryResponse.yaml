@@ -1,0 +1,24 @@
+type: object
+required:
+  - maintenance
+  - errors
+  - failures
+properties:
+  modelId:
+    type: string
+    nullable: true
+  deviceId:
+    type: string
+    nullable: true
+  maintenance:
+    type: array
+    items:
+      $ref: "./FailureModeRecordResponse.yaml"
+  errors:
+    type: array
+    items:
+      $ref: "./FailureModeRecordResponse.yaml"
+  failures:
+    type: array
+    items:
+      $ref: "./FailureModeRecordResponse.yaml"

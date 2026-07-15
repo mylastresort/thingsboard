@@ -1,0 +1,8 @@
+type: object
+additionalProperties:
+  type: array
+  items:
+    $ref: "./AvailableAlgorithmOption.yaml"
+description: >
+  Keyed by model category (e.g. "ForecastModel", "AnomalyPredictor").
+  Keys are not fixed — new categories may appear without a schema change.

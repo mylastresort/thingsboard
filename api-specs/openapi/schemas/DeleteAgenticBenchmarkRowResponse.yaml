@@ -1,0 +1,6 @@
+type: object
+required:
+  - deletedCount
+properties:
+  deletedCount:
+    type: integer

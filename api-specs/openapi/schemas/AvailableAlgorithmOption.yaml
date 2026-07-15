@@ -1,0 +1,10 @@
+type: object
+required:
+  - model_name
+properties:
+  model_name:
+    type: string
+  model_parameters:
+    type: object
+    additionalProperties: true
+    description: Hyperparameter schema/defaults for this model type; shape varies per model_name.

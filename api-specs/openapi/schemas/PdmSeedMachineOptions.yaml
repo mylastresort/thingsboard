@@ -1,0 +1,16 @@
+type: object
+required:
+  - defaults
+  - fields
+  - machines
+properties:
+  defaults:
+    $ref: "./PdmSeedMachineDefaults.yaml"
+  fields:
+    type: array
+    items:
+      type: string
+  machines:
+    type: array
+    items:
+      $ref: "./PdmSeedMachineOption.yaml"

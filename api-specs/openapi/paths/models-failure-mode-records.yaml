@@ -1,0 +1,22 @@
+post:
+  operationId: createFailureModeRecord
+  summary: Create failure mode record
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/FailureModeRecord.yaml"
+  responses:
+    "200":
+      description: Created failure mode record
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/FailureModeRecordResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

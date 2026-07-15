@@ -1,0 +1,13 @@
+type: object
+required:
+  - severity
+  - type
+  - startTs
+properties:
+  severity:
+    type: string
+  type:
+    type: string
+  startTs:
+    type: integer
+    format: int64

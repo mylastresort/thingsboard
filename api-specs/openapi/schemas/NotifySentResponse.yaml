@@ -1,0 +1,6 @@
+type: object
+required:
+  - sent
+properties:
+  sent:
+    type: integer

@@ -1,0 +1,24 @@
+post:
+  tags:
+    - AgenticBenchmark
+  operationId: upsertAgenticBenchmarkRows
+  summary: Upsert AssetOpsBench benchmark rows
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "../schemas/AgenticBenchmarkRowRequest.yaml"
+  responses:
+    "200":
+      description: Upsert result
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/UpsertAgenticBenchmarkRowsResponse.yaml"
+    "400":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

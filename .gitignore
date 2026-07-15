@@ -58,3 +58,8 @@ pip-cache
 docs/superpowers/
 models-cache
 cassandra-data
+
+# OpenAPI bundled output (source of truth lives in api-specs/openapi/)
+api-specs/openapi.yaml
+# tb-quarkus/cmd bundled spec
+tb-quarkus/cmd/openapi.yaml

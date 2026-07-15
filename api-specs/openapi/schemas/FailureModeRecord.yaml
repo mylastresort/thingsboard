@@ -1,0 +1,25 @@
+type: object
+required:
+  - type
+  - device_id
+  - datetime
+properties:
+  type:
+    type: string
+  device_id:
+    type: string
+  datetime:
+    type: string
+    format: date-time
+  description:
+    type: string
+    nullable: true
+  parts_replaced:
+    type: string
+    nullable: true
+  error_code:
+    type: string
+    nullable: true
+  root_cause:
+    type: string
+    nullable: true

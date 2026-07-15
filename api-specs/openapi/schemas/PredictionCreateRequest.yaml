@@ -1,0 +1,17 @@
+type: object
+properties:
+  createdAt:
+    type: string
+    format: date-time
+    nullable: true
+  createdTime:
+    type: integer
+    format: int64
+    nullable: true
+  predictionTime:
+    type: string
+    format: date-time
+    nullable: true
+  predictionValue:
+    type: object
+    additionalProperties: true
