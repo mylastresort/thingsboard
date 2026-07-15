@@ -59,37 +59,37 @@ public class ModelsApiImpl implements ModelsApi {
     @Override
     public Map<String, Object> getPredictiveModelsByPage(Integer pageSize, Integer page,
             String sortProperty, String sortOrder, String textSearch) {
-        return predictiveModelsRestService.listForecasts(pageSize, page, sortProperty, sortOrder, textSearch);
+        return predictiveModelsRestService.listPredictiveModels(pageSize, page, sortProperty, sortOrder, textSearch);
     }
 
     @Override
-    public Map<String, Object> createForecast(Map<String, Object> body) {
-        return predictiveModelsRestService.createForecast(body);
+    public Map<String, Object> createPredictiveModel(Map<String, Object> body) {
+        return predictiveModelsRestService.createPredictiveModel(body);
     }
 
     @Override
-    public Map<String, Object> getForecast(String forecastId) {
-        return predictiveModelsRestService.getForecast(forecastId);
+    public Map<String, Object> getPredictiveModelById(String predictiveModelId) {
+        return predictiveModelsRestService.getPredictiveModel(predictiveModelId);
     }
 
     @Override
-    public Map<String, Object> updateForecast(String forecastId, Map<String, Object> body) {
-        return predictiveModelsRestService.updateForecast(forecastId, body);
+    public Map<String, Object> updatePredictiveModelById(String predictiveModelId, Map<String, Object> body) {
+        return predictiveModelsRestService.updatePredictiveModel(predictiveModelId, body);
     }
 
     @Override
-    public Map<String, Object> deleteForecast(String forecastId) {
-        return predictiveModelsRestService.deleteForecast(forecastId);
+    public Map<String, Object> deletePredictiveModelById(String predictiveModelId) {
+        return predictiveModelsRestService.deletePredictiveModel(predictiveModelId);
     }
 
     @Override
-    public Map<String, Object> getForecastStatus(String forecastId) {
-        return predictiveModelsRestService.getForecastStatus(forecastId);
+    public Map<String, Object> getPredictiveModelStatus(String predictiveModelId) {
+        return predictiveModelsRestService.getPredictiveModelStatus(predictiveModelId);
     }
 
     @Override
-    public Map<String, Object> getForecastsByDeviceId(String deviceId, Integer pageSize, Integer page) {
-        return predictiveModelsRestService.getForecastsByDeviceId(deviceId, pageSize, page);
+    public Map<String, Object> getPredictiveModelsByDeviceId(String deviceId, Integer pageSize, Integer page) {
+        return predictiveModelsRestService.getPredictiveModelsByDeviceId(deviceId, pageSize, page);
     }
 
     @Override

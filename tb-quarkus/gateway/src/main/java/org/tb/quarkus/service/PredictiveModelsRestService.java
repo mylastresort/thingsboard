@@ -22,6 +22,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Naming convention in this class:
+ *  - "PredictiveModel" refers to the overall model configuration
+ *    (PredictiveMaintenanceConfigEntity), which bundles both a forecast
+ *    sub-config and an anomaly sub-config.
+ *  - "forecast" / "anomaly" are reserved for the sub-config fields
+ *    (forecastAlgorithm/forecastStartDate/forecastEndDate,
+ *    anomalyAlgorithm/anomalyStartDate/anomalyEndDate) and for
+ *    PredictionEntity.predictionType values.
+ *
+ * NOTE: entityType "FORECAST" and any REST path segments are left
+ * unchanged here since they are part of the external wire contract.
+ * Renaming those is a breaking API change and should be done as a
+ * separate, versioned step (see PR description).
+ */
 @ApplicationScoped
 public class PredictiveModelsRestService {
 
@@ -69,7 +84,12 @@ public class PredictiveModelsRestService {
         return Map.of("status", "Load model configuration saved successfully");
     }
 
-    public Map<String, Object> listForecasts(Integer pageSize, Integer page, String sortProperty,
+    // --- PredictiveModel CRUD (formerly "Forecast*") ---
+    // These operate on PredictiveMaintenanceConfigEntity, which stores a
+    // full model configuration containing both a forecast sub-config and
+    // an anomaly sub-config.
+
+    public Map<String, Object> listPredictiveModels(Integer pageSize, Integer page, String sortProperty,
             String sortOrder, String textSearch) {
         int size = pageSize == null ? 10 : pageSize;
         int pageNumber = page == null ? 0 : page;
@@ -93,50 +113,49 @@ public class PredictiveModelsRestService {
                     .list();
         }
 
-        List<Map<String, Object>> data = entities.stream().map(this::toForecast).toList();
+        List<Map<String, Object>> data = entities.stream().map(this::toPredictiveModel).toList();
         return page(data, total, size, offset);
     }
 
-    public Map<String, Object> getForecast(String forecastId) {
-        return toForecast(findForecastOrThrow(forecastId));
+    public Map<String, Object> getPredictiveModel(String predictiveModelId) {
+        return toPredictiveModel(findPredictiveModelOrThrow(predictiveModelId));
     }
 
     @Transactional
-    public Map<String, Object> createForecast(Object body) {
+    public Map<String, Object> createPredictiveModel(Object body) {
         JsonNode node = mapper.valueToTree(body);
-        System.out.println(node.toPrettyString());
         var entity = new PredictiveMaintenanceConfigEntity();
         entity.id = UUID.randomUUID();
         entity.createdTime = System.currentTimeMillis();
         entity.tenantId = uuidOr(firstNonBlank(nestedId(node.get("tenantId")), firstTenantId()));
         entity.deviceId = uuidOr(nestedId(node.get("deviceId")));
-        applyForecastBody(entity, node, true);
+        applyPredictiveModelBody(entity, node, true);
         entity.persist();
-        return toForecast(entity);
+        return toPredictiveModel(entity);
     }
 
     @Transactional
-    public Map<String, Object> updateForecast(String forecastId, Object body) {
-        var entity = findForecastOrThrow(forecastId);
-        applyForecastBody(entity, mapper.valueToTree(body), false);
-        return toForecast(entity);
+    public Map<String, Object> updatePredictiveModel(String predictiveModelId, Object body) {
+        var entity = findPredictiveModelOrThrow(predictiveModelId);
+        applyPredictiveModelBody(entity, mapper.valueToTree(body), false);
+        return toPredictiveModel(entity);
     }
 
     @Transactional
-    public Map<String, Object> deleteForecast(String forecastId) {
-        boolean deleted = PredictiveMaintenanceConfigEntity.deleteById(UUID.fromString(forecastId));
+    public Map<String, Object> deletePredictiveModel(String predictiveModelId) {
+        boolean deleted = PredictiveMaintenanceConfigEntity.deleteById(UUID.fromString(predictiveModelId));
         if (!deleted) {
-            throw new NotFoundException("Forecast not found");
+            throw new NotFoundException("Predictive model not found");
         }
-        return Map.of("deleted", true, "id", forecastId);
+        return Map.of("deleted", true, "id", predictiveModelId);
     }
 
-    public Map<String, Object> getForecastStatus(String forecastId) {
-        findForecastOrThrow(forecastId);
-        return Map.of("forecast_id", forecastId, "status", "inactive");
+    public Map<String, Object> getPredictiveModelStatus(String predictiveModelId) {
+        findPredictiveModelOrThrow(predictiveModelId);
+        return Map.of("forecast_id", predictiveModelId, "status", "inactive");
     }
 
-    public Map<String, Object> getForecastsByDeviceId(String deviceId, Integer pageSize, Integer page) {
+    public Map<String, Object> getPredictiveModelsByDeviceId(String deviceId, Integer pageSize, Integer page) {
         int size = pageSize == null ? 1000 : pageSize;
         int pageNumber = page == null ? 0 : page;
         int offset = pageNumber * size;
@@ -146,9 +165,11 @@ public class PredictiveModelsRestService {
                 .<PredictiveMaintenanceConfigEntity>find("deviceId = ?1", Sort.descending("createdTime"), deviceUuid)
                 .page(pageNumber, size)
                 .list();
-        List<Map<String, Object>> data = entities.stream().map(this::toForecast).toList();
+        List<Map<String, Object>> data = entities.stream().map(this::toPredictiveModel).toList();
         return page(data, total, size, offset);
     }
+
+    // --- Prediction history (unchanged naming: keyed by modelId, values are forecast/anomaly predictions) ---
 
     public Map<String, Object> getAnomalyHistoryPredictions(String modelId, String predictionType,
             Long startTs, Long endTs, Integer limit) {
@@ -207,7 +228,7 @@ public class PredictiveModelsRestService {
         return Map.of("deletedCount", deleted, "message", "Successfully deleted " + deleted + " predictions");
     }
 
-    private void applyForecastBody(PredictiveMaintenanceConfigEntity entity, JsonNode node, boolean creating) {
+    private void applyPredictiveModelBody(PredictiveMaintenanceConfigEntity entity, JsonNode node, boolean creating) {
         entity.name = text(node.get("name"));
         entity.deviceId = uuidOr(nestedId(node.get("deviceId")));
         entity.attributes = jsonNodeOr(node.get("attributes"), mapper.createArrayNode());
@@ -224,32 +245,33 @@ public class PredictiveModelsRestService {
         entity.additionalData = jsonNodeOr(node.get("additionalData"), mapper.createObjectNode());
     }
 
-    private PredictiveMaintenanceConfigEntity findForecastOrThrow(String forecastId) {
+    private PredictiveMaintenanceConfigEntity findPredictiveModelOrThrow(String predictiveModelId) {
         PredictiveMaintenanceConfigEntity entity = PredictiveMaintenanceConfigEntity
-                .findById(UUID.fromString(forecastId));
+                .findById(UUID.fromString(predictiveModelId));
         if (entity == null) {
-            throw new NotFoundException("Forecast not found");
+            throw new NotFoundException("Predictive model not found");
         }
         return entity;
     }
 
-    private Map<String, Object> toForecast(PredictiveMaintenanceConfigEntity entity) {
-        var forecast = new LinkedHashMap<String, Object>();
-        forecast.put("id", entityId("FORECAST", string(entity.id)));
-        forecast.put("tenantId", entityId("TENANT", string(entity.tenantId)));
-        forecast.put("deviceId", entityId("DEVICE", string(entity.deviceId)));
-        forecast.put("createdTime", entity.createdTime);
-        forecast.put("name", entity.name);
-        forecast.put("attributes", toPlainJson(entity.attributes, List.of()));
-        forecast.put("forecastAlgorithm", entity.forecastAlgorithm);
-        forecast.put("forecastStartDate", entity.forecastStartDate);
-        forecast.put("forecastEndDate", entity.forecastEndDate);
-        forecast.put("anomalyAlgorithm", entity.anomalyAlgorithm);
-        forecast.put("anomalyStartDate", entity.anomalyStartDate);
-        forecast.put("anomalyEndDate", entity.anomalyEndDate);
-        forecast.put("viewPreferences", toPlainJson(entity.viewPreferences, null));
-        forecast.put("additionalData", toPlainJson(entity.additionalData, Map.of()));
-        return forecast;
+    private Map<String, Object> toPredictiveModel(PredictiveMaintenanceConfigEntity entity) {
+        var predictiveModel = new LinkedHashMap<String, Object>();
+        // entityType left as "FORECAST" intentionally: external wire contract, not renamed here.
+        predictiveModel.put("id", entityId("FORECAST", string(entity.id)));
+        predictiveModel.put("tenantId", entityId("TENANT", string(entity.tenantId)));
+        predictiveModel.put("deviceId", entityId("DEVICE", string(entity.deviceId)));
+        predictiveModel.put("createdTime", entity.createdTime);
+        predictiveModel.put("name", entity.name);
+        predictiveModel.put("attributes", toPlainJson(entity.attributes, List.of()));
+        predictiveModel.put("forecastAlgorithm", entity.forecastAlgorithm);
+        predictiveModel.put("forecastStartDate", entity.forecastStartDate);
+        predictiveModel.put("forecastEndDate", entity.forecastEndDate);
+        predictiveModel.put("anomalyAlgorithm", entity.anomalyAlgorithm);
+        predictiveModel.put("anomalyStartDate", entity.anomalyStartDate);
+        predictiveModel.put("anomalyEndDate", entity.anomalyEndDate);
+        predictiveModel.put("viewPreferences", toPlainJson(entity.viewPreferences, null));
+        predictiveModel.put("additionalData", toPlainJson(entity.additionalData, Map.of()));
+        return predictiveModel;
     }
 
     private Map<String, Object> toPrediction(PredictionEntity entity) {

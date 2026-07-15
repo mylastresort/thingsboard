@@ -151,30 +151,30 @@ export class PredictiveModelsService {
 
   // renamed in the spec: Predictive Model -> Forecast
   getPredictiveModel(forecastId: string) {
-    return this.api.getForecast(forecastId);
+    return this.api.getPredictiveModelById(forecastId);
   }
 
   addPredictiveModelConfig(forecast: { [key: string]: any }) {
-    return this.api.createForecast(forecast);
+    return this.api.createPredictiveModel(forecast);
   }
 
   updatePredictiveModel(forecast: { id?: string; [key: string]: any }) {
     if (!forecast?.id) {
       throw new Error('updatePredictiveModel: forecast object is missing an id');
     }
-    return this.api.updateForecast(forecast.id, forecast);
+    return this.api.updatePredictiveModelById(forecast.id, forecast);
   }
 
   deletePredictiveModel(forecastId: string) {
-    return this.api.deleteForecast(forecastId);
+    return this.api.deletePredictiveModelById(forecastId);
   }
 
   getPredictiveModelStatus(forecastId: string) {
-    return this.api.getForecastStatus(forecastId);
+    return this.api.getPredictiveModelStatus(forecastId);
   }
 
   getForecastsByDeviceId(deviceId: string, pageSize?: number, page?: number) {
-    return this.api.getForecastsByDeviceId(deviceId, pageSize, page);
+    return this.api.getPredictiveModelsByDeviceId(deviceId, pageSize, page);
   }
 
   getSeedMachineOptions(): Observable<PdmSeedMachineOptions> {

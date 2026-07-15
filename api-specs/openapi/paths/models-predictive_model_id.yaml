@@ -1,11 +1,11 @@
 get:
-  operationId: getForecast
-  summary: Get forecast config by id
+  operationId: getPredictiveModelById
+  summary: Get predictive model config by id
   parameters:
-    - $ref: "../parameters/_index.yaml#/ForecastId"
+    - $ref: "../parameters/_index.yaml#/PredictiveModelId"
   responses:
     "200":
-      description: Forecast config
+      description: Predictive model config
       content:
         application/json:
           schema:
@@ -16,10 +16,10 @@ get:
     "500":
       $ref: "../responses/_index.yaml#/Error"
 post:
-  operationId: updateForecast
-  summary: Update a forecast config
+  operationId: updatePredictiveModelById
+  summary: Update a predictive model config
   parameters:
-    - $ref: "../parameters/_index.yaml#/ForecastId"
+    - $ref: "../parameters/_index.yaml#/PredictiveModelId"
   requestBody:
     required: true
     content:
@@ -29,7 +29,7 @@ post:
           additionalProperties: true
   responses:
     "200":
-      description: Updated forecast config
+      description: Updated predictive model config
       content:
         application/json:
           schema:
@@ -40,10 +40,10 @@ post:
     "500":
       $ref: "../responses/_index.yaml#/Error"
 delete:
-  operationId: deleteForecast
-  summary: Delete a forecast config
+  operationId: deletePredictiveModelById
+  summary: Delete a predictive model config
   parameters:
-    - $ref: "../parameters/_index.yaml#/ForecastId"
+    - $ref: "../parameters/_index.yaml#/PredictiveModelId"
   responses:
     "200":
       description: Delete result

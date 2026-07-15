@@ -4,7 +4,7 @@ RUN apt update
 
 RUN apt install -y git curl default-jre-headless
 
-RUN npm i -g @angular/cli
+RUN npm i -g @angular/cli @asyncapi/cli
 
 WORKDIR /app/ui-ngx
 

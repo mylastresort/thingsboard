@@ -1,6 +1,6 @@
 get:
-  operationId: getForecastsByDeviceId
-  summary: Fetch forecast configs by device ID
+  operationId: getPredictiveModelsByDeviceId
+  summary: Fetch predictive model configs by device ID
   parameters:
     - name: device_id
       in: path
@@ -17,7 +17,7 @@ get:
     - $ref: "../parameters/_index.yaml#/Page"
   responses:
     "200":
-      description: Forecast config page
+      description: Predictive model config page
       content:
         application/json:
           schema:

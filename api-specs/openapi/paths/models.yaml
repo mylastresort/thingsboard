@@ -1,6 +1,6 @@
 get:
   operationId: getPredictiveModelsByPage
-  summary: List forecast configs with pagination
+  summary: List predictive model configs with pagination
   parameters:
     - $ref: "../parameters/_index.yaml#/PageSize"
     - $ref: "../parameters/_index.yaml#/Page"
@@ -9,7 +9,7 @@ get:
     - $ref: "../parameters/_index.yaml#/TextSearch"
   responses:
     "200":
-      description: Forecast config page
+      description: Predictive model config page
       content:
         application/json:
           schema:
@@ -18,8 +18,8 @@ get:
     "500":
       $ref: "../responses/_index.yaml#/Error"
 post:
-  operationId: createForecast
-  summary: Create a forecast config
+  operationId: createPredictiveModel
+  summary: Create a predictive model config
   requestBody:
     required: true
     content:
@@ -29,7 +29,7 @@ post:
           additionalProperties: true
   responses:
     "200":
-      description: Created forecast config
+      description: Created predictive model config
       content:
         application/json:
           schema:

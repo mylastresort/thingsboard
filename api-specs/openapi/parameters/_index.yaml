@@ -23,8 +23,8 @@ RecordId:
   schema:
     type: string
     format: uuid
-ForecastId:
-  name: forecast_id
+PredictiveModelId:
+  name: predictive_model_id
   in: path
   required: true
   schema:

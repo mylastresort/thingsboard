@@ -1,11 +1,11 @@
 get:
-  operationId: getForecastStatus
-  summary: Get forecast model status
+  operationId: getPredictiveModelStatus
+  summary: Get predictive model status
   parameters:
-    - $ref: "../parameters/_index.yaml#/ForecastId"
+    - $ref: "../parameters/_index.yaml#/PredictiveModelId"
   responses:
     "200":
-      description: Forecast status
+      description: Predictive model status
       content:
         application/json:
           schema:

@@ -23,10 +23,10 @@ paths:
     $ref: "./paths/models-seed-machine-options.yaml"
   /models/seed-machine:
     $ref: "./paths/models-seed-machine.yaml"
-  /models/{forecast_id}:
-    $ref: "./paths/models-forecast_id.yaml"
-  /models/{forecast_id}/status:
-    $ref: "./paths/models-forecast_id-status.yaml"
+  /models/{predictive_model_id}:
+    $ref: "./paths/models-predictive_model_id.yaml"
+  /models/{predictive_model_id}/status:
+    $ref: "./paths/models-predictive_model_id-status.yaml"
   /models/device/{device_id}:
     $ref: "./paths/models-device-device_id.yaml"
   /models/failure-mode-history:

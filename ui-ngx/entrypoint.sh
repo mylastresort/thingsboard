@@ -6,11 +6,7 @@ if [ ! -d node_modules ]; then
 fi
 
 echo 'Bundling split OpenAPI spec...'
-mkdir -p /tmp/openapi-split
-cp -r ../api-specs/openapi/* /tmp/openapi-split/
-npx --yes @redocly/cli bundle /tmp/openapi-split/openapi.yaml --output /tmp/openapi.yaml --ext yaml 2>/dev/null || true
-echo 'Generating API client from OpenAPI spec...'
-openapi-generator-cli generate -i /tmp/openapi.yaml -g typescript-angular -o src/app/core/api-client --additional-properties=providedInRoot=true,ngVersion=20,supportsES6=true
+yarn generate:api
 asyncapi generate models typescript ../api-specs/asyncapi.yaml -o src/app/core/event-models --tsModelType interface --tsExportType named --tsEnumType union --tsIncludeComments --no-interactive --tsRawPropertyNames
 
 node --max_old_space_size=8048 ./node_modules/@angular/cli/bin/ng serve \

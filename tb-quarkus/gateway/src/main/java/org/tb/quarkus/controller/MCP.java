@@ -46,25 +46,25 @@ public class MCP {
             @ToolArg(description = "Property to sort by") String sortProperty,
             @ToolArg(description = "Sort order: ASC or DESC") String sortOrder,
             @ToolArg(description = "Optional free-text search filter") String textSearch) {
-        return predictiveModelsRestService.listForecasts(pageSize, page, sortProperty, sortOrder, textSearch);
+        return predictiveModelsRestService.listPredictiveModels(pageSize, page, sortProperty, sortOrder, textSearch);
     }
 
     @Tool(description = "Get a single forecast/model by its id")
-    public Map<String, Object> getForecast(@ToolArg(description = "Forecast id") String forecastId) {
-        return predictiveModelsRestService.getForecast(forecastId);
+    public Map<String, Object> getPredictiveModel(@ToolArg(description = "Forecast id") String forecastId) {
+        return predictiveModelsRestService.getPredictiveModel(forecastId);
     }
 
     @Tool(description = "Get the current status of a forecast/model job")
-    public Map<String, Object> getForecastStatus(@ToolArg(description = "Forecast id") String forecastId) {
-        return predictiveModelsRestService.getForecastStatus(forecastId);
+    public Map<String, Object> getPredictiveModelStatus(@ToolArg(description = "Forecast id") String forecastId) {
+        return predictiveModelsRestService.getPredictiveModelStatus(forecastId);
     }
 
     @Tool(description = "List forecasts associated with a specific device, paginated")
-    public Map<String, Object> getForecastsByDeviceId(
+    public Map<String, Object> getPredictiveModelsByDeviceId(
             @ToolArg(description = "ThingsBoard device id") String deviceId,
             @ToolArg(description = "Page size") Integer pageSize,
             @ToolArg(description = "Zero-based page number") Integer page) {
-        return predictiveModelsRestService.getForecastsByDeviceId(deviceId, pageSize, page);
+        return predictiveModelsRestService.getPredictiveModelsByDeviceId(deviceId, pageSize, page);
     }
 
     @Tool(description = "Get historical anomaly predictions for a model within a time range")
@@ -101,23 +101,17 @@ public class MCP {
         return predictiveModelsRestService.saveLoadModelConfig(body);
     }
 
-    @Tool(description = "Create a new forecast/predictive model job. MUTATING.")
-    public Map<String, Object> createForecast(
-            @ToolArg(description = "Forecast definition as key-value map") Map<String, Object> body) {
-        return predictiveModelsRestService.createForecast(body);
-    }
-
-    @Tool(description = "Create a predictive maintenance model configuration. MUTATING.")
+    @Tool(description = "Create a new predictive model job. MUTATING.")
     public Map<String, Object> createPredictiveModel(
-            @ToolArg(description = "Predictive model definition as key-value map") Map<String, Object> body) {
-        return predictiveModelsRestService.createForecast(body);
+            @ToolArg(description = "Forecast definition as key-value map") Map<String, Object> body) {
+        return predictiveModelsRestService.createPredictiveModel(body);
     }
 
     @Tool(description = "Create a predictive maintenance model configuration and queue training over Kafka. MUTATING.")
     public Map<String, Object> createAndTrainPredictiveModel(
             @ToolArg(description = "Predictive model definition as key-value map") Map<String, Object> body,
             @ToolArg(description = "Model type to train: FORECAST, ANOMALY, or BOTH") String modelType) {
-        Map<String, Object> model = predictiveModelsRestService.createForecast(body);
+        Map<String, Object> model = predictiveModelsRestService.createPredictiveModel(body);
         String forecastId = forecastId(model);
         var trainRequest = new LinkedHashMap<String, Object>();
         trainRequest.put("modelType", defaultString(modelType, "BOTH"));
@@ -133,7 +127,7 @@ public class MCP {
             @ToolArg(description = "Optional ThingsBoard device id override") String deviceId) {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("modelType", defaultString(modelType, "BOTH"));
-        request.put("deviceId", defaultString(deviceId, deviceId(predictiveModelsRestService.getForecast(forecastId))));
+        request.put("deviceId", defaultString(deviceId, deviceId(predictiveModelsRestService.getPredictiveModel(forecastId))));
         return pdmCommandService.train(forecastId, request);
     }
 
@@ -144,7 +138,7 @@ public class MCP {
             @ToolArg(description = "Optional ThingsBoard device id override") String deviceId) {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("modelType", defaultString(modelType, "BOTH"));
-        request.put("deviceId", defaultString(deviceId, deviceId(predictiveModelsRestService.getForecast(forecastId))));
+        request.put("deviceId", defaultString(deviceId, deviceId(predictiveModelsRestService.getPredictiveModel(forecastId))));
         return pdmCommandService.infer(forecastId, request);
     }
 
@@ -181,12 +175,12 @@ public class MCP {
     public Map<String, Object> updateForecast(
             @ToolArg(description = "Forecast id") String forecastId,
             @ToolArg(description = "Updated fields as key-value map") Map<String, Object> body) {
-        return predictiveModelsRestService.updateForecast(forecastId, body);
+        return predictiveModelsRestService.updatePredictiveModel(forecastId, body);
     }
 
     @Tool(description = "Delete a forecast/model by id. MUTATING, irreversible.")
     public Map<String, Object> deleteForecast(@ToolArg(description = "Forecast id") String forecastId) {
-        return predictiveModelsRestService.deleteForecast(forecastId);
+        return predictiveModelsRestService.deletePredictiveModel(forecastId);
     }
 
     @Tool(description = "Delete stored anomaly history predictions for a model/type. MUTATING, irreversible.")
