@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "PdmStorageResponse",
+  "namespace": "com.um6p.pdm.storage",
+  "fields": [
+    { "name": "correlationId", "type": "string" },
+    { "name": "modelId", "type": "string" },
+    { "name": "success", "type": "boolean" },
+    { "name": "error", "type": ["null", "string"], "default": null },
+    { "name": "filenames", "type": ["null", { "type": "array", "items": "string" }], "default": null },
+    { "name": "fileData", "type": ["null", { "type": "map", "values": "bytes" }], "default": null },
+    { "name": "timestamp", "type": { "type": "long", "logicalType": "timestamp-millis" } }
+  ]
+}

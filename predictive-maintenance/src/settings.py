@@ -18,22 +18,6 @@ class Settings(BaseSettings):
     )
     models_path: str = os.getenv("MODELS_PATH", "/app/models")
 
-    # Model storage backend: "minio" | "postgres" | "local"
-    model_storage_strategy: str = os.getenv("MODEL_STORAGE_STRATEGY", "minio")
-
-    # MinIO settings
-    minio_endpoint: str = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
-    minio_access_key: str = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-    minio_secret_key: str = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-    minio_bucket: str = os.getenv("MINIO_BUCKET", "pdm-models")
-    minio_secure: bool = os.getenv("MINIO_SECURE", "false").lower() == "true"
-
-    # PostgreSQL model storage DSN (fallback backend)
-    model_storage_pg_dsn: str = os.getenv(
-        "MODEL_STORAGE_PG_DSN",
-        "postgresql://postgres:postgres@postgres:5432/thingsboard",
-    )
-
     # Telemetry configuration for predictive maintenance
     telemetry_keys: Union[List[str], str] = ["volt", "rotate", "pressure", "vibration"]
     error_keys: Union[List[str], str] = [
