@@ -247,28 +247,37 @@ PDM_DOMAIN: tuple[str, tuple[str, list[str]]] = (
     "pdm_agent",
     (
         "Runs predictive-maintenance workflows through the Quarkus PdM MCP "
-        "endpoint. Use it to seed a new machine, create/update model configs, "
-        "train models, start inference, poll model/job status, and fetch "
-        "forecast or anomaly prediction history."
-        "When creating a new model, you must first call getAvailableAlgorithms to see "
-        "the available algorithms for Forecast/AnomalyPredictor models, "
-        "then pass the algorithm name and any parameters to ",
+        "endpoint. Use it to create/update/delete model configs, manage load "
+        "configs, train models, start inference, poll model/job status, fetch "
+        "forecast or anomaly prediction history, manage failure mode records, "
+        "and import failure mode CSVs. "
+        "When creating a new model, you must first call getAvailableAlgorithmsMap "
+        "to see the available algorithms for Forecast/AnomalyPredictor models, "
+        "then pass the algorithm name and any parameters to the create tool.",
         [
-            "getSeedMachineOptions",
-            "seedMachine",
-            "getAvailableAlgorithms",
-            "createForecast",
+            "getAvailableAlgorithmsMap",
+            "getLoadModelConfigs",
+            "getPredictiveModelsByPage",
+            "getPredictiveModel",
+            "getPredictiveModelStatus",
+            "getPredictiveModelsByDeviceId",
+            "saveLoadModelConfig",
             "createPredictiveModel",
             "createAndTrainPredictiveModel",
             "trainPredictiveModel",
             "inferPredictiveModel",
             "pollPredictiveModelInference",
             "updateForecast",
-            "getForecast",
-            "getForecastStatus",
-            "getForecastsByDeviceId",
+            "deleteForecast",
             "getAnomalyHistoryPredictions",
             "deleteAnomalyHistoryPredictions",
+            "getFailureModeHistoryAllDevices",
+            "getFailureModeHistory",
+            "createFailureModeRecord",
+            "createFailureModeRecords",
+            "updateFailureModeRecord",
+            "deleteFailureModeRecord",
+            "importFailureModeRecords",
         ],
     ),
 )

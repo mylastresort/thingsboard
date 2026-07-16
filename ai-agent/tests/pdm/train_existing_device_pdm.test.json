@@ -33,7 +33,7 @@
                 }
               },
               {
-                "name": "getAvailableModels",
+                "name": "getAvailableAlgorithmsMap",
                 "args": {}
               },
               {

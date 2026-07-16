@@ -1,0 +1,30 @@
+name: AI Agent tests
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - "ai-agent/**"
+  pull_request:
+    paths:
+      - "ai-agent/**"
+
+jobs:
+  agent-static-tests:
+    name: Agent config & structure tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" || pip install -r requirements.txt
+
+      - name: Run static tests
+        run: python -m pytest tests/ -v --tb=short

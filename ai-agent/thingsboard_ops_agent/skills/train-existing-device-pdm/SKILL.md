@@ -8,14 +8,13 @@ description: >
 tools:
   - getDeviceByName
   - getDevice
-  - getAvailableModels
-  - createForecast
+  - getAvailableAlgorithmsMap
   - createPredictiveModel
   - createAndTrainPredictiveModel
   - trainPredictiveModel
   - inferPredictiveModel
   - pollPredictiveModelInference
-  - getForecastStatus
+  - getPredictiveModelStatus
   - getAnomalyHistoryPredictions
 ---
 
@@ -55,7 +54,7 @@ If multiple devices match the supplied name, ask the user which one to use.
 
 Call:
 
-- `getAvailableModels`
+- `getAvailableAlgorithmsMap`
 
 Select:
 
@@ -82,15 +81,15 @@ The request should contain:
 
 - name
 - deviceId (resolved during Phase 0)
-- forecastAlgorithm (use the same algorithm id as returned by `getAvailableAlgorithms` lowercase or uppercase)
-- anomalyAlgorithm (use the same algorithm id as returned by `getAvailableAlgorithms` lowercase or uppercase)
+- forecastAlgorithm (use the same algorithm id as returned by `getAvailableAlgorithmsMap` lowercase or uppercase)
+- anomalyAlgorithm (use the same algorithm id as returned by `getAvailableAlgorithmsMap` lowercase or uppercase)
 - forecastStartDate
 - forecastEndDate
 - anomalyStartDate
 - anomalyEndDate
 - attributes (telemetry fields) as {aggregation: "average", groupByMs: 5000, key: "vibration"}[]
 
-Follow this structure to send create request to MCP for `createForecast/createPredictiveModel`:
+Follow this structure to send create request to MCP for `createPredictiveModel`:
 
 ```json
 {
@@ -145,7 +144,7 @@ unless the user explicitly requests only one model.
 
 Poll using:
 
-- `getForecastStatus`
+- `getPredictiveModelStatus`
 
 until:
 
