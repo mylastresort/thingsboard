@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "maven",
+      "component": "thingsboard",
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance Improvements" },
+        { "type": "deps", "section": "Dependencies" },
+        { "type": "docs", "section": "Documentation" },
+        { "type": "chore", "section": "Miscellaneous" },
+        { "type": "refactor", "section": "Code Refactoring", "hidden": true },
+        { "type": "test", "section": "Tests", "hidden": true },
+        { "type": "ci", "section": "Continuous Integration", "hidden": true }
+      ],
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true
+    },
+    "ui-ngx": {
+      "release-type": "node",
+      "component": "ui-ngx",
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance Improvements" },
+        { "type": "deps", "section": "Dependencies" }
+      ],
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true
+    },
+    "tb-quarkus/gateway": {
+      "release-type": "gradle",
+      "component": "tb-quarkus-gateway",
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance Improvements" },
+        { "type": "deps", "section": "Dependencies" }
+      ],
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true
+    }
+  },
+  "separate-pull-requests": false,
+  "group-pull-request-title-pattern": "chore: release thingsboard ${version}",
+  "pull-request-title-pattern": "chore: release ${component} ${version}",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance Improvements" },
+    { "type": "deps", "section": "Dependencies" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "chore", "section": "Miscellaneous" }
+  ],
+  "signoff": false
+}
