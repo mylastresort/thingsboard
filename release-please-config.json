@@ -15,8 +15,8 @@
         { "type": "test", "section": "Tests", "hidden": true },
         { "type": "ci", "section": "Continuous Integration", "hidden": true }
       ],
-      "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false
     },
     "ui-ngx": {
       "release-type": "node",
@@ -27,8 +27,8 @@
         { "type": "perf", "section": "Performance Improvements" },
         { "type": "deps", "section": "Dependencies" }
       ],
-      "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false
     },
     "tb-quarkus/gateway": {
       "release-type": "gradle",
@@ -39,8 +39,8 @@
         { "type": "perf", "section": "Performance Improvements" },
         { "type": "deps", "section": "Dependencies" }
       ],
-      "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false
     }
   },
   "separate-pull-requests": false,
@@ -54,5 +54,6 @@
     { "type": "docs", "section": "Documentation" },
     { "type": "chore", "section": "Miscellaneous" }
   ],
+  "prerelease": false,
   "signoff": false
 }
