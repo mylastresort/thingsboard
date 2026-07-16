@@ -13,7 +13,7 @@ from tb_ce_client.models import Alarm, AlarmSeverity, AlarmStatus, EntityId, Ent
 
 from library import AnomalyPredictor, ForecastModel
 from library.models.anomaly_predictor import feature_cols, load_models, predict_failure
-from library.storage import ModelStorageService
+import library.storage as storage
 from src.logger import logger
 from src.model.client import get_client
 from src.model.quarkus_client import get_quarkus_client
@@ -344,14 +344,13 @@ class PredictionJobManager:
             model_dir = Path(settings.models_path) / model_id
             add_model_log(model_id, "info", f"Model directory: {model_dir}")
 
-            storage = ModelStorageService()
             if not any(model_dir.iterdir()) if model_dir.exists() else True:
-                add_model_log(model_id, "info", "Local model dir empty, loading from storage backend...")
+                add_model_log(model_id, "info", "Local model dir empty, loading from model-store...")
                 try:
                     storage.load_model(model_id, model_dir)
-                    add_model_log(model_id, "info", "Model loaded from storage backend")
-                except FileNotFoundError:
-                    add_model_log(model_id, "error", f"No model artifacts found for {model_id}")
+                    add_model_log(model_id, "info", "Model loaded from model-store")
+                except (FileNotFoundError, TimeoutError) as exc:
+                    add_model_log(model_id, "error", f"No model artifacts found for {model_id}: {exc}")
                     return
 
             hourly_models = None

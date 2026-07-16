@@ -18,6 +18,44 @@ services:
       retries: 5
       start_period: 10s
 
+  pdm-model-store:
+    restart: unless-stopped
+    build:
+      context: ./predictive-maintenance/service
+      dockerfile: Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
+      - PDM_STORAGE_COMMAND_TOPIC=pdm-storage-commands
+      - PDM_STORAGE_RESPONSE_TOPIC=pdm-storage-responses
+      - PDM_STORAGE_GROUP=pdm-model-store-workers
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_BUCKET=${MINIO_BUCKET:-pdm-models}
+      - MODEL_STORAGE_PG_DSN=${MODEL_STORAGE_PG_DSN:-postgresql://postgres:postgres@postgres:5432/thingsboard}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"from confluent_kafka import Producer; Producer({'bootstrap.servers':'kafka:9092'}).list_topics(timeout=5)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      replicas: ${PDM_MODEL_STORE_REPLICAS:-2}
+
   pdm-forecast-worker:
     restart: unless-stopped
     build:
@@ -40,7 +78,7 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-      minio:
+      pdm-model-store:
         condition: service_healthy
     env_file:
       - .env
@@ -56,12 +94,8 @@ services:
       - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
       - TB_PASSWORD=${TB_PASSWORD:-tenant}
       - MODELS_PATH=/models
-      - MODEL_STORAGE_STRATEGY=${MODEL_STORAGE_STRATEGY:-minio}
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
-      - MINIO_BUCKET=${MINIO_BUCKET:-pdm-models}
-      - MODEL_STORAGE_PG_DSN=${MODEL_STORAGE_PG_DSN:-postgresql://postgres:postgres@postgres:5432/thingsboard}
+      - PDM_STORAGE_COMMAND_TOPIC=pdm-storage-commands
+      - PDM_STORAGE_RESPONSE_TOPIC=pdm-storage-responses
       - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     healthcheck:
@@ -93,7 +127,7 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-      minio:
+      pdm-model-store:
         condition: service_healthy
     env_file:
       - .env
@@ -109,12 +143,8 @@ services:
       - TB_USERNAME=${TB_USERNAME:-tenant@thingsboard.org}
       - TB_PASSWORD=${TB_PASSWORD:-tenant}
       - MODELS_PATH=/models
-      - MODEL_STORAGE_STRATEGY=${MODEL_STORAGE_STRATEGY:-minio}
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
-      - MINIO_BUCKET=${MINIO_BUCKET:-pdm-models}
-      - MODEL_STORAGE_PG_DSN=${MODEL_STORAGE_PG_DSN:-postgresql://postgres:postgres@postgres:5432/thingsboard}
+      - PDM_STORAGE_COMMAND_TOPIC=pdm-storage-commands
+      - PDM_STORAGE_RESPONSE_TOPIC=pdm-storage-responses
       - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     healthcheck:

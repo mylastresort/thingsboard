@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "PdmStorageCommand",
+  "namespace": "com.um6p.pdm.storage",
+  "fields": [
+    {
+      "name": "op",
+      "type": {
+        "type": "enum",
+        "name": "StorageOp",
+        "symbols": ["SAVE", "LOAD", "DELETE", "LIST", "EXISTS"]
+      }
+    },
+    { "name": "modelId", "type": "string" },
+    { "name": "correlationId", "type": "string" },
+    { "name": "filenames", "type": ["null", { "type": "array", "items": "string" }], "default": null },
+    { "name": "fileData", "type": ["null", { "type": "map", "values": "bytes" }], "default": null },
+    { "name": "timestamp", "type": { "type": "long", "logicalType": "timestamp-millis" } }
+  ]
+}
