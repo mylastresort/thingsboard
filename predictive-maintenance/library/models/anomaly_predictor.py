@@ -15,6 +15,9 @@ except ImportError:
     from library.core.model_interface import BaseModel
     from library.core.types import AlgorithmType, SupervisedConfig, TaskType
 
+import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -659,6 +662,86 @@ def split_data(labeled_features_clean: pd.DataFrame, feature_cols: list):
 key_hours = [1, 4, 8, 12, 16, 20, 24]
 
 
+MAX_ANOMALY_TRAIN_WORKERS = int(os.getenv("PDM_ANOMALY_TRAIN_WORKERS", "4"))
+
+
+def _train_hourly_pair(
+    hour, train, X_train, algorithm
+):
+    models = {}
+
+    multiclass_target = f"target_hour_{hour}_multiclass"
+    binary_target = f"target_hour_{hour}_binary"
+
+    y_train_mc = train[multiclass_target]
+    y_train_bin = train[binary_target]
+
+    if len(y_train_mc.value_counts()) > 1:
+        if algorithm == "random_forest":
+            rf_multiclass = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=12,
+                min_samples_split=8,
+                min_samples_leaf=4,
+                class_weight="balanced",
+                random_state=42,
+                n_jobs=2,
+            )
+        elif algorithm == "xgboost":
+            le_mc = LabelEncoder()
+            y_train_mc_enc = le_mc.fit_transform(y_train_mc.astype(str))
+
+            rf_multiclass = XGBClassifier(
+                n_estimators=100,
+                max_depth=6,
+                learning_rate=0.1,
+                objective="multi:softprob",
+                num_class=len(le_mc.classes_),
+                use_label_encoder=False,
+                eval_metric="mlogloss",
+                random_state=42,
+                n_jobs=2,
+            )
+        else:
+            raise ValueError(f"Unsupported algorithm: {algorithm}")
+
+        if algorithm == "xgboost":
+            rf_multiclass.fit(X_train, y_train_mc_enc)
+            rf_multiclass._label_encoder = le_mc
+        else:
+            rf_multiclass.fit(X_train, y_train_mc)
+        models[f"hour_{hour}_multiclass"] = rf_multiclass
+
+    if len(y_train_bin.value_counts()) > 1:
+        if algorithm == "random_forest":
+            rf_binary = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=12,
+                min_samples_split=8,
+                min_samples_leaf=4,
+                class_weight="balanced",
+                random_state=42,
+                n_jobs=2,
+            )
+        elif algorithm == "xgboost":
+            rf_binary = XGBClassifier(
+                n_estimators=100,
+                max_depth=6,
+                learning_rate=0.1,
+                objective="binary:logistic",
+                use_label_encoder=False,
+                eval_metric="logloss",
+                random_state=42,
+                n_jobs=2,
+            )
+        else:
+            raise ValueError(f"Unsupported algorithm: {algorithm}")
+        rf_binary.fit(X_train, y_train_bin)
+        models[f"hour_{hour}_binary"] = rf_binary
+
+    return hour, models
+
+
 def create_and_train_hourly_models(
     train,
     val,
@@ -670,81 +753,31 @@ def create_and_train_hourly_models(
     components,
     algorithm="random_forest",
 ):
-    hourly_models = {}
-
     if algorithm not in ["random_forest", "xgboost"]:
         algorithm = "random_forest"
 
-    for hour in key_hours:
-        multiclass_target = f"target_hour_{hour}_multiclass"
-        binary_target = f"target_hour_{hour}_binary"
+    total_hours = len(key_hours)
+    max_workers = min(MAX_ANOMALY_TRAIN_WORKERS, total_hours)
 
-        y_train_mc = train[multiclass_target]
+    hourly_models = {}
 
-        y_train_bin = train[binary_target]
-
-        if len(y_train_mc.value_counts()) > 1:
-            if algorithm == "random_forest":
-                rf_multiclass = RandomForestClassifier(
-                    n_estimators=100,
-                    max_depth=12,
-                    min_samples_split=8,
-                    min_samples_leaf=4,
-                    class_weight="balanced",
-                    random_state=42,
-                    n_jobs=-1,
-                )
-            elif algorithm == "xgboost":
-                le_mc = LabelEncoder()
-                y_train_mc_enc = le_mc.fit_transform(y_train_mc.astype(str))
-
-                rf_multiclass = XGBClassifier(
-                    n_estimators=100,
-                    max_depth=6,
-                    learning_rate=0.1,
-                    objective="multi:softprob",
-                    num_class=len(le_mc.classes_),
-                    use_label_encoder=False,
-                    eval_metric="mlogloss",
-                    random_state=42,
-                    n_jobs=-1,
-                )
-            else:
-                raise ValueError(f"Unsupported algorithm: {algorithm}")
-
-            if algorithm == "xgboost":
-                rf_multiclass.fit(X_train, y_train_mc_enc)
-                rf_multiclass._label_encoder = le_mc
-            else:
-                rf_multiclass.fit(X_train, y_train_mc)
-            hourly_models[f"hour_{hour}_multiclass"] = rf_multiclass
-
-        if len(y_train_bin.value_counts()) > 1:
-            if algorithm == "random_forest":
-                rf_binary = RandomForestClassifier(
-                    n_estimators=100,
-                    max_depth=12,
-                    min_samples_split=8,
-                    min_samples_leaf=4,
-                    class_weight="balanced",
-                    random_state=42,
-                    n_jobs=-1,
-                )
-            elif algorithm == "xgboost":
-                rf_binary = XGBClassifier(
-                    n_estimators=100,
-                    max_depth=6,
-                    learning_rate=0.1,
-                    objective="binary:logistic",
-                    use_label_encoder=False,
-                    eval_metric="logloss",
-                    random_state=42,
-                    n_jobs=-1,
-                )
-            else:
-                raise ValueError(f"Unsupported algorithm: {algorithm}")
-            rf_binary.fit(X_train, y_train_bin)
-            hourly_models[f"hour_{hour}_binary"] = rf_binary
+    if max_workers <= 1:
+        for hour in key_hours:
+            _, pair = _train_hourly_pair(hour, train, X_train, algorithm)
+            hourly_models.update(pair)
+    else:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(_train_hourly_pair, hour, train, X_train, algorithm): hour
+                for hour in key_hours
+            }
+            for future in as_completed(futures):
+                hour = futures[future]
+                try:
+                    _, pair = future.result()
+                    hourly_models.update(pair)
+                except Exception:
+                    logger.exception(f"Failed to train hourly model for hour {hour}")
 
     return hourly_models
 
