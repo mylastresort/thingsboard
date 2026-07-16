@@ -8,6 +8,7 @@ import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.jboss.logging.Logger;
 import org.tb.quarkus.model.NotifyAlarmAssigneeRequest;
 import org.tb.quarkus.model.NotifyAlarmBody;
@@ -107,6 +108,7 @@ public class NotifyService {
         return status("sent");
     }
 
+    @Retry(maxRetries = 3, delay = 2000, maxDelay = 10000, retryOn = {IOException.class, InterruptedException.class})
     private void sendNotification(String phone, String severity, String type, Long startTs) {
         String token = whatsappToken.filter(value -> !value.isBlank())
                 .orElseThrow(() -> new InternalServerErrorException("WhatsApp provider is not configured"));

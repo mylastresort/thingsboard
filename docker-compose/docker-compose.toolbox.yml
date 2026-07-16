@@ -1,5 +1,6 @@
 services:
   go-toolbox-interpreter:
+    restart: always
     build:
       context: ./go-toolbox
       dockerfile: Dockerfile
@@ -20,6 +21,7 @@ services:
         condition: service_healthy
 
   go-toolbox-dash:
+    restart: always
     build:
       context: ./go-toolbox
       dockerfile: Dockerfile

@@ -7,6 +7,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -219,6 +220,7 @@ public class PdmCommandService {
         }
     }
 
+    @Retry(maxRetries = 3, delay = 1000, maxDelay = 5000, retryOn = Exception.class)
     private void publishState(PdmJobState state) {
         GenericRecord record = new GenericRecordBuilder(avroSchemas.jobState())
                 .set("modelId", state.modelId())
