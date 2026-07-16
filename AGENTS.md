@@ -19,6 +19,34 @@ Use the root `Makefile` as the entrypoint. It merges split files from `docker-co
 
 Ports: ThingsBoard `8080`, Angular dev UI `4200`, web UI `8090`, Quarkus JVM `8083`, Quarkus dev `8082`, Postgres `5431`, config API `9000`, MCP `8201`.
 
+## Observability Stack
+
+Monitoring services live in `docker-compose/docker-compose.monitoring.yml` and are opt-in. Run `make monitoring-up` alongside the main stack or `make up-with-monitoring` to start everything at once.
+
+- `make monitoring-up`: start Prometheus `:9090`, Grafana `:3000`, OTel Collector `:4317`/`:4318`, Jaeger `:16686`.
+- `make monitoring-down`: stop monitoring services.
+- `make monitoring-logs`: follow monitoring logs.
+- `make up-with-monitoring`: start full dev stack + monitoring in one command.
+- `make prometheus-urls`: print all monitoring URLs.
+
+**Metrics endpoints:**
+| Service | Endpoint | Format |
+|---------|----------|--------|
+| tb-quarkus | `:8083/metrics` | Prometheus |
+| tb-quarkus | `:8083/q/health` | MicroProfile Health |
+| pdm-forecast-worker | `:8100/metrics` | Prometheus |
+| pdm-anomaly-worker | `:8101/metrics` | Prometheus |
+| ai-agent | `:8300/docs` | FastAPI docs |
+| thingsboard | `:8080/actuator/prometheus` | Prometheus |
+
+**Env vars:**
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OTEL_ENABLED` | `false` | Enable OpenTelemetry tracing for tb-quarkus |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://otel-collector:4318` | OTLP endpoint |
+| `PROMETHEUS_ENABLED` | `true` | Enable Prometheus `/metrics` on tb-quarkus |
+| `GRAFANA_PASSWORD` | `foobar` | Grafana admin password |
+
 ## Schema-First API Workflow
 
 Treat `api-specs/` as the source of truth. Edit the split files under `api-specs/openapi/` (schemas, paths, parameters, responses) before REST changes and `api-specs/asyncapi.yaml` before event model changes. Run `make bundle-openapi` to reassemble the split files into `api-specs/openapi.yaml`, or any dependent target (`make up`, `make build`) will do it automatically. Then regenerate: `cd ui-ngx && yarn generate:api` for Angular, or `make tb-quarkus-gen-openapi` / `cd tb-quarkus/gateway && ./gradlew openApiGenerate` for Quarkus. Implement or override generated Quarkus interfaces under `tb-quarkus/gateway/src/main/java/...`; do not bypass OpenAPI with standalone public endpoints.

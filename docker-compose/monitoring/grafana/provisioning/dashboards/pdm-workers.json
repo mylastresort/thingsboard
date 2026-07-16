@@ -1,0 +1,109 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Commands Received",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(rate(pdm_commands_received_total[1m])) by (command_type, model_type)",
+          "legendFormat": "{{command_type}} / {{model_type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Commands Processed / sec",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(rate(pdm_commands_processed_total[1m])) by (command_type, model_type)",
+          "legendFormat": "{{command_type}} / {{model_type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Command Duration (p95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(pdm_command_duration_seconds_bucket[5m])) by (le, command_type))",
+          "legendFormat": "p95 {{command_type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Kafka Polls",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(rate(pdm_kafka_polls_total[1m])) by (result)",
+          "legendFormat": "{{result}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    },
+    {
+      "title": "Kafka Connected",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "pdm_kafka_connected"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 }
+    },
+    {
+      "title": "Redis Connected",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "pdm_redis_connected"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 }
+    },
+    {
+      "title": "Worker Uptime (s)",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "pdm_worker_uptime_seconds"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 }
+    },
+    {
+      "title": "Active Jobs",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(pdm_active_jobs) by (model_type)"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["thingsboard", "pdm"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "PdM Workers",
+  "uid": "pdm-workers-overview",
+  "version": 1
+}

@@ -3,6 +3,7 @@ google-adk
 httpx
 litellm
 mcp
+prometheus_client
 pytest
 uvicorn
 orjson
