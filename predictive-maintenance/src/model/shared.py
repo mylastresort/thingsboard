@@ -11,6 +11,7 @@ import pandas as pd
 from library import AnomalyPredictor, ForecastModel
 from library.core.data_registry import DataRegistry
 from library.models.anomaly_predictor import save_models, train_model
+from library.storage import ModelStorageService
 from src.logger import logger
 from src.settings import settings
 
@@ -21,6 +22,16 @@ def get_data_registry() -> DataRegistry:
         error_keys=settings.error_keys,
         component_keys=settings.component_keys,
     )
+
+
+_storage_service: ModelStorageService | None = None
+
+
+def get_storage_service() -> ModelStorageService:
+    global _storage_service
+    if _storage_service is None:
+        _storage_service = ModelStorageService()
+    return _storage_service
 
 
 # const names
@@ -200,6 +211,11 @@ def train_and_save_model(
 
         print(f"[TRAIN] Model trained. Saving models...", flush=True)
         save_models(hourly_models, model_dir)
+        try:
+            get_storage_service().save_model(model_id, model_dir)
+            print(f"[TRAIN] Models synced to storage backend", flush=True)
+        except Exception as sync_err:
+            print(f"[TRAIN] Storage sync failed (local save OK): {sync_err}", flush=True)
     elif model_type == "ForecastModel":
         logger.info(
             f"{rand_id} - Starting training for ForecastModel with model_id={model_id}",
@@ -274,6 +290,17 @@ def train_and_save_model(
             )
 
         model.save(model_dir)
+        try:
+            get_storage_service().save_model(model_id, model_dir)
+            logger.info(
+                f"{rand_id} - ForecastModel synced to storage backend for model_id={model_id}",
+                extra={"rand_id": rand_id},
+            )
+        except Exception as sync_err:
+            logger.warning(
+                f"{rand_id} - Storage sync failed (local save OK): {sync_err}",
+                extra={"rand_id": rand_id},
+            )
 
     update_training_progress(model_id, None, rand_id=rand_id)
 
