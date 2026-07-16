@@ -18,6 +18,11 @@ class Settings:
     tb_tenant_id: str | None = None
     pandas_mcp_server_url: str = os.getenv("PANDAS_MCP_SERVER_URL", "http://pandas-mcp:8000/sse")
     pdm_mcp_server_url: str = os.getenv("PDM_MCP_SERVER_URL", "http://tb-quarkus:8081/mcp/sse")
+    wo_mcp_server_url: str = os.getenv("WO_MCP_SERVER_URL", "http://wo-mcp-server:8000/sse")
+    tsfm_mcp_server_url: str = os.getenv("TSFM_MCP_SERVER_URL", "http://tsfm-mcp-server:8000/sse")
+    fmsr_mcp_server_url: str = os.getenv("FMSR_MCP_SERVER_URL", "http://fmsr-mcp-server:8000/sse")
+    iot_mcp_server_url: str = os.getenv("IOT_MCP_SERVER_URL", "http://iot-mcp-server:8000/sse")
+    vibration_mcp_server_url: str = os.getenv("VIBRATION_MCP_SERVER_URL", "http://vibration-mcp-server:8000/sse")
 
 
 def _getenv_int(key: str, default: int) -> int:

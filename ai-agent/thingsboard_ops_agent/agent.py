@@ -5,7 +5,13 @@ from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
 from google.adk.tools.agent_tool import AgentTool
 
-from .subagents import build_model, build_subagents, build_pandas_agent, build_pdm_agent
+from .subagents import (
+    build_model,
+    build_subagents,
+    build_pandas_agent,
+    build_pdm_agent,
+    build_assetopsbench_agents,
+)
 from .scope import build_scope_resolver, harvest_known_ids
 from .settings import load_settings, Settings
 from .datetime_tool import get_current_datetime
@@ -20,6 +26,8 @@ detect_machinery_anomalies_skill = load_skill_from_dir(
 )
 seed_train_infer_pdm_skill = load_skill_from_dir(SKILLS_DIR / "seed-train-infer-pdm")
 train_existing_device_pdm = load_skill_from_dir(SKILLS_DIR / "train-existing-device-pdm")
+manage_work_orders_skill = load_skill_from_dir(SKILLS_DIR / "manage-work-orders")
+diagnose_vibration_skill = load_skill_from_dir(SKILLS_DIR / "diagnose-vibration")
 
 ROOT_INSTRUCTION = (
     # --- Identity & tool inventory -------------------------------------
@@ -30,7 +38,26 @@ ROOT_INSTRUCTION = (
     "tools of your own — each of these tools is a specialist you call and "
     "whose answer you relay to the user: devices_agent, assets_agent, "
     "customers_users_agent, alarms_agent, telemetry_agent, "
-    "relations_query_agent, ota_agent, pandas_agent, pdm_agent. "
+    "relations_query_agent, ota_agent, pandas_agent, pdm_agent, "
+    "wo_agent, tsfm_agent, fmsr_agent, iot_sensor_agent, vibration_agent. "
+    # --- AssetOpsBench agent delegation rules ----------------------------
+    # Maps request shapes to the five new AssetOpsBench-backed agents.
+    "Use wo_agent for any work-order related request: list work orders, "
+    "get work order details/tasks/costs/KPIs, create/approve/assign/close/"
+    "cancel work orders, schedule calendars, or technician assignments. "
+    "Use tsfm_agent for time-series forecasting, fine-tuning foundation "
+    "models, or conformal anomaly detection on sensor data — especially "
+    "when the request mentions forecasting, prediction models, TTM, or "
+    "TinyTimeMixer. "
+    "Use fmsr_agent when the request involves failure modes for an asset "
+    "(what can fail), which sensors detect a specific failure, or "
+    "failure-mode-to-sensor mapping. "
+    "Use iot_sensor_agent to browse the IoT sensor hierarchy: list sites, "
+    "assets at a site, sensors on an asset, historical readings, or "
+    "asset registry details (nameplate, vintage, installed sensors). "
+    "Use vibration_agent for vibration analysis on rotating machinery: "
+    "FFT spectrum, envelope analysis, bearing fault detection, ISO 10816 "
+    "severity assessment, or full automated vibration diagnosis. "
     # --- pandas_agent delegation rule -----------------------------------
     # Fixes the observed failure mode where the root agent reasoned about
     # its own inability to run code ("I cannot run pandas in this
@@ -57,9 +84,10 @@ ROOT_INSTRUCTION = (
     # "already fully specified" case (Phase 0 of that skill), since a
     # fully-specified stats request was previously stalling instead of
     # triggering the skill at all.
-    "You also have four skills, "
-    "find-site-asset, find-devices-in-site, get-timeseries-data, and "
-    "detect-machinery-anomalies — check list_skills and load the relevant "
+    "You also have six skills, "
+    "find-site-asset, find-devices-in-site, get-timeseries-data, "
+    "detect-machinery-anomalies, manage-work-orders, and "
+    "diagnose-vibration — check list_skills and load the relevant "
     "one whenever the request involves a building/site/facility name "
     "(find-site-asset / find-devices-in-site), asks for telemetry "
     "values/history/aggregates for one or more devices "
@@ -72,7 +100,13 @@ ROOT_INSTRUCTION = (
     "its gate in the same turn with no questions asked), or asks to seed "
     "a PdM machine through the Quarkus MCP endpoint, create a predictive "
     "model, train it, or poll forecast/anomaly inference "
-    "(seed-train-infer-pdm — load this BEFORE calling pdm_agent). "
+    "(seed-train-infer-pdm — load this BEFORE calling pdm_agent), "
+    "work order lifecycle management like list/create/approve/assign/close/"
+    "cancel work orders, view KPIs, costs, schedules, or technician "
+    "assignments (manage-work-orders — load this BEFORE calling wo_agent), "
+    "or vibration analysis on rotating machinery like FFT, envelope "
+    "spectrum, bearing faults, or ISO 10816 severity (diagnose-vibration "
+    "-- load this BEFORE calling vibration_agent). "
     # --- Skill sequencing ------------------------------------------------
     # Prevents calling get-timeseries-data with an unresolved site/building
     # name instead of a concrete device id.
@@ -131,13 +165,16 @@ def build_root_agent(settings: Settings) -> LlmAgent:
                     get_timeseries_data_skill,
                     detect_machinery_anomalies_skill,
                     # seed_train_infer_pdm_skill,
-                    train_existing_device_pdm
+                    train_existing_device_pdm,
+                    manage_work_orders_skill,
+                    diagnose_vibration_skill,
                 ]
             ),
             get_current_datetime,
             *[AgentTool(agent=a) for a in build_subagents(settings)],
             AgentTool(agent=build_pandas_agent(settings)),
             AgentTool(agent=build_pdm_agent(settings)),
+            *[AgentTool(agent=a) for a in build_assetopsbench_agents(settings)],
         ],
     )
 
