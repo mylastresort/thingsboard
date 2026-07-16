@@ -37,6 +37,9 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SCHEMA_REGISTRY_URL=http://schema-registry:8081
       - QUARKUS_REDIS_HOSTS=redis://redis:6379
+      - PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
     volumes:
       - ./tb-quarkus-cache:/deployments/cache
       - ./application/src/main/resources/predictive-maintenance/data:/data:ro

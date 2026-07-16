@@ -12,6 +12,17 @@ from src.model.job import PredictionJobManager
 from src.pdm_worker.activation import activate_forecast
 from src.pdm_worker.config import WorkerConfig, load_config
 from src.pdm_worker.events import PdmEventPublisher
+from src.pdm_worker.observability import (
+    active_jobs,
+    command_duration_seconds,
+    commands_processed,
+    commands_received,
+    kafka_connected,
+    kafka_polls_total,
+    redis_connected,
+    start_observability_server,
+    training_in_progress,
+)
 
 
 class PdmKafkaWorker:
@@ -27,9 +38,13 @@ class PdmKafkaWorker:
         self._jobs = PredictionJobManager()
         self._consumer = self._build_consumer(config)
         self._install_event_hooks()
+        port = 8100 if config.worker_model_type == "FORECAST" else 8101
+        start_observability_server(port)
+        logger.info(f"Observability server started on :{port}/metrics and :{port}/health")
 
     def run(self) -> None:
         self._consumer.subscribe([self._config.command_topic])
+        kafka_connected.set(1)
         logger.info(
             "PDM Kafka worker subscribed to "
             f"{self._config.command_topic} on {self._config.kafka_bootstrap_servers} "
@@ -40,12 +55,21 @@ class PdmKafkaWorker:
             while True:
                 msg = self._consumer.poll(1.0)
                 if msg is None:
+                    kafka_polls_total.labels(result="empty").inc()
                     continue
                 if msg.error():
+                    kafka_connected.set(0)
+                    kafka_polls_total.labels(result="error").inc()
                     raise KafkaException(msg.error())
+                kafka_polls_total.labels(result="message").inc()
                 command = msg.value()
                 try:
-                    self._handle_command(command)
+                    command_type = str(command.get("commandType", "UNKNOWN"))
+                    model_type = str(command.get("modelType", "BOTH"))
+                    commands_received.labels(command_type=command_type, model_type=model_type).inc()
+                    with command_duration_seconds.labels(command_type=command_type).time():
+                        self._handle_command(command)
+                    commands_processed.labels(command_type=command_type, model_type=model_type).inc()
                     self._consumer.commit(msg)
                 except Exception as exc:
                     logger.exception(f"Failed to handle PDM command {command}: {exc}")
@@ -54,6 +78,7 @@ class PdmKafkaWorker:
                     self._publisher.log(model_id, "error", f"Command failed: {exc}")
                     self._publisher.flush()
         finally:
+            kafka_connected.set(0)
             self._consumer.close()
             self._publisher.flush()
 
@@ -90,13 +115,17 @@ class PdmKafkaWorker:
         )
 
         if command_type == "TRAIN":
-            activate_forecast(
-                forecast_id,
-                device_id=device_id,
-                model_type=self._config.worker_model_type,
-                job_manager=self._jobs,
-                progress_callback=self._publisher.progress,
-            )
+            training_in_progress.inc()
+            try:
+                activate_forecast(
+                    forecast_id,
+                    device_id=device_id,
+                    model_type=self._config.worker_model_type,
+                    job_manager=self._jobs,
+                    progress_callback=self._publisher.progress,
+                )
+            finally:
+                training_in_progress.dec()
             return
 
         if command_type == "INFER":
@@ -106,6 +135,8 @@ class PdmKafkaWorker:
                 self._source_model_type(target_model_id),
                 device_id=device_id,
             )
+            if handled:
+                active_jobs.labels(model_type=self._config.worker_model_type).inc()
             level = "info" if handled else "warning"
             self._publisher.log(target_model_id, level, f"{command_type} handled={handled}")
             return
@@ -113,6 +144,8 @@ class PdmKafkaWorker:
         target_model_id = self._target_model_id(forecast_id)
         if command_type == "STOP":
             handled = self._jobs.stop(target_model_id)
+            if handled:
+                active_jobs.labels(model_type=self._config.worker_model_type).dec()
         elif command_type == "PAUSE":
             handled = self._jobs.pause(target_model_id)
         elif command_type == "UNPAUSE":

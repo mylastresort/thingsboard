@@ -37,6 +37,9 @@ services:
       - MODELS_PATH=/models
       - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PROMETHEUS_PORT=8100
+    ports:
+      - "8100:8100"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import redis; redis.Redis.from_url('redis://redis:6379/0').ping()\""]
       interval: 15s
@@ -82,6 +85,9 @@ services:
       - MODELS_PATH=/models
       - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PROMETHEUS_PORT=8101
+    ports:
+      - "8101:8101"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import redis; redis.Redis.from_url('redis://redis:6379/0').ping()\""]
       interval: 15s

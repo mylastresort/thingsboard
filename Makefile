@@ -23,6 +23,13 @@ TB_QUARKUS_SMOKE_URL ?= http://localhost:8081/models/failure-mode-history?limit=
 TB_QUARKUS_DEV_SMOKE_URL ?= http://localhost:8082/models/failure-mode-history?limit=1
 AI_AGENT       := ai-agent-py
 
+# ─── monitoring ──────────────────────────────────────────────────────────────
+MONITORING_FILES := -f $(COMPOSE_DIR)/docker-compose.monitoring.yml
+PROMETHEUS       := prometheus
+GRAFANA          := grafana
+OTEL_COLLECTOR   := otel-collector
+JAEGER           := jaeger
+
 # ─── compose file sets ───────────────────────────────────────────────────────
 COMPOSE_DIR := docker-compose
 
@@ -33,11 +40,13 @@ CORE_FILES := -f $(COMPOSE_DIR)/docker-compose.base.yml -f $(COMPOSE_DIR)/docker
                -f $(COMPOSE_DIR)/docker-compose.config.yml -f $(COMPOSE_DIR)/docker-compose.mcp.yml
 # dev = core + angular dev server, ws-events seeder, go-toolbox
 DEV_FILES  := $(CORE_FILES) -f $(COMPOSE_DIR)/docker-compose.toolbox.yml -f $(COMPOSE_DIR)/docker-compose.dev.yml
+DEV_MONITORING_FILES := $(DEV_FILES) $(MONITORING_FILES)
 
 # --project-directory pins relative paths (volumes, build context, .env) to the repo
 # root regardless of where the -f files live — run `make` from repo root.
 # override with `make COMPOSE="docker compose --project-directory . $(CORE_FILES)" <target>`
 COMPOSE := docker compose --project-directory . $(DEV_FILES) -p $(PROJECT)
+COMPOSE_WITH_MONITORING := docker compose --project-directory . $(DEV_MONITORING_FILES) -p $(PROJECT)
 
 .DEFAULT_GOAL  := help
 
@@ -479,6 +488,36 @@ tb-quarkus-gen-openapi: ## Generate Java interfaces+DTOs (bundles split spec int
 .PHONY: prune
 prune: ## Remove stopped containers and dangling images
 	docker system prune -f
+
+# ─── monitoring ───────────────────────────────────────────────────────────────
+
+.PHONY: monitoring-up
+monitoring-up: ## Start Prometheus, Grafana, OTel Collector, and Jaeger
+	$(COMPOSE_WITH_MONITORING) up -d $(PROMETHEUS) $(GRAFANA) $(OTEL_COLLECTOR) $(JAEGER)
+
+.PHONY: monitoring-down
+monitoring-down: ## Stop the monitoring stack
+	$(COMPOSE_WITH_MONITORING) down
+
+.PHONY: monitoring-logs
+monitoring-logs: ## Tail monitoring stack logs
+	$(COMPOSE_WITH_MONITORING) logs -f $(PROMETHEUS) $(GRAFANA) $(OTEL_COLLECTOR) $(JAEGER)
+
+.PHONY: monitoring-status
+monitoring-status: ## Show monitoring container status
+	$(COMPOSE_WITH_MONITORING) ps $(PROMETHEUS) $(GRAFANA) $(OTEL_COLLECTOR) $(JAEGER)
+
+.PHONY: up-with-monitoring
+up-with-monitoring: ## Start full dev stack including monitoring
+	$(COMPOSE_WITH_MONITORING) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
+
+.PHONY: prometheus-urls
+prometheus-urls: ## Print URLs for the monitoring stack
+	@echo "Prometheus:  http://localhost:${PROMETHEUS_PORT:-9090}"
+	@echo "Grafana:     http://localhost:${GRAFANA_PORT:-3000}  (admin / $${GRAFANA_PASSWORD:-foobar})"
+	@echo "Jaeger:      http://localhost:${JAEGER_QUERY_PORT:-16686}"
+	@echo "OTel zPages: http://localhost:55679"
+	@echo "OTel PdM:    http://localhost:${OTEL_OTLP_PORT:-4317} (gRPC) / ${OTEL_OTLP_HTTP_PORT:-4318} (HTTP)"
 
 # ── Add to your root Makefile ────────────────────────────────────────────────
 
