@@ -1,0 +1,71 @@
+FROM python:3.12-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Install uv for fast dependency resolution
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy the full assetopsbench source (submodule)
+COPY assetopsbench/ /app/assetopsbench/
+
+# Install server dependencies (skip heavy ML deps: torch, transformers, granite-tsfm)
+# The FMSR server uses litellm for LLM fallback; vibration uses numpy/scipy DSP.
+RUN uv pip install --system --no-cache \
+    couchdb3>=2.0.2 \
+    "fastmcp>=2.14.5" \
+    "mcp[cli]>=1.26.0" \
+    pendulum>=3.2.0 \
+    pydantic>=2.12.5 \
+    requests>=2.32.5 \
+    numpy>=1.24 \
+    pandas>=2.0 \
+    pyyaml>=6.0 \
+    "litellm==1.81.13" \
+    "openai>=1.40.0" \
+    python-dotenv>=1.0 \
+    "scipy>=1.10.0" \
+    httpx>=0.28.1 \
+    hatchling
+
+# Install the assetopsbench package (servers + llm module)
+RUN uv pip install --system --no-cache /app/assetopsbench
+
+# SSE wrapper — imports each FastMCP server and runs it in SSE mode
+RUN printf '%s\n' \
+'"""SSE wrapper for assetopsbench MCP servers."""' \
+'import importlib, os, sys' \
+'' \
+'SERVER_MAP = {' \
+'    "iot": "assetopsbench.servers.iot.main",' \
+'    "wo": "assetopsbench.servers.wo.main",' \
+'    "tsfm": "assetopsbench.servers.tsfm.main",' \
+'    "fmsr": "assetopsbench.servers.fmsr.main",' \
+'    "vibration": "assetopsbench.servers.vibration.main",' \
+'    "utilities": "assetopsbench.servers.utilities.main",' \
+'    "thingsboard": "assetopsbench.servers.thingsboard.main",' \
+'}' \
+'' \
+'def main():' \
+'    if len(sys.argv) < 2 or sys.argv[1] not in SERVER_MAP:' \
+'        names = " | ".join(sorted(SERVER_MAP))' \
+'        print(f"Usage: {sys.argv[0]} <{names}>", file=sys.stderr)' \
+'        sys.exit(1)' \
+'    name = sys.argv[1]' \
+'    port = int(os.environ.get("PORT", "8000"))' \
+'    mod = importlib.import_module(SERVER_MAP[name])' \
+'    mod.mcp.run(transport="sse", host="0.0.0.0", port=port)' \
+'' \
+'if __name__ == "__main__":' \
+'    main()' \
+> /app/sse_wrapper.py
+
+RUN useradd -m -s /bin/bash mcpuser && chown -R mcpuser:mcpuser /app
+USER mcpuser
+
+EXPOSE 8000
+
+ENTRYPOINT ["python", "/app/sse_wrapper.py"]

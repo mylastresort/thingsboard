@@ -96,12 +96,27 @@ services:
       PORT: "8300"
       PANDAS_MCP_SERVER_URL: "http://pandas-mcp:8000/sse"
       PDM_MCP_SERVER_URL: "http://tb-quarkus:8081/mcp/sse"
+      WO_MCP_SERVER_URL: "http://wo-mcp-server:8000/sse"
+      TSFM_MCP_SERVER_URL: "http://tsfm-mcp-server:8000/sse"
+      FMSR_MCP_SERVER_URL: "http://fmsr-mcp-server:8000/sse"
+      IOT_MCP_SERVER_URL: "http://iot-mcp-server:8000/sse"
+      VIBRATION_MCP_SERVER_URL: "http://vibration-mcp-server:8000/sse"
     ports:
       - "${TINY_AGENT_PORT:-8300}:8300"
     depends_on:
       thingsboard-mcp:
         condition: service_healthy
       tb-quarkus:
+        condition: service_healthy
+      wo-mcp-server:
+        condition: service_healthy
+      iot-mcp-server:
+        condition: service_healthy
+      vibration-mcp-server:
+        condition: service_healthy
+      fmsr-mcp-server:
+        condition: service_healthy
+      tsfm-mcp-server:
         condition: service_healthy
       # ollama:
       #   condition: service_healthy
@@ -114,6 +129,167 @@ services:
           cpus: "0.25"
           memory: 256M
 
+
+  # ── AssetOpsBench CouchDB (shared by wo, iot, vibration servers) ────────
+  aob-couchdb:
+    image: couchdb:3.5
+    restart: unless-stopped
+    environment:
+      COUCHDB_USERNAME: admin
+      COUCHDB_PASSWORD: password
+      IOT_DBNAME: iot
+      WO_DBNAME: workorder
+      VIBRATION_DBNAME: vibration
+    ports:
+      - "${AOB_COUCHDB_PORT:-5985}:5984"
+    volumes:
+      - aob-couchdb-data:/opt/couchdb/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: load default scenario data into CouchDB
+  aob-couchdb-init:
+    image: couchdb:3.5
+    depends_on:
+      aob-couchdb:
+        condition: service_healthy
+    environment:
+      COUCHDB_URL: "http://aob-couchdb:5984"
+      COUCHDB_USERNAME: admin
+      COUCHDB_PASSWORD: password
+    volumes:
+      - ./assetopsbench/src/couchdb:/couchdb:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apt-get update -qq && apt-get install -y -qq python3 python3-pip > /dev/null 2>&1
+        pip3 install -q --break-system-packages requests pandas python-dotenv couchdb3 > /dev/null 2>&1
+        python3 /couchdb/init_data.py
+        echo '✅ CouchDB data loaded'
+    restart: "no"
+
+  # ── AssetOpsBench MCP Servers ───────────────────────────────────────────
+  wo-mcp-server:
+    build:
+      context: ..
+      dockerfile: docker-compose/Dockerfile.assetopsbench-mcp-servers
+    restart: unless-stopped
+    command: ["wo"]
+    environment:
+      COUCHDB_URL: "http://aob-couchdb:5984"
+      COUCHDB_USERNAME: admin
+      COUCHDB_PASSWORD: password
+      WO_DBNAME: workorder
+      PORT: "8000"
+    ports:
+      - "${WO_MCP_PORT:-8203}:8000"
+    depends_on:
+      aob-couchdb:
+        condition: service_healthy
+      aob-couchdb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/mcp || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  iot-mcp-server:
+    build:
+      context: ..
+      dockerfile: docker-compose/Dockerfile.assetopsbench-mcp-servers
+    restart: unless-stopped
+    command: ["iot"]
+    environment:
+      COUCHDB_URL: "http://aob-couchdb:5984"
+      COUCHDB_USERNAME: admin
+      COUCHDB_PASSWORD: password
+      IOT_DBNAME: iot
+      ASSET_DBNAME: asset
+      PORT: "8000"
+    ports:
+      - "${IOT_MCP_PORT:-8204}:8000"
+    depends_on:
+      aob-couchdb:
+        condition: service_healthy
+      aob-couchdb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/mcp || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  vibration-mcp-server:
+    build:
+      context: ..
+      dockerfile: docker-compose/Dockerfile.assetopsbench-mcp-servers
+    restart: unless-stopped
+    command: ["vibration"]
+    environment:
+      COUCHDB_URL: "http://aob-couchdb:5984"
+      COUCHDB_USERNAME: admin
+      COUCHDB_PASSWORD: password
+      VIBRATION_DBNAME: vibration
+      PORT: "8000"
+    ports:
+      - "${VIBRATION_MCP_PORT:-8205}:8000"
+    depends_on:
+      aob-couchdb:
+        condition: service_healthy
+      aob-couchdb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/mcp || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  fmsr-mcp-server:
+    build:
+      context: ..
+      dockerfile: docker-compose/Dockerfile.assetopsbench-mcp-servers
+    restart: unless-stopped
+    command: ["fmsr"]
+    environment:
+      PORT: "8000"
+      FMSR_MODEL_ID: "${FMSR_MODEL_ID:-}"
+      LITELLM_API_KEY: "${LITELLM_API_KEY:-}"
+      LITELLM_BASE_URL: "${LITELLM_BASE_URL:-}"
+    ports:
+      - "${FMSR_MCP_PORT:-8206}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/mcp || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  tsfm-mcp-server:
+    build:
+      context: ..
+      dockerfile: docker-compose/Dockerfile.assetopsbench-mcp-servers
+    restart: unless-stopped
+    command: ["tsfm"]
+    environment:
+      PORT: "8000"
+      PATH_TO_MODELS_DIR: "${PATH_TO_MODELS_DIR:-/tmp/models}"
+      PATH_TO_DATASETS_DIR: "${PATH_TO_DATASETS_DIR:-/tmp/datasets}"
+      PATH_TO_OUTPUTS_DIR: "${PATH_TO_OUTPUTS_DIR:-/tmp/outputs}"
+    ports:
+      - "${TSFM_MCP_PORT:-8207}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/mcp || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   pandas-mcp:
     build:
@@ -140,3 +316,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+
+volumes:
+  aob-couchdb-data:

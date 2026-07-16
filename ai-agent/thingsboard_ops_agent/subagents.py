@@ -317,3 +317,137 @@ def build_pdm_agent(settings: Settings) -> BaseAgent:
         ],
         before_tool_callback=guard_scoped_tool_calls,
     )
+
+
+# ── AssetOpsBench domain sub-agents ─────────────────────────────────────────
+# These agents connect to FastMCP servers from the assetopsbench submodule,
+# running as SSE services in Docker.  Each agent is scoped to its domain's
+# tools via MCPToolset's tool_filter.
+
+WO_DOMAIN: tuple[str, tuple[str, list[str]]] = (
+    "wo_agent",
+    (
+        "Manages work order lifecycle for industrial assets: list, get, create, "
+        "approve, assign technicians, close, and cancel work orders. Also provides "
+        "KPIs, cost breakdowns, schedule calendars, and actuals-vs-planned analysis. "
+        "Backed by CouchDB with Maximo-style field names.",
+        [
+            "list_workorders",
+            "get_workorder",
+            "get_workorder_tasks",
+            "get_workorder_costs",
+            "get_workorder_actuals_vs_planned",
+            "get_workorder_kpis",
+            "get_schedule_calendar",
+            "get_my_assigned_workorders",
+            "generate_work_order",
+            "update_workorder",
+            "approve_workorder",
+            "assign_technician",
+            "close_workorder",
+            "cancel_workorder",
+        ],
+    ),
+)
+
+TSFM_DOMAIN: tuple[str, tuple[str, list[str]]] = (
+    "tsfm_agent",
+    (
+        "Runs time-series foundation model (IBM Granite TinyTimeMixer) workflows: "
+        "zero-shot forecasting, few-shot fine-tuning, conformal anomaly detection, "
+        "and integrated forecasting+anomaly detection. Use for predictive analytics "
+        "on sensor telemetry data.",
+        [
+            "get_ai_tasks",
+            "get_tsfm_models",
+            "run_tsfm_forecasting",
+            "run_tsfm_finetuning",
+            "run_tsad",
+            "run_integrated_tsad",
+        ],
+    ),
+)
+
+FMSR_DOMAIN: tuple[str, tuple[str, list[str]]] = (
+    "fmsr_agent",
+    (
+        "Failure mode and sensor reasoning: get known failure modes for assets "
+        "(curated for chillers/AHUs, LLM-generated for others) and determine "
+        "which sensors can detect each failure mode via bidirectional FM-sensor "
+        "relevancy mapping.",
+        [
+            "get_failure_modes",
+            "get_failure_mode_sensor_mapping",
+        ],
+    ),
+)
+
+IOT_SENSOR_DOMAIN: tuple[str, tuple[str, list[str]]] = (
+    "iot_sensor_agent",
+    (
+        "Browses IoT sensor data and asset registries from CouchDB: list sites, "
+        "assets, and sensors; query historical readings; get asset nameplate details; "
+        "and compare installed vs streaming sensors. Complements ThingsBoard "
+        "telemetry_agent with structured site/asset/sensor hierarchy.",
+        [
+            "sites",
+            "assets",
+            "sensors",
+            "history",
+            "get_asset",
+            "asset_sensors",
+            "registry_assets",
+        ],
+    ),
+)
+
+VIBRATION_DOMAIN: tuple[str, tuple[str, list[str]]] = (
+    "vibration_agent",
+    (
+        "Vibration signal analysis and rotating machinery fault detection: "
+        "FFT spectrum, envelope analysis for bearing faults, ISO 10816 severity "
+        "assessment, bearing frequency calculation, and full automated vibration "
+        "diagnosis pipeline. Use for predictive maintenance on rotating equipment.",
+        [
+            "get_vibration_data",
+            "list_vibration_sensors",
+            "compute_fft_spectrum",
+            "compute_envelope_spectrum",
+            "assess_vibration_severity",
+            "calculate_bearing_frequencies",
+            "list_known_bearings",
+            "diagnose_vibration",
+        ],
+    ),
+)
+
+
+def _build_domain_agent(
+    domain: tuple[str, tuple[str, list[str]]],
+    mcp_url: str,
+    settings: Settings,
+) -> BaseAgent:
+    name, (text, tool_filter) = domain
+    return LlmAgent(
+        name=name,
+        model=build_model(settings),
+        description=text,
+        instruction=build_scoped_instruction(name, text),
+        tools=[
+            MCPToolset(
+                connection_params=SseConnectionParams(url=mcp_url),
+                tool_filter=build_scoped_tool_filter(name, tool_filter),
+            )
+        ],
+        before_tool_callback=guard_scoped_tool_calls,
+    )
+
+
+def build_assetopsbench_agents(settings: Settings) -> list[BaseAgent]:
+    return [
+        _build_domain_agent(WO_DOMAIN, settings.wo_mcp_server_url, settings),
+        _build_domain_agent(TSFM_DOMAIN, settings.tsfm_mcp_server_url, settings),
+        _build_domain_agent(FMSR_DOMAIN, settings.fmsr_mcp_server_url, settings),
+        _build_domain_agent(IOT_SENSOR_DOMAIN, settings.iot_mcp_server_url, settings),
+        _build_domain_agent(VIBRATION_DOMAIN, settings.vibration_mcp_server_url, settings),
+    ]
