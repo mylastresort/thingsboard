@@ -59,6 +59,11 @@ public class PdmCommandService {
         return response;
     }
 
+    public void reissueInfer(String forecastId, PdmModelType modelType, String deviceId) {
+        String commandId = UUID.randomUUID().toString();
+        sendCommand(PdmCommandType.INFER, forecastId, modelType, deviceId, commandId, Instant.now());
+    }
+
     public Map<String, Object> infer(String forecastId, Map<String, Object> request) {
         request = request == null ? Collections.emptyMap() : request;
         PdmModelType modelType = modelType(string(request.get("modelType")), PdmModelType.BOTH);
@@ -97,6 +102,7 @@ public class PdmCommandService {
         value.put("trainingStep", aggregateTrainingStep(anomaly, forecast));
         value.put("anomaly", responseState(anomaly));
         value.put("forecast", responseState(forecast));
+        value.put("recovering", isWorkerDisconnected(anomaly, forecast));
         return value;
     }
 
@@ -269,7 +275,8 @@ public class PdmCommandService {
         if (hasStatus(PdmJobStatus.TRAINING, anomaly, forecast)) {
             return "pending";
         }
-        if (hasStatus(PdmJobStatus.RUNNING, anomaly, forecast)) {
+        if (hasStatus(PdmJobStatus.RUNNING, anomaly, forecast)
+                || hasStatus(PdmJobStatus.PAUSED, anomaly, forecast)) {
             return "active";
         }
         return "inactive";
@@ -338,6 +345,23 @@ public class PdmCommandService {
             }
         }
         return null;
+    }
+
+    private static final java.time.Duration FORECAST_STALE_THRESHOLD = java.time.Duration.ofSeconds(60);
+    private static final java.time.Duration ANOMALY_STALE_THRESHOLD = java.time.Duration.ofHours(48);
+
+    private boolean isWorkerDisconnected(PdmJobState anomaly, PdmJobState forecast) {
+        return isJobStale(anomaly, ANOMALY_STALE_THRESHOLD) || isJobStale(forecast, FORECAST_STALE_THRESHOLD);
+    }
+
+    private boolean isJobStale(PdmJobState job, java.time.Duration threshold) {
+        if (job == null || job.status() != PdmJobStatus.RUNNING || job.paused()) {
+            return false;
+        }
+        if (job.lastRun() == null) {
+            return true;
+        }
+        return java.time.Instant.now().isAfter(job.lastRun().plus(threshold));
     }
 
     private String string(Object value) {

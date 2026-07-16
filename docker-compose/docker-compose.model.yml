@@ -1,5 +1,6 @@
 services:
   pdm-forecast-worker:
+    restart: unless-stopped
     build:
       context: ./predictive-maintenance
       dockerfile: .Dockerfile
@@ -36,8 +37,15 @@ services:
       - MODELS_PATH=/models
       - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import redis; redis.Redis.from_url('redis://redis:6379/0').ping()\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   pdm-anomaly-worker:
+    restart: unless-stopped
     build:
       context: ./predictive-maintenance
       dockerfile: .Dockerfile
@@ -74,3 +82,9 @@ services:
       - MODELS_PATH=/models
       - PDM_AVRO_SCHEMA_DIR=/app/tb-quarkus/gateway/src/main/avro
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import redis; redis.Redis.from_url('redis://redis:6379/0').ping()\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

@@ -43,6 +43,7 @@ import { ModelSelectionDialogComponent } from '@app/modules/home/pages/predictiv
 import { SeedMachineDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/seed-machine-dialog/seed-machine-dialog.component';
 import { SeedMachineResultDialogComponent } from '@app/modules/home/pages/predictive-maintenance/model/seed-machine-result-dialog/seed-machine-result-dialog.component';
 import { HttpClient } from '@angular/common/http';
+import { ModelWebSocketService, EModelType } from '@app/core/http/model-websocket.service';
 
 export interface Configuration {
   id: string;
@@ -123,7 +124,8 @@ export class ConfigurationsListComponent implements OnInit {
     private translate: TranslateService,
     private router: Router,
     private httpClient: HttpClient,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private modelWebSocketService: ModelWebSocketService
   ) {}
 
   ngOnInit() {}
@@ -573,6 +575,50 @@ export class ConfigurationsListComponent implements OnInit {
           alert('Failed to delete some models. Please try again.');
         });
     }
+  }
+
+  pauseConfig(config: Configuration): void {
+    if (!this.modelWebSocketService.isConnected()) {
+      this.modelWebSocketService.connect();
+    }
+    this.modelWebSocketService.pauseJob(config.id, EModelType.Forecast);
+    this.modelWebSocketService.pauseJob(config.id, EModelType.Anomaly);
+    this.snackBar.open(`Paused inference for "${config.name}"`, undefined, { duration: 3000 });
+  }
+
+  unpauseConfig(config: Configuration): void {
+    if (!this.modelWebSocketService.isConnected()) {
+      this.modelWebSocketService.connect();
+    }
+    this.modelWebSocketService.unpauseJob(config.id, EModelType.Forecast);
+    this.modelWebSocketService.unpauseJob(config.id, EModelType.Anomaly);
+    this.snackBar.open(`Resumed inference for "${config.name}"`, undefined, { duration: 3000 });
+  }
+
+  pauseAllSelected(): void {
+    const selected = this.selection.selected;
+    if (selected.length === 0) {return;}
+    if (!this.modelWebSocketService.isConnected()) {
+      this.modelWebSocketService.connect();
+    }
+    selected.forEach(config => {
+      this.modelWebSocketService.pauseJob(config.id, EModelType.Forecast);
+      this.modelWebSocketService.pauseJob(config.id, EModelType.Anomaly);
+    });
+    this.snackBar.open(`Paused inference for ${selected.length} model(s)`, undefined, { duration: 3000 });
+  }
+
+  unpauseAllSelected(): void {
+    const selected = this.selection.selected;
+    if (selected.length === 0) {return;}
+    if (!this.modelWebSocketService.isConnected()) {
+      this.modelWebSocketService.connect();
+    }
+    selected.forEach(config => {
+      this.modelWebSocketService.unpauseJob(config.id, EModelType.Forecast);
+      this.modelWebSocketService.unpauseJob(config.id, EModelType.Anomaly);
+    });
+    this.snackBar.open(`Resumed inference for ${selected.length} model(s)`, undefined, { duration: 3000 });
   }
 
   /** Whether the number of selected elements matches the total number of rows. */

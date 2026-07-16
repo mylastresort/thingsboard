@@ -567,3 +567,30 @@ assetopsbench-tui-init: ## [agents] Write default TUI config file
 
 tb-quarkus-dev:
 	@cd tb-quarkus/gateway && ./gradlew quarkusDev
+
+# ─── rsync to remote ─────────────────────────────────────────────────────────
+
+RSYNC_DEST ?= $(shell grep -s '^RSYNC_DEST=' .env | cut -d= -f2-)
+# Bind-mount data dirs (the "volumes") live inside docker-compose/
+TB_RSYNC_DATA_DIRS := \
+	docker-compose/psql_data-merge \
+	docker-compose/redis-data \
+	docker-compose/kafka-data \
+	docker-compose/cassandra-data \
+	docker-compose/pip-cache \
+	docker-compose/models-cache \
+	docker-compose/tb-config \
+	docker-compose/tb-quarkus-cache \
+	docker-compose/tb_quarkus_dev_cache
+
+.PHONY: rsync
+rsync: ## Rsync project + bind-mount data volumes to remote (RSYNC_DEST=user@host:/path)
+	@set -eu; \
+	for d in $(TB_RSYNC_DATA_DIRS); do \
+		mkdir -p "$$d"; \
+	done
+	rsync -avz --delete \
+		--exclude='.ollama/' \
+		--exclude='.git/' \
+		$(CURDIR)/ $(RSYNC_DEST)/
+	@echo "Synced to $(RSYNC_DEST)"

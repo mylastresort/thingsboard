@@ -242,6 +242,8 @@ export class ModelComponent
 
   forecastJobPaused = false;
 
+  recovering = false;
+
   activationProgress = "";
 
   activationComplete = false;
@@ -794,6 +796,7 @@ export class ModelComponent
       return;
     }
     this.modelWebSocketService.pauseJob(this.trueId, EModelType.Forecast);
+    this.modelWebSocketService.pauseJob(this.trueId, EModelType.Anomaly);
     this.forecastJobPaused = true;
     this.cdr.detectChanges();
   }
@@ -804,6 +807,7 @@ export class ModelComponent
       return;
     }
     this.modelWebSocketService.unpauseJob(this.trueId, EModelType.Forecast);
+    this.modelWebSocketService.unpauseJob(this.trueId, EModelType.Anomaly);
     this.forecastJobPaused = false;
     this.cdr.detectChanges();
   }
@@ -1583,6 +1587,10 @@ export class ModelComponent
                   this.status =
                     modelStatus === "error" ? "failed" : modelStatus;
                 }
+                this.recovering = !!statusPayload.recovering;
+                this.forecastJobPaused =
+                  (!!statusPayload.forecast?.paused) ||
+                  (!!statusPayload.anomaly?.paused);
                 this.applyForecastStatusProgress(statusPayload.forecast);
                 this.applyAnomalyStatusProgress(statusPayload.anomaly);
                 if (

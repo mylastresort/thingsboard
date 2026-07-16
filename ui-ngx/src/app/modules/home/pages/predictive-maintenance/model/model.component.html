@@ -58,6 +58,28 @@
     >
     <button
       mat-icon-button
+      *ngIf="status.toLowerCase() === 'active' && !forecastJobPaused"
+      class="status-icon-button"
+      (click)="pauseForecastJob()"
+      [disabled]="!trueId"
+      matTooltip="Pause inference"
+      aria-label="Pause"
+    >
+      <mat-icon>pause_circle</mat-icon>
+    </button>
+    <button
+      mat-icon-button
+      *ngIf="status.toLowerCase() === 'active' && forecastJobPaused"
+      class="status-icon-button"
+      (click)="unpauseForecastJob()"
+      [disabled]="!trueId"
+      matTooltip="Resume inference"
+      aria-label="Resume"
+    >
+      <mat-icon>play_circle</mat-icon>
+    </button>
+    <button
+      mat-icon-button
       *ngIf="status.toLowerCase() === 'inactive'"
       class="status-icon-button inactive-activate"
       (click)="activateModel()"
@@ -181,6 +203,11 @@
       </div>
     </div>
   </div>
+</div>
+
+<div class="recovery-banner" *ngIf="recovering">
+  <mat-icon class="recovery-icon">sync_problem</mat-icon>
+  <span>Inference is reconnecting after a service restart. Predictions will resume shortly.</span>
 </div>
 
 <div class="model-dashboard">

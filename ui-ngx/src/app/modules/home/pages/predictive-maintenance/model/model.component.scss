@@ -43,6 +43,26 @@
   width: 100%;
   box-sizing: border-box;
 
+  // ── Recovery banner ───────────────────────────────────────────────────────
+
+  .recovery-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 6px;
+    background: rgba(255, 152, 0, 0.12);
+    border: 1px solid rgba(255, 152, 0, 0.4);
+    color: #ffb74d;
+    font-size: 0.85rem;
+
+    .recovery-icon {
+      animation: pulse 1.5s ease-in-out infinite;
+      color: #ffa726;
+    }
+  }
+
   // ── Labels ────────────────────────────────────────────────────────────────
 
   .model-label {

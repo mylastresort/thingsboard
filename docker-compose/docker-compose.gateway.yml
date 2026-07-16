@@ -22,6 +22,7 @@ services:
       start_period: 10s
 
   tb-quarkus:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: ${TB_QUARKUS_DOCKERFILE:-tb-quarkus/gateway/src/main/docker/Dockerfile.jvm}

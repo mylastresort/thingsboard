@@ -457,18 +457,28 @@ def save_prediction(data_registry, model_id: str, message, source):
                 f"Saving {source} prediction: timestamps [{min_ts} to {max_ts}], {len(timestamps)} points"
             )
 
-    try:
-        get_quarkus_client().create_anomaly_history_prediction(
-            model_id=_model_id,
-            prediction_type=source,
-            body={
-                "createdAt": created_at,
-                "createdTime": created_time,
-                "predictionTime": created_at,
-                "predictionValue": message,
-            },
-        )
-    except Exception as e:
-        error_details = traceback.format_exc()
-        add_model_log(model_id, "error", f"Failed to save prediction: {str(e)}")
-        add_model_log(model_id, "error", f"Save traceback: {error_details}")
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            get_quarkus_client().create_anomaly_history_prediction(
+                model_id=_model_id,
+                prediction_type=source,
+                body={
+                    "createdAt": created_at,
+                    "createdTime": created_time,
+                    "predictionTime": created_at,
+                    "predictionValue": message,
+                },
+            )
+            return
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait = min(2 ** attempt, 30)
+                add_model_log(model_id, "warn",
+                    f"Failed to save prediction (attempt {attempt + 1}/{max_retries}), "
+                    f"retrying in {wait}s: {str(e)}")
+                time.sleep(wait)
+            else:
+                error_details = traceback.format_exc()
+                add_model_log(model_id, "error", f"Failed to save prediction after {max_retries} attempts: {str(e)}")
+                add_model_log(model_id, "error", f"Save traceback: {error_details}")
