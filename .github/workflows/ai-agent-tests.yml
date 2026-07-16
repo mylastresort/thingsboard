@@ -1,17 +1,21 @@
-name: AI Agent tests
+name: Service tests
 
 on:
   push:
     branches: [master, dev]
     paths:
       - "ai-agent/**"
+      - "pandas-mcp-server/**"
+      - "thingsboard-mcp/**"
   pull_request:
     paths:
       - "ai-agent/**"
+      - "pandas-mcp-server/**"
+      - "thingsboard-mcp/**"
 
 jobs:
   agent-static-tests:
-    name: Agent config & structure tests
+    name: AI Agent config & structure
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,5 +30,42 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]" || pip install -r requirements.txt
 
-      - name: Run static tests
+      - name: Run tests
         run: python -m pytest tests/ -v --tb=short
+
+  pandas-mcp-tests:
+    name: Pandas MCP Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pandas-mcp-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+  thingsboard-mcp-tests:
+    name: ThingsBoard MCP Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: thingsboard-mcp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Run tests
+        run: mvn -q test
