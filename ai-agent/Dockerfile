@@ -13,6 +13,7 @@ COPY requirements.txt /app/requirements.txt
 RUN uv pip install --system --no-cache -r /app/requirements.txt
 
 COPY . /app
+RUN uv pip install --system --no-cache .
 
 RUN pytest tests/ -v --tb=short
 
