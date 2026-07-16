@@ -15,6 +15,7 @@ COPY --chown=gradle:gradle tb-quarkus/cmd/settings.gradle tb-quarkus/cmd/build.g
 COPY --chown=gradle:gradle tb-quarkus/cmd/src ./src
 COPY --chown=gradle:gradle api-specs/openapi ./openapi-source
 
+RUN gradle --no-daemon test
 RUN gradle --no-daemon quarkusBuild
 
 FROM eclipse-temurin:21-jre

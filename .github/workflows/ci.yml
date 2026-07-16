@@ -1,0 +1,110 @@
+name: Service tests
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - "ai-agent/**"
+      - "tb-quarkus/cmd/**"
+      - "tb-quarkus/gateway/**"
+      - "api-specs/**"
+      - "msa/web-ui/**"
+      - "ui-ngx/**"
+      - "predictive-maintenance/**"
+      - "config-api/**"
+  pull_request:
+    paths:
+      - "ai-agent/**"
+      - "tb-quarkus/cmd/**"
+      - "tb-quarkus/gateway/**"
+      - "api-specs/**"
+      - "msa/web-ui/**"
+      - "ui-ngx/**"
+      - "predictive-maintenance/**"
+      - "config-api/**"
+
+jobs:
+  agent-static-tests:
+    name: AI Agent config & structure
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" || pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -v --tb=short
+
+  tb-quarkus-cmd-tests:
+    name: TB Quarkus CMD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Run tests
+        working-directory: tb-quarkus/cmd
+        run: ./gradlew --no-daemon test
+
+  tb-quarkus-gateway-build:
+    name: TB Quarkus Gateway build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: docker build -f tb-quarkus/gateway/src/main/docker/Dockerfile.jvm .
+
+  tb-web-ui-build:
+    name: TB Web UI build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: docker build -f msa/web-ui/Dockerfile .
+
+  pdm-workers-build:
+    name: PdM Workers build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: predictive-maintenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: docker build -f .Dockerfile .
+
+  config-api-build:
+    name: Config API build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: config-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: docker build .

@@ -65,3 +65,4 @@ api-specs/openapi.yaml
 api-specs/asyncapi.yaml
 # tb-quarkus/cmd bundled spec
 tb-quarkus/cmd/openapi.yaml
+tb-quarkus/cmd/src/main/openapi/

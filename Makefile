@@ -245,6 +245,56 @@ agent-test: ## Run pdm_agent eval tests inside the ai-agent service (brings up i
 	$(COMPOSE) up -d $(AI_AGENT)
 	$(COMPOSE) exec -T $(AI_AGENT) sh scripts/run-agent-evals.sh > agent-evals.log 2>&1
 
+# ─── local CI (mirrors .github/workflows/ai-agent-tests.yml) ────────────────
+
+.PHONY: ci
+ci: ci-test ci-build ## Run all local CI checks (tests + builds, same as GitHub Actions)
+
+.PHONY: ci-test
+ci-test: ci-test-agent ci-test-cmd ## Run all test suites
+
+.PHONY: ci-test-agent
+ci-test-agent: ## Run ai-agent static tests (Python 3.13, same as CI)
+	cd ai-agent && pip install -q -e ".[dev]" && python -m pytest tests/ -v --tb=short
+
+.PHONY: ci-test-cmd
+ci-test-cmd: ## Run tb-quarkus/cmd tests (Java 21, Gradle, same as CI)
+	cd tb-quarkus/cmd && ./gradlew --no-daemon test
+
+.PHONY: ci-build
+ci-build: ci-build-gateway ci-build-web ci-build-pdm ci-build-config ## Build all service images
+
+.PHONY: ci-build-gateway
+ci-build-gateway: ## Build tb-quarkus gateway image (same as CI)
+	docker build -f tb-quarkus/gateway/src/main/docker/Dockerfile.jvm .
+
+.PHONY: ci-build-web
+ci-build-web: ## Build tb-web-ui image (same as CI)
+	docker build -f msa/web-ui/Dockerfile .
+
+.PHONY: ci-build-pdm
+ci-build-pdm: ## Build predictive-maintenance worker image (same as CI)
+	docker build -f .Dockerfile predictive-maintenance/
+
+.PHONY: ci-build-config
+ci-build-config: ## Build config-api image (same as CI)
+	docker build config-api/
+
+ACT_BIN  ?= $(HOME)/.local/bin/act
+ACT_ARGS ?= -P ubuntu-latest=catthehacker/ubuntu:act-latest --container-architecture linux/amd64 --bind --rm
+
+.PHONY: ci-act
+ci-act: ## Run full GitHub Actions workflow locally via act
+	$(ACT_BIN) $(ACT_ARGS) -W .github/workflows/ai-agent-tests.yml push
+
+.PHONY: ci-act-tests
+ci-act-tests: ## Run only test jobs locally via act
+	$(ACT_BIN) $(ACT_ARGS) -W .github/workflows/ai-agent-tests.yml push -j agent-static-tests -j tb-quarkus-cmd-tests
+
+.PHONY: ci-act-builds
+ci-act-builds: ## Run only build jobs locally via act
+	$(ACT_BIN) $(ACT_ARGS) -W .github/workflows/ai-agent-tests.yml push -j tb-quarkus-gateway-build -j tb-web-ui-build -j pdm-workers-build -j config-api-build
+
 # ─── logs ────────────────────────────────────────────────────────────────────
 
 .PHONY: logs
