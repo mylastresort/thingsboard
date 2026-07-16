@@ -1,0 +1,100 @@
+# Feature schema registry - single source of truth for feature engineering.
+# Python training bridge and Rust inference engine both consume this schema.
+
+metadata:
+  version: "1.0"
+  description: PdM feature definitions shared across all workers
+  telemetry_keys: [volt, rotate, pressure, vibration]
+  error_keys: [error1, error2, error3, error4, error5]
+  component_keys: [comp1, comp2, comp3, comp4]
+
+rolling_features:
+  - name: "{key}mean_3h"
+    source: "telemetry.{key}"
+    window_hours: 3
+    aggregation: mean
+    resample: "3h"
+
+  - name: "{key}sd_3h"
+    source: "telemetry.{key}"
+    window_hours: 3
+    aggregation: std
+    resample: "3h"
+
+  - name: "{key}mean_24h"
+    source: "telemetry.{key}"
+    window_hours: 24
+    aggregation: mean
+    resample: "3h"
+    rolling_window: 8
+
+  - name: "{key}sd_24h"
+    source: "telemetry.{key}"
+    window_hours: 24
+    aggregation: std
+    resample: "3h"
+    rolling_window: 8
+
+error_features:
+  - name: "{error}count"
+    source: "errors.{error}"
+    window_hours: 24
+    aggregation: sum
+    resample: "3h"
+
+component_features:
+  - name: "{comp}"
+    source: "maintenance.{comp}"
+    computation: days_since_last_replacement
+
+static_features:
+  - name: age
+    source: "attributes.age"
+    default: 10
+
+feature_columns:
+  - voltmean_3h
+  - voltsd_3h
+  - voltmean_24h
+  - voltsd_24h
+  - rotatemean_3h
+  - rotatesd_3h
+  - rotatemean_24h
+  - rotatesd_24h
+  - pressuremean_3h
+  - pressuresd_3h
+  - pressuremean_24h
+  - pressuresd_24h
+  - vibrationmean_3h
+  - vibrationsd_3h
+  - vibrationmean_24h
+  - vibrationsd_24h
+  - error1count
+  - error2count
+  - error3count
+  - error4count
+  - error5count
+  - comp1
+  - comp2
+  - comp3
+  - comp4
+  - age
+
+kafka:
+  raw_topic: pdm-raw-telemetry
+  features_topic: pdm-features
+  commands_topic: pdm-commands
+  consumer_group: pdm-feature-workers
+
+redis:
+  feature_prefix: "pdm:features:{device_id}"
+  feature_ttl_seconds: 300
+
+windows:
+  - name: 3h
+    hours: 3
+    resample: "3h"
+  - name: 24h
+    hours: 24
+    resample: "3h"
+    rolling_periods: 8

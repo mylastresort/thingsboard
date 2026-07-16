@@ -273,113 +273,29 @@ class DataRegistry:
                 logger.warning(f"No telemetry data found for device {device_id}")
                 return pd.DataFrame(), None
 
-            telemetry_pivot = telemetry_pivot.set_index("datetime")
+            telemetry_df = telemetry_pivot.copy()
+            if "machineID" not in telemetry_df.columns:
+                telemetry_df["machineID"] = 1
 
-            telemetry_3h = telemetry_pivot.resample("3h").agg(["mean", "std"]).reset_index()
-            telemetry_3h.columns = [
-                "datetime" if col[0] == "datetime" else f"{col[0]}{col[1]}_3h"
-                for col in telemetry_3h.columns
-            ]
+            try:
+                from feature_worker.src.feature_bridge import compute_anomaly_features_batch
 
-            telemetry_3h_temp = telemetry_pivot.resample("3h").agg(["mean", "std"])
-            telemetry_24h_list = []
+                errors_df = self.fetch_error_data(device_id, start_date=cutoff_date)
+                maint_df = self.fetch_maintenance_data(device_id, start_date=cutoff_date)
+                machines_df = self.fetch_machines_data(device_id)
 
-            for col in telemetry_keys:
-                if (col, "mean") in telemetry_3h_temp.columns:
-                    mean_col = (col, "mean")
-                    rolling_mean = (
-                        telemetry_3h_temp[mean_col].rolling(window=8, center=False).mean()
-                    )
-                    rolling_std = telemetry_3h_temp[mean_col].rolling(window=8, center=False).std()
-                    telemetry_24h_list.append(rolling_mean.rename(f"{col}mean_24h"))
-                    telemetry_24h_list.append(rolling_std.rename(f"{col}sd_24h"))
-
-            if telemetry_24h_list:
-                telemetry_24h = pd.concat(telemetry_24h_list, axis=1).reset_index()
-            else:
-                telemetry_24h = telemetry_3h_temp.reset_index()[["datetime"]]
-
-            features_df = telemetry_3h.merge(telemetry_24h, on="datetime", how="left")
-
-            feature_cols_24h = [col for col in features_df.columns if "24h" in col]
-            if feature_cols_24h:
-                features_df = features_df.dropna(subset=feature_cols_24h, how="all")
-
-            error_df = self.fetch_error_data(device_id, start_date=cutoff_date)
-            if not error_df.empty:
-                error_df = error_df.assign(
-                    datetime=pd.to_datetime(error_df["datetime"]),
-                    value=1,
+                features_df = compute_anomaly_features_batch(
+                    telemetry_df, errors_df, maint_df, machines_df
                 )
-                error_pivot = error_df.pivot_table(
-                    index="datetime",
-                    columns="errorID",
-                    values="value",
-                    fill_value=0,
+                features_df["datetime"] = pd.to_datetime(telemetry_pivot["datetime"].values[: len(features_df)])
+                if "machineID" not in features_df.columns:
+                    features_df["machineID"] = 1
+                logger.info(f"[DataRegistry] Using shared FeatureEngine for {device_id}")
+            except ImportError:
+                features_df = self._legacy_compute_features(
+                    telemetry_pivot, telemetry_keys, device_id, cutoff_date
                 )
-
-                error_24h = error_pivot.rolling(window="24h").sum().reset_index()
-                error_24h.columns = ["datetime"] + [f"{col}count" for col in error_pivot.columns]
-
-                features_df = features_df.merge(error_24h, on="datetime", how="left")
-
-            for i in range(1, 6):
-                col = f"error{i}count"
-                if col not in features_df.columns:
-                    features_df[col] = 0
-                else:
-                    features_df[col] = features_df[col].fillna(0)
-
-            maint_df = self.fetch_maintenance_data(device_id, start_date=cutoff_date)
-            if not maint_df.empty:
-                maint_df = maint_df.dropna(subset=["comp"]).assign(
-                    datetime=pd.to_datetime(maint_df["datetime"]),
-                )
-
-            if not maint_df.empty:
-                comp_rep = pd.get_dummies(
-                    maint_df.set_index("datetime"), columns=["comp"]
-                ).reset_index()
-
-                comp_rep.columns = ["datetime"] + [
-                    col.replace("comp_", "") for col in comp_rep.columns if col != "datetime"
-                ]
-
-                telemetry_grid = features_df[["datetime"]].copy()
-                comp_rep = (
-                    telemetry_grid.merge(comp_rep, on="datetime", how="outer")
-                    .fillna(0)
-                    .sort_values(by="datetime")
-                )
-
-                components = ["comp1", "comp2", "comp3", "comp4"]
-                for comp in components:
-                    if comp not in comp_rep.columns:
-                        comp_rep[comp] = 0
-
-                    comp_rep[comp] = comp_rep[comp].astype(object)
-                    comp_rep.loc[comp_rep[comp] < 1, comp] = pd.NA
-                    comp_rep.loc[comp_rep[comp].notna(), comp] = comp_rep.loc[
-                        comp_rep[comp].notna(), "datetime"
-                    ]
-                    comp_rep[comp] = comp_rep[comp].ffill()
-
-                    comp_rep[comp] = (
-                        comp_rep["datetime"] - pd.to_datetime(comp_rep[comp])
-                    ) / np.timedelta64(1, "D")
-                    comp_rep[comp] = comp_rep[comp].fillna(365)
-                features_df = features_df.merge(
-                    comp_rep[["datetime"] + components], on="datetime", how="left"
-                )
-
-                for comp in components:
-                    features_df[comp] = features_df[comp].fillna(365)
-            else:
-                for i in range(1, 5):
-                    features_df[f"comp{i}"] = 365
-
-            machines_df = self.fetch_machines_data(device_id)
-            features_df["age"] = int(machines_df["age"].iloc[0]) if not machines_df.empty else 10
+                logger.info(f"[DataRegistry] Using legacy inline features for {device_id}")
 
             labels = None
             if include_failures:
@@ -393,29 +309,19 @@ class DataRegistry:
                     )
                     features_with_labels = features_df.merge(failure_df, on="datetime", how="left")
                     labels = features_with_labels["failure_component"].fillna("none")
-
                     features_df = features_with_labels.drop("failure_component", axis=1)
 
             if "datetime" in features_df.columns:
                 features_df = features_df.drop("datetime", axis=1)
 
             expected_cols = []
-
             for key in telemetry_keys:
-                expected_cols.extend(
-                    [
-                        f"{key}mean_3h",
-                        f"{key}sd_3h",
-                        f"{key}mean_24h",
-                        f"{key}sd_24h",
-                    ]
-                )
-
+                expected_cols.extend([
+                    f"{key}mean_3h", f"{key}sd_3h", f"{key}mean_24h", f"{key}sd_24h",
+                ])
             for i in range(1, len(self.error_keys) + 1):
                 expected_cols.append(f"error{i}count")
-
             expected_cols.extend(self.component_keys)
-
             expected_cols.append("age")
 
             for col in expected_cols:
@@ -423,7 +329,6 @@ class DataRegistry:
                     features_df[col] = 0
 
             features_df = features_df[expected_cols]
-
             logger.info(
                 f"Fetched {len(features_df)} samples with {len(expected_cols)} features: {expected_cols}"
             )
@@ -432,9 +337,99 @@ class DataRegistry:
         except Exception as e:
             logger.error(f"Error fetching anomaly training data: {e}")
             import traceback
-
             traceback.print_exc()
             return pd.DataFrame(), None
+
+    def _legacy_compute_features(
+        self, telemetry_pivot, telemetry_keys, device_id, cutoff_date
+    ) -> pd.DataFrame:
+        telemetry_pivot = telemetry_pivot.set_index("datetime")
+        telemetry_3h = telemetry_pivot.resample("3h").agg(["mean", "std"]).reset_index()
+        telemetry_3h.columns = [
+            "datetime" if col[0] == "datetime" else f"{col[0]}{col[1]}_3h"
+            for col in telemetry_3h.columns
+        ]
+
+        telemetry_3h_temp = telemetry_pivot.resample("3h").agg(["mean", "std"])
+        telemetry_24h_list = []
+        for col in telemetry_keys:
+            if (col, "mean") in telemetry_3h_temp.columns:
+                mean_col = (col, "mean")
+                rolling_mean = telemetry_3h_temp[mean_col].rolling(window=8, center=False).mean()
+                rolling_std = telemetry_3h_temp[mean_col].rolling(window=8, center=False).std()
+                telemetry_24h_list.append(rolling_mean.rename(f"{col}mean_24h"))
+                telemetry_24h_list.append(rolling_std.rename(f"{col}sd_24h"))
+
+        if telemetry_24h_list:
+            telemetry_24h = pd.concat(telemetry_24h_list, axis=1).reset_index()
+        else:
+            telemetry_24h = telemetry_3h_temp.reset_index()[["datetime"]]
+
+        features_df = telemetry_3h.merge(telemetry_24h, on="datetime", how="left")
+        feature_cols_24h = [col for col in features_df.columns if "24h" in col]
+        if feature_cols_24h:
+            features_df = features_df.dropna(subset=feature_cols_24h, how="all")
+
+        error_df = self.fetch_error_data(device_id, start_date=cutoff_date)
+        if not error_df.empty:
+            error_df = error_df.assign(datetime=pd.to_datetime(error_df["datetime"]), value=1)
+            error_pivot = error_df.pivot_table(
+                index="datetime", columns="errorID", values="value", fill_value=0,
+            )
+            error_24h = error_pivot.rolling(window="24h").sum().reset_index()
+            error_24h.columns = ["datetime"] + [f"{col}count" for col in error_pivot.columns]
+            features_df = features_df.merge(error_24h, on="datetime", how="left")
+
+        for i in range(1, 6):
+            col = f"error{i}count"
+            if col not in features_df.columns:
+                features_df[col] = 0
+            else:
+                features_df[col] = features_df[col].fillna(0)
+
+        maint_df = self.fetch_maintenance_data(device_id, start_date=cutoff_date)
+        if not maint_df.empty:
+            maint_df = maint_df.dropna(subset=["comp"]).assign(
+                datetime=pd.to_datetime(maint_df["datetime"]),
+            )
+        if not maint_df.empty:
+            comp_rep = pd.get_dummies(
+                maint_df.set_index("datetime"), columns=["comp"]
+            ).reset_index()
+            comp_rep.columns = ["datetime"] + [
+                col.replace("comp_", "") for col in comp_rep.columns if col != "datetime"
+            ]
+            telemetry_grid = features_df[["datetime"]].copy()
+            comp_rep = (
+                telemetry_grid.merge(comp_rep, on="datetime", how="outer")
+                .fillna(0).sort_values(by="datetime")
+            )
+            components = ["comp1", "comp2", "comp3", "comp4"]
+            for comp in components:
+                if comp not in comp_rep.columns:
+                    comp_rep[comp] = 0
+                comp_rep[comp] = comp_rep[comp].astype(object)
+                comp_rep.loc[comp_rep[comp] < 1, comp] = pd.NA
+                comp_rep.loc[comp_rep[comp].notna(), comp] = comp_rep.loc[
+                    comp_rep[comp].notna(), "datetime"
+                ]
+                comp_rep[comp] = comp_rep[comp].ffill()
+                comp_rep[comp] = (
+                    comp_rep["datetime"] - pd.to_datetime(comp_rep[comp])
+                ) / np.timedelta64(1, "D")
+                comp_rep[comp] = comp_rep[comp].fillna(365)
+            features_df = features_df.merge(
+                comp_rep[["datetime"] + components], on="datetime", how="left"
+            )
+            for comp in components:
+                features_df[comp] = features_df[comp].fillna(365)
+        else:
+            for i in range(1, 5):
+                features_df[f"comp{i}"] = 365
+
+        machines_df = self.fetch_machines_data(device_id)
+        features_df["age"] = int(machines_df["age"].iloc[0]) if not machines_df.empty else 10
+        return features_df
 
     def fetch_forecast_training_data(
         self,
