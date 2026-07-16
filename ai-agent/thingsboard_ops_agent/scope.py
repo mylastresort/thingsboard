@@ -137,6 +137,21 @@ CUSTOMER_SCOPED_TOOLS_BY_AGENT = {
     },
 }
 
+# Flat merged sets for the single thingsboard_agent (O(1) lookups).
+TENANT_SCOPED_TOOLS: set[str] | None = None
+for _agent_tools in TENANT_SCOPED_TOOLS_BY_AGENT.values():
+    if TENANT_SCOPED_TOOLS is None:
+        TENANT_SCOPED_TOOLS = set(_agent_tools)
+    else:
+        TENANT_SCOPED_TOOLS |= _agent_tools
+
+CUSTOMER_SCOPED_TOOLS: set[str] | None = None
+for _agent_tools in CUSTOMER_SCOPED_TOOLS_BY_AGENT.values():
+    if CUSTOMER_SCOPED_TOOLS is None:
+        CUSTOMER_SCOPED_TOOLS = set(_agent_tools)
+    else:
+        CUSTOMER_SCOPED_TOOLS |= _agent_tools
+
 CUSTOMER_ID_TOOL_ARGS = {
     "getCustomerAssets": ("customerId", "getTenantAssets"),
     "getCustomerDevices": ("customerId", "getTenantDevices"),
@@ -221,7 +236,14 @@ def build_scoped_instruction(
         "'probably' has."
 
         if authority == CUSTOMER_USER:
-            if agent_name == "devices_agent":
+            if agent_name == "thingsboard_agent":
+                scope_text = (
+                    f"This session is scoped to customer {customer_id}. Use "
+                    f"customer-scoped tools with customerId='{customer_id}'; "
+                    "tenant-wide mutation/admin operations are not valid here. "
+                    "Never ask for or guess a customer id."
+                )
+            elif agent_name == "devices_agent":
                 scope_text = (
                     f"This session is scoped to customer {customer_id}. Use "
                     f"getCustomerDevices with customerId='{customer_id}' and "

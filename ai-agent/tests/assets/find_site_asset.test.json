@@ -1,7 +1,7 @@
 {
   "eval_set_id": "find_site_asset_skill",
   "name": "find-site-asset skill resolution",
-  "description": "Regression tests for the find-site-asset skill: exact name match, name/label mismatch fallback cascade, ambiguous multiple matches, device-vs-asset misdirection, and no-match handling.",
+  "description": "Regression tests for the find-site-asset skill: exact name match, name/label mismatch fallback cascade, ambiguous multiple matches, device-vs-asset misdirection, and no-match handling. Updated for O(1) single-agent routing (tools called directly, not via sub-agent wrappers).",
   "eval_cases": [
     {
       "eval_id": "exact_unique_name_match",
@@ -27,9 +27,10 @@
                 "args": { "skill_name": "find-site-asset" }
               },
               {
-                "name": "assets_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"Building 1\"}"
+                  "tool_name": "getTenantAsset",
+                  "tool_args": {"name": "Building 1"}
                 }
               }
             ],
@@ -67,15 +68,17 @@
                 "args": { "skill_name": "find-site-asset" }
               },
               {
-                "name": "assets_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"building 1\"}"
+                  "tool_name": "getTenantAsset",
+                  "tool_args": {"name": "building 1"}
                 }
               },
               {
-                "name": "assets_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"building_1\"}"
+                  "tool_name": "getTenantAsset",
+                  "tool_args": {"name": "building_1"}
                 }
               }
             ],
@@ -113,9 +116,10 @@
                 "args": { "skill_name": "find-site-asset" }
               },
               {
-                "name": "assets_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getTenantAssets\", \"textSearch\": \"Plant\"}"
+                  "tool_name": "getTenantAssets",
+                  "tool_args": {"textSearch": "Plant"}
                 }
               }
             ],
@@ -153,15 +157,17 @@
                 "args": { "skill_name": "find-site-asset" }
               },
               {
-                "name": "assets_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"PdM-Machine-1\"}"
+                  "tool_name": "getTenantAsset",
+                  "tool_args": {"name": "PdM-Machine-1"}
                 }
               },
               {
-                "name": "devices_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getDeviceByName\", \"deviceName\": \"PdM-Machine-1\"}"
+                  "tool_name": "getDeviceByName",
+                  "tool_args": {"deviceName": "PdM-Machine-1"}
                 }
               }
             ],
@@ -201,20 +207,24 @@
                 "args": { "skill_name": "find-site-asset" }
               },
               {
-                "name": "assets_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"Nonexistent-Site-99\"}"
+                  "tool_name": "getTenantAsset",
+                  "tool_args": {"name": "Nonexistent-Site-99"}
                 }
               },
               {
-                "name": "assets_agent",
+                "name": "thingsboard_agent",
                 "args": {
-                  "request": "{\"action\": \"getTenantAsset\", \"name\": \"Nonexistent_Site_99\"}"
+                  "tool_name": "getTenantAsset",
+                  "tool_args": {"name": "Nonexistent_Site_99"}
                 }
               },
               {
-                "name": "assets_agent",
-                "args": { "request": "{\"action\": \"getTenantAssets\"}" }
+                "name": "thingsboard_agent",
+                "args": {
+                  "tool_name": "getTenantAssets"
+                }
               }
             ],
             "intermediate_responses": []

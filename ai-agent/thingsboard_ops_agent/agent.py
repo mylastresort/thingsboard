@@ -5,7 +5,7 @@ from google.adk.skills import load_skill_from_dir
 from google.adk.tools import skill_toolset
 from google.adk.tools.agent_tool import AgentTool
 
-from .subagents import build_model, build_subagents, build_pandas_agent, build_pdm_agent
+from .subagents import build_model, build_tb_agent, build_pandas_agent, build_pdm_agent
 from .scope import build_scope_resolver, harvest_known_ids
 from .settings import load_settings, Settings
 from .datetime_tool import get_current_datetime
@@ -23,14 +23,13 @@ train_existing_device_pdm = load_skill_from_dir(SKILLS_DIR / "train-existing-dev
 
 ROOT_INSTRUCTION = (
     # --- Identity & tool inventory -------------------------------------
-    # Establishes that the root agent is purely an orchestrator: it holds
-    # no ThingsBoard tools directly and must delegate everything to the
-    # named specialist sub-agents, then relay their answers.
+    # The root agent delegates to three specialist sub-agents and five
+    # skills.  The ThingsBoard sub-agent is a single O(1) routed agent
+    # backed by one MCPToolset connection with a flat tool registry.
     "You are the ThingsBoard operations assistant. You have no ThingsBoard "
     "tools of your own — each of these tools is a specialist you call and "
-    "whose answer you relay to the user: devices_agent, assets_agent, "
-    "customers_users_agent, alarms_agent, telemetry_agent, "
-    "relations_query_agent, ota_agent, pandas_agent, pdm_agent. "
+    "whose answer you relay to the user: thingsboard_agent, pandas_agent, "
+    "pdm_agent. "
     # --- pandas_agent delegation rule -----------------------------------
     # Fixes the observed failure mode where the root agent reasoned about
     # its own inability to run code ("I cannot run pandas in this
@@ -93,17 +92,18 @@ ROOT_INSTRUCTION = (
     # tool) and redirects to the correct workaround tools, so the agent
     # doesn't invent a nonexistent tool call or guess at device status.
     "There is no dedicated device online/active/connectivity tool in the "
-    "MCP server; when you need that kind of status, ask telemetry_agent "
-    "for attributes such as active/inactivityAlarmTime or use "
-    "relations_query_agent for EDQ/key-filter queries over those fields. "
+    "MCP server; when you need that kind of status, ask thingsboard_agent "
+    "for telemetry attributes such as active/inactivityAlarmTime or use "
+    "its EDQ/key-filter queries over those fields. "
     # --- Multi-domain orchestration ----------------------------------------
     # Reminds the agent it's allowed (expected) to call more than one
     # specialist per request when the request spans domains, and that the
     # final answer is synthesized by the root agent, not just relayed
     # verbatim from a single sub-agent.
     "Call whichever specialists the request needs (more than one if it "
-    "spans domains), then answer the user yourself from what they "
-    "return."
+    "spans domains like ThingsBoard + pandas + PdM), then answer the user "
+    "yourself from what they return.  The thingsboard_agent has all "
+    "ThingsBoard tools in a single call — no need to pick a sub-domain."
     # --- Anti-hallucination guardrail ---------------------------------------
     # General-purpose backstop against invented data: covers ids, counts,
     # attribute values, and — critically — analogical guessing ("a similar
@@ -135,7 +135,7 @@ def build_root_agent(settings: Settings) -> LlmAgent:
                 ]
             ),
             get_current_datetime,
-            *[AgentTool(agent=a) for a in build_subagents(settings)],
+            AgentTool(agent=build_tb_agent(settings)),
             AgentTool(agent=build_pandas_agent(settings)),
             AgentTool(agent=build_pdm_agent(settings)),
         ],

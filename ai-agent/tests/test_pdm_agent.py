@@ -20,6 +20,8 @@ from thingsboard_ops_agent.scope import (
     CUSTOMER_SCOPED_TOOLS_BY_AGENT,
     CUSTOMER_ID_TOOL_ARGS,
     TENANT_SCOPED_TOOLS_BY_AGENT,
+    CUSTOMER_SCOPED_TOOLS,
+    TENANT_SCOPED_TOOLS,
 )
 from thingsboard_ops_agent.settings import load_settings
 
@@ -136,6 +138,43 @@ class TestThingsBoardDomains:
                     f"Tool '{tool}' appears in both '{prev}' and '{agent_name}'"
                 )
                 seen[tool] = agent_name
+
+
+# ===================================================================
+# 2b. O(1) tool registry
+# ===================================================================
+
+
+class TestToolRegistry:
+    """TOOL_REGISTRY provides O(1) tool-to-domain lookups."""
+
+    def test_registry_covers_all_domains(self):
+        from thingsboard_ops_agent.subagents import TOOL_REGISTRY, DOMAINS
+
+        all_domain_tools: set[str] = set()
+        for _desc, tools in DOMAINS.values():
+            all_domain_tools.update(tools)
+        assert set(TOOL_REGISTRY.keys()) == all_domain_tools
+
+    def test_registry_values_are_domain_names(self):
+        from thingsboard_ops_agent.subagents import TOOL_REGISTRY, DOMAINS
+
+        valid = set(DOMAINS.keys())
+        for tool, domain in TOOL_REGISTRY.items():
+            assert domain in valid, f"Tool '{tool}' maps to unknown domain '{domain}'"
+
+    def test_tb_all_tools_matches_registry(self):
+        from thingsboard_ops_agent.subagents import TOOL_REGISTRY, TB_ALL_TOOLS
+
+        assert set(TB_ALL_TOOLS) == set(TOOL_REGISTRY.keys())
+
+    def test_flat_scope_sets_are_supersets(self):
+        assert TENANT_SCOPED_TOOLS is not None
+        assert CUSTOMER_SCOPED_TOOLS is not None
+        for agent_tools in TENANT_SCOPED_TOOLS_BY_AGENT.values():
+            assert set(agent_tools) <= TENANT_SCOPED_TOOLS
+        for agent_tools in CUSTOMER_SCOPED_TOOLS_BY_AGENT.values():
+            assert set(agent_tools) <= CUSTOMER_SCOPED_TOOLS
 
 
 # ===================================================================
@@ -276,10 +315,14 @@ class TestAgentBuilding:
         agent = build_root_agent(settings)
         assert agent.name == "thingsboard_ops_agent"
 
-    def test_build_subagents(self, settings):
+    def test_build_tb_agent(self, settings):
+        agent = subagents.build_tb_agent(settings)
+        assert agent.name == "thingsboard_agent"
+
+    def test_build_subagents_returns_single_agent(self, settings):
         agents = subagents.build_subagents(settings)
-        names = {a.name for a in agents}
-        assert names == set(subagents.DOMAINS.keys())
+        assert len(agents) == 1
+        assert agents[0].name == "thingsboard_agent"
 
     def test_build_pdm_agent(self, settings):
         agent = subagents.build_pdm_agent(settings)
@@ -357,10 +400,10 @@ class TestSourceWiring:
                 f"Skill '{skill_dir.name}' not referenced in agent.py"
             )
 
-    def test_agent_source_references_all_subagents(self):
+    def test_agent_source_references_thingsboard_agent(self):
         source = (PKG / "agent.py").read_text()
-        for agent_name in _all_domains():
-            assert agent_name in source
+        assert "thingsboard_agent" in source
+        assert "build_tb_agent" in source
 
     def test_agent_source_references_pdm_agent(self):
         source = (PKG / "agent.py").read_text()
@@ -414,7 +457,7 @@ class TestEvalFiles:
 
     def test_pdm_eval_tools_are_known(self):
         """Tool names in PdM eval cases must exist in PDM_DOMAIN, DOMAINS,
-        or be declared by a skill."""
+        be declared by a skill, or be agent/skill tool names."""
         pdm_tools = set(subagents.PDM_DOMAIN[1][1])
         tb_tools: set[str] = set()
         for _desc, tools in _all_domains().values():
@@ -422,7 +465,9 @@ class TestEvalFiles:
         skill_tools: set[str] = set()
         for sd in _all_skill_dirs():
             skill_tools.update(_load_skill_tools(sd))
-        all_known = pdm_tools | tb_tools | skill_tools
+        # AgentTool wrappers and load_skill are valid tool names at the root level
+        agent_tools = {"thingsboard_agent", "pdm_agent", "pandas_agent", "load_skill"}
+        all_known = pdm_tools | tb_tools | skill_tools | agent_tools
 
         for f in (ROOT / "tests" / "pdm").glob("*.test.json"):
             data = json.loads(f.read_text())

@@ -27,9 +27,10 @@
           "intermediate_data": {
             "tool_uses": [
               {
-                "name": "getDeviceByName",
+                "name": "thingsboard_agent",
                 "args": {
-                  "name": "PdM-Machine-1"
+                  "tool_name": "getDeviceByName",
+                  "tool_args": {"name": "PdM-Machine-1"}
                 }
               },
               {
