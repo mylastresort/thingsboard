@@ -16,310 +16,218 @@
 
 -->
 
-<div class="tb-configurations-page mat-content">
-  <section class="tb-configurations-toolbar mat-elevation-z1">
-    <!-- Normal Mode Toolbar -->
-    <mat-toolbar
-      class="mat-mdc-table-toolbar"
-      *ngIf="!textSearchMode && !selectionMode"
-    >
-      <div class="mat-toolbar-tools">
-        <div class="tb-configurations-toolbar-wrapper">
-          <div class="tb-configurations-action-panels">
-            <div class="tb-configurations-action-panel tb-left-panel">
-              <div class="configurations-title">
-                <h4>Predictive Models</h4>
-              </div>
-            </div>
-            <div class="tb-configurations-action-panel tb-right-panel">
-              <div class="toolbar-actions">
-                <!-- Add Model Button (menu: Load or Create) -->
-                <button
-                  mat-icon-button
-                  color="primary"
-                  [matMenuTriggerFor]="addMenu"
-                  matTooltip="{{ 'action.add' | translate }}"
-                  matTooltipPosition="above"
-                >
-                  <mat-icon>add</mat-icon>
-                </button>
+<p-confirmDialog />
 
-                <mat-menu #addMenu="matMenu">
-                  <button mat-menu-item (click)="openLoadModelDialog()">
-                    <mat-icon>file_upload</mat-icon>
-                    <span>Load Model</span>
-                  </button>
-                  <button mat-menu-item (click)="openAddModelDialog()">
-                    <mat-icon>add</mat-icon>
-                    <span>Add New Model</span>
-                  </button>
-                </mat-menu>
-
-                <!-- Seed PdM machine button -->
-                <button
-                  mat-icon-button
-                  (click)="openSeedMachineDialog()"
-                  matTooltip="Seed PdM machine"
-                  matTooltipPosition="above"
-                  [disabled]="isSeedingMachine"
-                >
-                  <mat-icon>precision_manufacturing</mat-icon>
-                </button>
-
-                <!-- Refresh button -->
-                <button
-                  mat-icon-button
-                  (click)="refreshConfigurations()"
-                  matTooltip="{{ 'action.refresh' | translate }}"
-                  matTooltipPosition="above"
-                  [disabled]="isLoading"
-                >
-                  <mat-icon>refresh</mat-icon>
-                </button>
-
-                <!-- Search button -->
-                <button
-                  mat-icon-button
-                  (click)="enterFilterMode()"
-                  matTooltip="{{ 'action.search' | translate }}"
-                  matTooltipPosition="above"
-                >
-                  <mat-icon>search</mat-icon>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </mat-toolbar>
-
-    <!-- Multi-Select Mode Toolbar -->
-    <mat-toolbar
-      class="mat-mdc-table-toolbar selection-toolbar"
-      *ngIf="selectionMode && !textSearchMode"
-    >
-      <div class="mat-toolbar-tools">
-        <button
-          mat-icon-button
-          (click)="exitSelectionMode()"
-          matTooltip="{{ 'action.close' | translate }}"
-          matTooltipPosition="above"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
-        <span class="selection-count"
-          >{{ selection.selected.length }} selected</span
-        >
-        <span class="flex-1"></span>
-        <button
-          mat-icon-button
-          (click)="pauseAllSelected()"
-          [disabled]="selection.selected.length === 0"
-          matTooltip="Pause inference for selected models"
-          matTooltipPosition="above"
-        >
-          <mat-icon>pause_circle</mat-icon>
-        </button>
-        <button
-          mat-icon-button
-          (click)="unpauseAllSelected()"
-          [disabled]="selection.selected.length === 0"
-          matTooltip="Resume inference for selected models"
-          matTooltipPosition="above"
-        >
-          <mat-icon>play_circle</mat-icon>
-        </button>
-        <button
-          mat-icon-button
-          color="warn"
-          (click)="deleteSelected()"
-          [disabled]="selection.selected.length === 0"
-          matTooltip="Delete selected models"
-          matTooltipPosition="above"
-        >
-          <mat-icon>delete</mat-icon>
-        </button>
-      </div>
-    </mat-toolbar>
-    <mat-toolbar class="mat-mdc-table-toolbar" *ngIf="textSearchMode">
-      <div class="mat-toolbar-tools">
-        <button
-          mat-icon-button
-          matTooltip="{{ 'action.search' | translate }}"
-          matTooltipPosition="above"
-        >
-          <mat-icon>search</mat-icon>
-        </button>
-        <mat-form-field class="flex-1">
-          <mat-label>&nbsp;</mat-label>
-          <input
-            #searchInput
-            matInput
-            [formControl]="textSearch"
-            (input)="applyFilter($event)"
-            placeholder="{{ 'common.enter-search' | translate }}"
-          />
-        </mat-form-field>
-        <button
-          mat-icon-button
-          (click)="exitFilterMode()"
-          matTooltip="{{ 'action.close' | translate }}"
-          matTooltipPosition="above"
-        >
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-    </mat-toolbar>
-  </section>
-
-  <mat-card class="configurations-content-card">
-    <div class="container">
-      <!-- Table container -->
-      <div class="table-container">
-        <table
-          mat-table
-          [dataSource]="dataSource"
-          matSort
-          class="mat-elevation-z8"
-        >
-          <!-- Checkbox Column -->
-          <ng-container matColumnDef="select">
-            <th mat-header-cell *matHeaderCellDef>
-              <mat-checkbox
-                (change)="$event ? toggleAllRows() : null"
-                [checked]="selection.hasValue() && isAllSelected()"
-                [indeterminate]="selection.hasValue() && !isAllSelected()"
-                [aria-label]="checkboxLabel()"
-              >
-              </mat-checkbox>
-            </th>
-            <td mat-cell *matCellDef="let row">
-              <mat-checkbox
-                (click)="$event.stopPropagation()"
-                (change)="onRowSelectionChange($event, row)"
-                [checked]="selection.isSelected(row)"
-                [aria-label]="checkboxLabel(row)"
-              >
-              </mat-checkbox>
-            </td>
-          </ng-container>
-
-          <!-- Created Time Column -->
-          <ng-container matColumnDef="createdTime">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Created Time
-            </th>
-            <td mat-cell *matCellDef="let element">
-              {{ element.createdTime | date: "yyyy-MM-dd HH:mm:ss" }}
-            </td>
-          </ng-container>
-
-          <!-- Name Column -->
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Model Name
-            </th>
-            <td mat-cell *matCellDef="let element">{{ element.name }}</td>
-          </ng-container>
-
-          <!-- Device Name Column -->
-          <ng-container matColumnDef="deviceName">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Device Name
-            </th>
-            <td mat-cell *matCellDef="let element">{{ element.deviceName }}</td>
-          </ng-container>
-
-          <!-- Device Label Column -->
-          <ng-container matColumnDef="deviceLabel">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Device Label
-            </th>
-            <td mat-cell *matCellDef="let element">
-              {{ element.deviceLabel }}
-            </td>
-          </ng-container>
-
-          <!-- Forecast Algorithm Column -->
-          <ng-container matColumnDef="forecastAlgorithm">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Forecast Algorithm
-            </th>
-            <td mat-cell *matCellDef="let element">
-              {{ element.forecastAlgorithm }}
-            </td>
-          </ng-container>
-
-          <!-- Anomaly Algorithm Column -->
-          <ng-container matColumnDef="anomalyAlgorithm">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Anomaly Algorithm
-            </th>
-            <td mat-cell *matCellDef="let element">
-              {{ element.anomalyAlgorithm }}
-            </td>
-          </ng-container>
-
-          <!-- Actions Column -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let element">
-              <button
-                mat-icon-button
-                (click)="
-                  $event.stopPropagation(); viewConfiguration($event, element)
-                "
-                matTooltip="View Model"
-                matTooltipPosition="above"
-              >
-                <mat-icon>visibility</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                (click)="$event.stopPropagation(); pauseConfig(element)"
-                matTooltip="Pause inference"
-                matTooltipPosition="above"
-              >
-                <mat-icon>pause_circle</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                (click)="$event.stopPropagation(); unpauseConfig(element)"
-                matTooltip="Resume inference"
-                matTooltipPosition="above"
-              >
-                <mat-icon>play_circle</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="$event.stopPropagation(); deleteConfiguration(element)"
-                matTooltip="Delete Model"
-                matTooltipPosition="above"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr
-            mat-row
-            *matRowDef="let row; columns: displayedColumns"
-            class="clickable-row"
-            (click)="viewConfiguration($event, row)"
-          ></tr>
-        </table>
-      </div>
-
-      <!-- Paginator -->
-      <mat-paginator
-        [pageSizeOptions]="pageSizeOptions"
-        [length]="totalElements"
-        showFirstLastButtons
-      >
-      </mat-paginator>
+<div class="tb-configurations-page">
+  <!-- Normal Mode Toolbar -->
+  <p-toolbar *ngIf="!textSearchMode && !selectionMode" class="configurations-toolbar">
+    <div class="p-toolbar-group-start">
+      <h4 class="toolbar-title">Predictive Models</h4>
     </div>
-  </mat-card>
+    <div class="p-toolbar-group-end">
+      <!-- Add Menu -->
+      <p-menu #addMenu [model]="addMenuItems" [popup]="true" />
+      <p-button
+        icon="pi pi-plus"
+        [rounded]="true"
+        [text]="true"
+        severity="info"
+        (onClick)="addMenu.toggle($event)"
+        pTooltip="{{ 'action.add' | translate }}"
+        tooltipPosition="top"
+      />
+      <p-button
+        icon="pi pi-wrench"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        (onClick)="openSeedMachineDialog()"
+        pTooltip="Seed PdM machine"
+        tooltipPosition="top"
+        [loading]="isSeedingMachine"
+      />
+      <p-button
+        icon="pi pi-refresh"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        (onClick)="refreshConfigurations()"
+        pTooltip="{{ 'action.refresh' | translate }}"
+        tooltipPosition="top"
+        [loading]="isLoading"
+      />
+      <p-button
+        icon="pi pi-search"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        (onClick)="textSearchMode = true"
+        pTooltip="{{ 'action.search' | translate }}"
+        tooltipPosition="top"
+      />
+    </div>
+  </p-toolbar>
 
+  <!-- Multi-Select Mode Toolbar -->
+  <p-toolbar *ngIf="selectionMode && !textSearchMode" class="configurations-toolbar selection-toolbar">
+    <div class="p-toolbar-group-start">
+      <p-button
+        icon="pi pi-times"
+        [rounded]="true"
+        [text]="true"
+        (onClick)="exitSelectionMode()"
+      />
+      <span class="selection-count">{{ selection.selected.length }} selected</span>
+    </div>
+    <div class="p-toolbar-group-end">
+      <p-button
+        icon="pi pi-pause-circle"
+        [rounded]="true"
+        [text]="true"
+        (onClick)="pauseAllSelected()"
+        [disabled]="selection.selected.length === 0"
+        pTooltip="Pause inference for selected models"
+        tooltipPosition="top"
+      />
+      <p-button
+        icon="pi pi-play-circle"
+        [rounded]="true"
+        [text]="true"
+        (onClick)="unpauseAllSelected()"
+        [disabled]="selection.selected.length === 0"
+        pTooltip="Resume inference for selected models"
+        tooltipPosition="top"
+      />
+      <p-button
+        icon="pi pi-trash"
+        [rounded]="true"
+        [text]="true"
+        severity="danger"
+        (onClick)="deleteSelected()"
+        [disabled]="selection.selected.length === 0"
+        pTooltip="Delete selected models"
+        tooltipPosition="top"
+      />
+    </div>
+  </p-toolbar>
+
+  <!-- Search Mode Toolbar -->
+  <p-toolbar *ngIf="textSearchMode" class="configurations-toolbar">
+    <div class="p-toolbar-group-start">
+      <i class="pi pi-search toolbar-search-icon"></i>
+      <span class="p-input-icon-left search-input-wrapper">
+        <input
+          #searchInput
+          pInputText
+          [formControl]="textSearch"
+          (input)="onGlobalFilter($event)"
+          placeholder="{{ 'common.enter-search' | translate }}"
+          class="search-input"
+        />
+      </span>
+    </div>
+    <div class="p-toolbar-group-end">
+      <p-button
+        icon="pi pi-times"
+        [rounded]="true"
+        [text]="true"
+        (onClick)="textSearchMode = false; globalFilter = ''; refreshConfigurations()"
+      />
+    </div>
+  </p-toolbar>
+
+  <!-- Data Table -->
+  <p-table
+    [value]="configurations"
+    [lazy]="true"
+    [paginator]="true"
+    [rows]="rows"
+    [first]="first"
+    [totalRecords]="totalElements"
+    [rowsPerPageOptions]="pageSizeOptions"
+    [loading]="isLoading"
+    [tableStyle]="{ 'min-width': '70rem' }"
+    (onPage)="onPageChange($event)"
+    selectionMode="multiple"
+    [metaKeySelection]="true"
+    (onRowSelect)="onRowSelect($event.data)"
+    dataKey="id"
+    responsiveLayout="scroll"
+    [globalFilterFields]="['name', 'deviceName', 'deviceLabel', 'forecastAlgorithm', 'anomalyAlgorithm']"
+  >
+    <ng-template pTemplate="header">
+      <tr>
+        <th style="width: 3rem">
+          <p-tableHeaderCheckbox (onChange)="toggleAllRows()" />
+        </th>
+        <th pSortableColumn="createdTime">Created Time <p-sortIcon field="createdTime" /></th>
+        <th pSortableColumn="name">Model Name <p-sortIcon field="name" /></th>
+        <th pSortableColumn="deviceName">Device Name <p-sortIcon field="deviceName" /></th>
+        <th pSortableColumn="deviceLabel">Device Label <p-sortIcon field="deviceLabel" /></th>
+        <th pSortableColumn="forecastAlgorithm">Forecast Algorithm <p-sortIcon field="forecastAlgorithm" /></th>
+        <th pSortableColumn="anomalyAlgorithm">Anomaly Algorithm <p-sortIcon field="anomalyAlgorithm" /></th>
+        <th style="width: 12rem">Actions</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-element>
+      <tr (click)="viewConfiguration(element)" class="clickable-row">
+        <td>
+          <p-tableCheckbox [value]="element" (onClick)="$event.stopPropagation()" />
+        </td>
+        <td>{{ element.createdTime | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+        <td>{{ element.name }}</td>
+        <td>{{ element.deviceName }}</td>
+        <td>{{ element.deviceLabel }}</td>
+        <td>{{ element.forecastAlgorithm }}</td>
+        <td>{{ element.anomalyAlgorithm }}</td>
+        <td>
+          <p-button
+            icon="pi pi-eye"
+            [rounded]="true"
+            [text]="true"
+            severity="info"
+            size="small"
+            (onClick)="$event.stopPropagation(); viewConfiguration(element)"
+            pTooltip="View Model"
+            tooltipPosition="top"
+          />
+          <p-button
+            icon="pi pi-pause-circle"
+            [rounded]="true"
+            [text]="true"
+            severity="warn"
+            size="small"
+            (onClick)="$event.stopPropagation(); pauseConfig(element)"
+            pTooltip="Pause inference"
+            tooltipPosition="top"
+          />
+          <p-button
+            icon="pi pi-play-circle"
+            [rounded]="true"
+            [text]="true"
+            severity="success"
+            size="small"
+            (onClick)="$event.stopPropagation(); unpauseConfig(element)"
+            pTooltip="Resume inference"
+            tooltipPosition="top"
+          />
+          <p-button
+            icon="pi pi-trash"
+            [rounded]="true"
+            [text]="true"
+            severity="danger"
+            size="small"
+            (onClick)="$event.stopPropagation(); deleteConfiguration(element)"
+            pTooltip="Delete Model"
+            tooltipPosition="top"
+          />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="8" class="empty-message">No predictive models found.</td>
+      </tr>
+    </ng-template>
+  </p-table>
 </div>

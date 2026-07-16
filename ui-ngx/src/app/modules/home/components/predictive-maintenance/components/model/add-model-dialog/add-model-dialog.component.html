@@ -15,531 +15,369 @@
     limitations under the License.
 
 -->
-<h2 mat-dialog-title>{{ isEditMode ? "Edit Model" : "Create Your Model" }}</h2>
+<h2 mat-dialog-title>{{ isEditMode ? 'Edit Model' : 'Create Your Model' }}</h2>
 
 <mat-dialog-content class="dialog-content">
-  <!-- Progress Bar -->
-  <div class="progress-container">
-    <div class="progress-steps">
-      <div
-        class="step"
-        [class.active]="currentStep === 1"
-        [class.completed]="currentStep > 1"
-      >
-        <div class="step-number" [class.edit-mode]="isEditMode">
-          {{ isEditMode ? "✎" : "1" }}
-        </div>
-        <div class="step-label">
-          {{ isEditMode ? "Edit Model" : "Basic Info" }}
-        </div>
-      </div>
-      <div class="progress-line" [class.active]="currentStep > 1"></div>
-      <div
-        class="step"
-        [class.active]="currentStep === 2"
-        [class.completed]="currentStep > 2"
-      >
-        <div class="step-number" [class.edit-mode]="isEditMode">
-          {{ isEditMode ? "📊" : "2" }}
-        </div>
-        <div class="step-label">
-          {{ isEditMode ? "Update Data" : "Telemetry & Attributes" }}
-        </div>
-      </div>
-      <div class="progress-line" [class.active]="currentStep > 2"></div>
-      <div
-        class="step"
-        [class.active]="currentStep === 3"
-        [class.completed]="currentStep > 3"
-      >
-        <div class="step-number" [class.edit-mode]="isEditMode">
-          {{ isEditMode ? "⚙" : "3" }}
-        </div>
-        <div class="step-label">
-          {{ isEditMode ? "Update Settings" : "Algorithms & Dates" }}
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- PrimeNG Stepper Wizard -->
+  <p-stepper [activeStep]="currentStep - 1" [linear]="true" (onStepChange)="currentStep = $event.index + 1">
 
-  <!-- Step 1: Basic Info -->
-  <div *ngIf="currentStep === 1" class="step-content">
-    <!-- Edit mode indicator -->
-    <div *ngIf="isEditMode" class="edit-mode-banner">
-      <mat-icon>edit</mat-icon>
-      <span>Editing existing model</span>
-    </div>
+    <!-- Step 1: Basic Info -->
+    <p-stepper-panel [header]="isEditMode ? 'Edit Model' : 'Basic Info'">
+      <div class="step-content">
+        <div *ngIf="isEditMode" class="edit-mode-banner">
+          <i class="pi pi-pencil"></i>
+          <span>Editing existing model</span>
+        </div>
 
-    <mat-label>Model Name:</mat-label>
-    <mat-form-field appearance="outline" class="full-width">
-      <input
-        matInput
-        [formControl]="forecastNameControl"
-        placeholder="Enter model name"
-        [attr.aria-label]="'Model name input'"
-      />
-      <mat-error
-        *ngIf="forecastNameControl.invalid && forecastNameControl.touched"
-        >Model name is required.</mat-error
-      >
-    </mat-form-field>
+        <div class="field">
+          <label for="modelName" class="field-label">Model Name</label>
+          <input
+            pInputText
+            id="modelName"
+            [formControl]="forecastNameControl"
+            placeholder="Enter model name"
+            class="w-full"
+            [attr.aria-label]="'Model name input'"
+          />
+          <small
+            class="p-error"
+            *ngIf="forecastNameControl.invalid && forecastNameControl.touched"
+          >Model name is required.</small>
+        </div>
 
-    <!-- Autocomplete for device selection -->
-    <mat-label>Device Name:</mat-label>
-    <mat-form-field appearance="outline" class="full-width">
-      <input
-        type="text"
-        matInput
-        [formControl]="myControl"
-        [matAutocomplete]="auto"
-        [matAutocompleteDisabled]="isEditMode"
-        [class.readonly-device-input]="isEditMode"
-        #deviceInput
-        (focus)="onDeviceInputFocus()"
-        (click)="onDeviceInputClick($event)"
-        (keydown.arrowDown)="onArrowDown($event)"
-        placeholder="e.g., Temperature Sensor 01, Motor Controller A..."
-        [attr.aria-label]="'Device name input'"
-      />
-      <mat-autocomplete
-        #auto="matAutocomplete"
-        [displayWith]="displayFn"
-        autoActiveFirstOption
-        (opened)="onAutocompleteOpened()"
-        (optionSelected)="onDeviceSelected($event.option.value)"
-      >
-        <mat-option *ngIf="isLoadingDevices" disabled>
-          Loading devices...
-        </mat-option>
-        <mat-option
-          *ngFor="let device of filteredDevices | async"
-          [value]="device"
-        >
-          {{ device.name }}
-        </mat-option>
-        <mat-option
-          *ngIf="!isLoadingDevices && isDevicesPrefetched && devicesList.length === 0"
-          disabled
-        >
-          No devices found
-        </mat-option>
-      </mat-autocomplete>
-      <mat-hint *ngIf="devicesList.length > 0">
-        {{ getDeviceNamesHint() }}
-      </mat-hint>
-    </mat-form-field>
-
-    <!-- Message if no telemetry available -->
-    <div
-      *ngIf="selectedDevice && noTelemetryMessage"
-      class="no-telemetry-message small-text"
-    >
-      <mat-icon class="info-icon">warning</mat-icon>
-      {{ noTelemetryMessage }}
-    </div>
-  </div>
-
-  <!-- Step 2: Telemetry & Attributes -->
-  <div *ngIf="currentStep === 2" class="step-content">
-    <!-- Fields with telemetry attributes -->
-    <div class="fields-container">
-      <mat-label *ngIf="selectedDevice && availableTelemetry.length > 0"
-        >Time-Series Keys (Optional):</mat-label
-      >
-      <p
-        *ngIf="
-          selectedDevice && fields.length === 0 && availableTelemetry.length > 0
-        "
-        class="optional-message"
-      >
-        <mat-icon class="info-icon">info</mat-icon>
-        Select time-series keys (ts_kv) from the database for specific
-        forecasting, or proceed without them for general model creation.
-      </p>
-      <div *ngFor="let field of fields; let i = index" class="field-wrapper">
-        <div class="field-header">
-          <!-- Button to remove the field -->
-          <button
-            mat-icon-button
-            (click)="removeField(i)"
-            class="delete_button"
-            [attr.aria-label]="'Remove time-series key ' + (i + 1)"
+        <div class="field">
+          <label for="deviceSearch" class="field-label">Device Name</label>
+          <p-autoComplete
+            id="deviceSearch"
+            [formControl]="myControl"
+            [suggestions]="filteredDevices"
+            [completeMethod]="onDeviceComplete.bind(this)"
+            [dropdown]="true"
+            [disabled]="isEditMode"
+            optionLabel="name"
+            [style]="{ width: '100%' }"
+            placeholder="e.g., Temperature Sensor 01, Motor Controller A..."
+            (onSelect)="onDeviceSelected($event)"
+            [attr.aria-label]="'Device name input'"
           >
-            <mat-icon>remove_circle</mat-icon>
-          </button>
-          <span class="field-title">Time-Series Key {{ i + 1 }}</span>
+            <ng-template pTemplate="item" let-device>
+              <span>{{ device.name }}</span>
+            </ng-template>
+            <ng-template pTemplate="empty">
+              <span *ngIf="isLoadingDevices">Loading devices...</span>
+              <span *ngIf="!isLoadingDevices && isDevicesPrefetched && devicesList.length === 0">No devices found</span>
+            </ng-template>
+          </p-autoComplete>
+          <small class="field-hint" *ngIf="devicesList.length > 0">{{ getDeviceNamesHint() }}</small>
         </div>
 
-        <div class="field-row">
-          <!-- Select dropdown for telemetry keys from database -->
-          <div class="field-item">
-            <mat-label>Sensor Name:</mat-label>
-            <mat-form-field appearance="outline" class="input-field">
-              <mat-select
-                [(ngModel)]="field.key"
-                placeholder="Select from database"
-                [attr.aria-label]="'Time-series key ' + (i + 1) + ' selection'"
-              >
-                <mat-option
-                  *ngFor="let telemetry of getFilteredTelemetry(i)"
-                  [value]="telemetry"
-                >
-                  {{ telemetry }}
-                </mat-option>
-              </mat-select>
-              <mat-hint>
-                Select from available ts_kv keys in database
-              </mat-hint>
-            </mat-form-field>
-          </div>
+        <div
+          *ngIf="selectedDevice && noTelemetryMessage"
+          class="no-telemetry-message"
+        >
+          <i class="pi pi-exclamation-triangle info-icon"></i>
+          {{ noTelemetryMessage }}
+        </div>
+      </div>
+      <div class="flex pt-4 justify-end">
+        <p-button
+          label="Next"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+          (onClick)="nextStep()"
+          [disabled]="!isCurrentStepValid()"
+        />
+      </div>
+    </p-stepper-panel>
 
-          <!-- Aggregation function dropdown for this sensor -->
-          <div class="field-item">
-            <mat-label>Aggregation Function:</mat-label>
-            <mat-form-field appearance="outline" class="input-field">
-              <mat-select
-                [(ngModel)]="field.aggregation"
-                placeholder="Select aggregation function"
-                [attr.aria-label]="'Aggregation function for ' + (i + 1)"
-              >
-                <mat-option
-                  *ngFor="let agg of aggregationOptions"
-                  [value]="agg.value"
-                >
-                  {{ agg.label }}
-                </mat-option>
-              </mat-select>
-              <mat-hint>
-                How to aggregate data points within time intervals
-              </mat-hint>
-            </mat-form-field>
-          </div>
+    <!-- Step 2: Telemetry & Attributes -->
+    <p-stepper-panel [header]="isEditMode ? 'Update Data' : 'Telemetry & Attributes'">
+      <div class="step-content">
+        <div class="fields-container">
+          <label *ngIf="selectedDevice && availableTelemetry.length > 0" class="field-label">
+            Time-Series Keys (Optional)
+          </label>
+          <p
+            *ngIf="selectedDevice && fields.length === 0 && availableTelemetry.length > 0"
+            class="optional-message"
+          >
+            <i class="pi pi-info-circle info-icon"></i>
+            Select time-series keys (ts_kv) from the database for specific forecasting, or proceed without them for general model creation.
+          </p>
 
-          <!-- Group By interval dropdown for this sensor -->
-          <div class="field-item">
-            <div class="group-by-header">
-              <mat-label>Group By Interval:</mat-label>
+          <div *ngFor="let field of fields; let i = index" class="field-wrapper">
+            <div class="field-header">
               <button
-                mat-button
-                class="advanced-button"
-                (click)="toggleCustomTime(i)"
-                type="button"
-                [attr.aria-label]="
-                  'Toggle advanced time input for field ' + (i + 1)
-                "
-              >
-                <mat-icon>{{
-                  isCustomTime(i) ? "arrow_back" : "schedule"
-                }}</mat-icon>
-                {{ isCustomTime(i) ? "Presets" : "Advanced" }}
-              </button>
+                pButton
+                icon="pi pi-times-circle"
+                class="p-button-text p-button-danger p-button-sm delete-button"
+                (click)="removeField(i)"
+                [attr.aria-label]="'Remove time-series key ' + (i + 1)"
+              ></button>
+              <span class="field-title">Time-Series Key {{ i + 1 }}</span>
             </div>
-            <mat-form-field
-              appearance="outline"
-              class="input-field"
-              *ngIf="!isCustomTime(i)"
-            >
-              <mat-select
-                [(ngModel)]="field.groupByMs"
-                placeholder="Select time interval"
-                [attr.aria-label]="'Group by interval for ' + (i + 1)"
-              >
-                <mat-option
-                  *ngFor="let groupBy of groupByOptions"
-                  [value]="groupBy.value"
-                >
-                  {{ groupBy.label }}
-                </mat-option>
-              </mat-select>
-              <mat-hint> Time interval for data grouping </mat-hint>
-            </mat-form-field>
 
-            <!-- Custom time inputs (inline when Advanced is selected) -->
-            <div *ngIf="isCustomTime(i)" class="custom-time-inline">
-              <div class="custom-time-inputs">
-                <mat-form-field appearance="outline" class="time-input">
-                  <mat-label>Hours</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    min="0"
-                    max="23"
-                    [(ngModel)]="customTimeFields[i].hours"
-                    (ngModelChange)="updateCustomTime(i)"
-                    placeholder="0-23"
-                    [attr.aria-label]="'Hours for field ' + (i + 1)"
-                  />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="time-input">
-                  <mat-label>Minutes</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    min="0"
-                    max="59"
-                    [(ngModel)]="customTimeFields[i].minutes"
-                    (ngModelChange)="updateCustomTime(i)"
-                    placeholder="0-59"
-                    [attr.aria-label]="'Minutes for field ' + (i + 1)"
-                  />
-                </mat-form-field>
-                <mat-form-field appearance="outline" class="time-input">
-                  <mat-label>Seconds</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    min="0"
-                    max="59"
-                    [(ngModel)]="customTimeFields[i].seconds"
-                    (ngModelChange)="updateCustomTime(i)"
-                    placeholder="0-59"
-                    [attr.aria-label]="'Seconds for field ' + (i + 1)"
-                  />
-                </mat-form-field>
+            <div class="field-row">
+              <div class="field-item">
+                <label class="field-label">Sensor Name</label>
+                <p-select
+                  [options]="getFilteredTelemetry(i)"
+                  [(ngModel)]="field.key"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select from database"
+                  [style]="{ width: '100%' }"
+                  [attr.aria-label]="'Time-series key ' + (i + 1) + ' selection'"
+                />
               </div>
-              <mat-hint class="custom-hint"
-                >Specify custom time interval using hours, minutes, and
-                seconds</mat-hint
-              >
+
+              <div class="field-item">
+                <label class="field-label">Aggregation Function</label>
+                <p-select
+                  [options]="aggregationOptions"
+                  [(ngModel)]="field.aggregation"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select aggregation"
+                  [style]="{ width: '100%' }"
+                  [attr.aria-label]="'Aggregation function for ' + (i + 1)"
+                />
+              </div>
+
+              <div class="field-item">
+                <div class="group-by-header">
+                  <label class="field-label">Group By Interval</label>
+                  <button
+                    pButton
+                    [label]="isCustomTime(i) ? 'Presets' : 'Advanced'"
+                    [icon]="isCustomTime(i) ? 'pi pi-arrow-left' : 'pi pi-clock'"
+                    class="p-button-text p-button-sm advanced-button"
+                    (click)="toggleCustomTime(i)"
+                    type="button"
+                  ></button>
+                </div>
+                <p-select
+                  *ngIf="!isCustomTime(i)"
+                  [options]="groupByOptions"
+                  [(ngModel)]="field.groupByMs"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Select time interval"
+                  [style]="{ width: '100%' }"
+                  [attr.aria-label]="'Group by interval for ' + (i + 1)"
+                />
+                <div *ngIf="isCustomTime(i)" class="custom-time-inline">
+                  <div class="custom-time-inputs">
+                    <div class="time-input">
+                      <label class="field-label-sm">Hours</label>
+                      <input
+                        pInputText
+                        type="number"
+                        min="0"
+                        max="23"
+                        [(ngModel)]="customTimeFields[i].hours"
+                        (ngModelChange)="updateCustomTime(i)"
+                        placeholder="0-23"
+                        class="w-full"
+                      />
+                    </div>
+                    <div class="time-input">
+                      <label class="field-label-sm">Minutes</label>
+                      <input
+                        pInputText
+                        type="number"
+                        min="0"
+                        max="59"
+                        [(ngModel)]="customTimeFields[i].minutes"
+                        (ngModelChange)="updateCustomTime(i)"
+                        placeholder="0-59"
+                        class="w-full"
+                      />
+                    </div>
+                    <div class="time-input">
+                      <label class="field-label-sm">Seconds</label>
+                      <input
+                        pInputText
+                        type="number"
+                        min="0"
+                        max="59"
+                        [(ngModel)]="customTimeFields[i].seconds"
+                        (ngModelChange)="updateCustomTime(i)"
+                        placeholder="0-59"
+                        class="w-full"
+                      />
+                    </div>
+                  </div>
+                  <small class="custom-hint">Specify custom time interval using hours, minutes, and seconds</small>
+                </div>
+              </div>
             </div>
           </div>
+
+          <button
+            *ngIf="canAddField"
+            pButton
+            label="Add Telemetry Key"
+            icon="pi pi-plus-circle"
+            class="p-button-outlined"
+            (click)="addField()"
+            [disabled]="!selectedDevice || availableTelemetry.length === 0"
+          ></button>
+
+          <p
+            *ngIf="selectedDevice && availableTelemetry.length === 0"
+            class="no-keys-message"
+          >
+            <i class="pi pi-info-circle warning-icon"></i>
+            No time-series keys found in database for this device. Ensure the device has ts_kv data before adding attributes.
+          </p>
         </div>
-        <!-- End of field-row -->
       </div>
-      <!-- End of field wrapper -->
-
-      <!-- Button to add a new field -->
-      <button
-        *ngIf="canAddField"
-        mat-raised-button
-        color="primary"
-        (click)="addField()"
-        [disabled]="!selectedDevice || availableTelemetry.length === 0"
-        [attr.aria-label]="'Add new time-series key'"
-      >
-        <mat-icon>add_circle</mat-icon> Add Telemetry Key
-      </button>
-
-      <!-- Helper text when no telemetry available -->
-      <p
-        *ngIf="selectedDevice && availableTelemetry.length === 0"
-        class="no-keys-message"
-      >
-        <mat-icon class="warning-icon">info_outline</mat-icon>
-        No time-series keys found in database for this device. Ensure the device
-        has ts_kv data before adding attributes.
-      </p>
-    </div>
-  </div>
-
-  <!-- Step 3: Algorithms & Dates -->
-  <div *ngIf="currentStep === 3" class="step-content">
-    <!-- Forecast Date Range Section -->
-    <div class="global-date-section">
-      <mat-label>Forecast Date Range:</mat-label>
-      <div
-        class="date-time-range flex flex-col gap-2 sm:flex-row sm:gap-4"
-      >
-        <mat-form-field appearance="outline" class="flex-1">
-          <mat-label>Forecast Start Date & Time</mat-label>
-          <mat-datetimepicker-toggle
-            [for]="forecastStartPicker"
-            matSuffix
-          ></mat-datetimepicker-toggle>
-          <mat-datetimepicker
-            #forecastStartPicker
-            type="datetime"
-            openOnFocus="true"
-          ></mat-datetimepicker>
-          <input
-            matInput
-            [(ngModel)]="globalStartDate"
-            [matDatetimepicker]="forecastStartPicker"
-            placeholder="Select start date and time"
-            [attr.aria-label]="'Forecast start date and time'"
-          />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="flex-1">
-          <mat-label>Forecast End Date & Time</mat-label>
-          <mat-datetimepicker-toggle
-            [for]="forecastEndPicker"
-            matSuffix
-          ></mat-datetimepicker-toggle>
-          <mat-datetimepicker
-            #forecastEndPicker
-            type="datetime"
-            openOnFocus="true"
-          ></mat-datetimepicker>
-          <input
-            matInput
-            [(ngModel)]="globalEndDate"
-            [matDatetimepicker]="forecastEndPicker"
-            placeholder="Select end date and time"
-            [attr.aria-label]="'Forecast end date and time'"
-          />
-        </mat-form-field>
+      <div class="flex pt-4 justify-content-between">
+        <p-button
+          label="Previous"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          (onClick)="previousStep()"
+        />
+        <p-button
+          label="Next"
+          icon="pi pi-arrow-right"
+          iconPos="right"
+          (onClick)="nextStep()"
+          [disabled]="!isCurrentStepValid()"
+        />
       </div>
-      <mat-error
-        *ngIf="
-          globalStartDate && globalEndDate && globalStartDate >= globalEndDate
-        "
-      >
-        End date must be after start date
-      </mat-error>
-    </div>
+    </p-stepper-panel>
 
-    <!-- Forecast Algorithm Selection -->
-    <div
-      class="algorithm-section flex flex-row gap-2 max-sm:gap-0"
-    >
-      <div class="flex-1">
-        <mat-label>Select Algorithm for Forecast:</mat-label>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-select
+    <!-- Step 3: Algorithms & Dates -->
+    <p-stepper-panel [header]="isEditMode ? 'Update Settings' : 'Algorithms & Dates'">
+      <div class="step-content">
+        <!-- Forecast Date Range -->
+        <div class="global-date-section">
+          <label class="field-label">Forecast Date Range</label>
+          <div class="date-time-range">
+            <div class="field-item">
+              <label class="field-label-sm">Start Date & Time</label>
+              <p-calendar
+                [(ngModel)]="globalStartDate"
+                [showTime]="true"
+                [hourFormat]="'24'"
+                placeholder="Select start date and time"
+                [style]="{ width: '100%' }"
+                [attr.aria-label]="'Forecast start date and time'"
+              />
+            </div>
+            <div class="field-item">
+              <label class="field-label-sm">End Date & Time</label>
+              <p-calendar
+                [(ngModel)]="globalEndDate"
+                [showTime]="true"
+                [hourFormat]="'24'"
+                placeholder="Select end date and time"
+                [style]="{ width: '100%' }"
+                [attr.aria-label]="'Forecast end date and time'"
+              />
+            </div>
+          </div>
+          <small
+            class="p-error"
+            *ngIf="globalStartDate && globalEndDate && globalStartDate >= globalEndDate"
+          >End date must be after start date</small>
+        </div>
+
+        <!-- Forecast Algorithm -->
+        <div class="algorithm-section">
+          <label class="field-label">Select Algorithm for Forecast</label>
+          <p-select
+            [options]="forecastAlgorithmOptions"
             [formControl]="forecastAlgorithmControl"
+            optionLabel="label"
+            optionValue="value"
             placeholder="e.g., ARIMA, LSTM, Linear Regression..."
+            [style]="{ width: '100%' }"
             [attr.aria-label]="'Forecast algorithm selection'"
-          >
-            <mat-option
-              *ngFor="let algorithm of forecastAlgorithmOptions"
-              [value]="algorithm.value"
-            >
-              {{ algorithm.label }}
-            </mat-option>
-          </mat-select>
-          <mat-error
-            *ngIf="
-              forecastAlgorithmControl.invalid &&
-              forecastAlgorithmControl.touched
-            "
-          >
-            Please select a forecast algorithm
-          </mat-error>
-        </mat-form-field>
-      </div>
-    </div>
-
-    <!-- Anomalies Date Range Section -->
-    <div class="anomalies-date-section">
-      <mat-label>Date Range for Anomalies:</mat-label>
-      <div
-        class="date-time-range flex flex-row gap-2 max-sm:gap-0"
-      >
-        <mat-form-field appearance="outline" class="flex-1">
-          <mat-label>Anomalies Start Date & Time</mat-label>
-          <mat-datetimepicker-toggle
-            [for]="anomaliesStartPicker"
-            matSuffix
-          ></mat-datetimepicker-toggle>
-          <mat-datetimepicker
-            #anomaliesStartPicker
-            type="datetime"
-            openOnFocus="true"
-          ></mat-datetimepicker>
-          <input
-            matInput
-            [(ngModel)]="anomaliesStartDate"
-            [matDatetimepicker]="anomaliesStartPicker"
-            placeholder="Select start date and time"
-            [attr.aria-label]="'Anomalies start date and time'"
           />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="flex-1">
-          <mat-label>Anomalies End Date & Time</mat-label>
-          <mat-datetimepicker-toggle
-            [for]="anomaliesEndPicker"
-            matSuffix
-          ></mat-datetimepicker-toggle>
-          <mat-datetimepicker
-            #anomaliesEndPicker
-            type="datetime"
-            openOnFocus="true"
-          ></mat-datetimepicker>
-          <input
-            matInput
-            [(ngModel)]="anomaliesEndDate"
-            [matDatetimepicker]="anomaliesEndPicker"
-            placeholder="Select end date and time"
-            [attr.aria-label]="'Anomalies end date and time'"
-          />
-        </mat-form-field>
-      </div>
-      <mat-error
-        *ngIf="
-          anomaliesStartDate &&
-          anomaliesEndDate &&
-          anomaliesStartDate >= anomaliesEndDate
-        "
-      >
-        End date must be after start date
-      </mat-error>
-    </div>
+          <small
+            class="p-error"
+            *ngIf="forecastAlgorithmControl.invalid && forecastAlgorithmControl.touched"
+          >Please select a forecast algorithm</small>
+        </div>
 
-    <!-- Anomalies Algorithm Selection -->
-    <div class="anomalies-algorithm-section">
-      <mat-label>Select Algorithm for Anomalies:</mat-label>
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-select
-          [formControl]="anomaliesAlgorithmControl"
-          placeholder="e.g., Isolation Forest, One-Class SVM, LOF..."
-          [attr.aria-label]="'Anomalies algorithm selection'"
-        >
-          <mat-option
-            *ngFor="let algorithm of anomaliesAlgorithmOptions"
-            [value]="algorithm.value"
-          >
-            {{ algorithm.label }}
-          </mat-option>
-        </mat-select>
-        <mat-error
-          *ngIf="
-            anomaliesAlgorithmControl.invalid &&
-            anomaliesAlgorithmControl.touched
-          "
-        >
-          Please select an anomalies algorithm
-        </mat-error>
-      </mat-form-field>
-    </div>
-  </div>
+        <!-- Anomalies Date Range -->
+        <div class="anomalies-date-section">
+          <label class="field-label">Date Range for Anomalies</label>
+          <div class="date-time-range">
+            <div class="field-item">
+              <label class="field-label-sm">Start Date & Time</label>
+              <p-calendar
+                [(ngModel)]="anomaliesStartDate"
+                [showTime]="true"
+                [hourFormat]="'24'"
+                placeholder="Select start date and time"
+                [style]="{ width: '100%' }"
+                [attr.aria-label]="'Anomalies start date and time'"
+              />
+            </div>
+            <div class="field-item">
+              <label class="field-label-sm">End Date & Time</label>
+              <p-calendar
+                [(ngModel)]="anomaliesEndDate"
+                [showTime]="true"
+                [hourFormat]="'24'"
+                placeholder="Select end date and time"
+                [style]="{ width: '100%' }"
+                [attr.aria-label]="'Anomalies end date and time'"
+              />
+            </div>
+          </div>
+          <small
+            class="p-error"
+            *ngIf="anomaliesStartDate && anomaliesEndDate && anomaliesStartDate >= anomaliesEndDate"
+          >End date must be after start date</small>
+        </div>
+
+        <!-- Anomalies Algorithm -->
+        <div class="anomalies-algorithm-section">
+          <label class="field-label">Select Algorithm for Anomalies</label>
+          <p-select
+            [options]="anomaliesAlgorithmOptions"
+            [formControl]="anomaliesAlgorithmControl"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="e.g., Isolation Forest, One-Class SVM, LOF..."
+            [style]="{ width: '100%' }"
+            [attr.aria-label]="'Anomalies algorithm selection'"
+          />
+          <small
+            class="p-error"
+            *ngIf="anomaliesAlgorithmControl.invalid && anomaliesAlgorithmControl.touched"
+          >Please select an anomalies algorithm</small>
+        </div>
+      </div>
+      <div class="flex pt-4 justify-content-between">
+        <p-button
+          label="Previous"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          (onClick)="previousStep()"
+        />
+        <p-button
+          [label]="isEditMode ? 'Update Model' : 'Create Model'"
+          icon="pi pi-check"
+          iconPos="right"
+          (onClick)="onConfirm()"
+          [disabled]="!isFormValid"
+        />
+      </div>
+    </p-stepper-panel>
+  </p-stepper>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button
-    mat-button
-    (click)="onCancel()"
-    [attr.aria-label]="'Cancel forecast creation'"
-  >
-    Cancel
-  </button>
-  <button
-    *ngIf="currentStep > 1"
-    mat-button
-    (click)="previousStep()"
-    [attr.aria-label]="'Go to previous step'"
-  >
-    <mat-icon>arrow_back</mat-icon> Previous
-  </button>
-  <button
-    *ngIf="currentStep < totalSteps"
-    mat-raised-button
-    color="primary"
-    [disabled]="!isCurrentStepValid()"
-    (click)="nextStep()"
-    [attr.aria-label]="'Go to next step'"
-  >
-    Next <mat-icon>arrow_forward</mat-icon>
-  </button>
-  <button
-    *ngIf="currentStep === totalSteps"
-    mat-raised-button
-    color="primary"
-    [disabled]="!isFormValid"
-    (click)="onConfirm()"
-    [attr.aria-label]="
-      isEditMode ? 'Confirm and update forecast' : 'Confirm and create forecast'
-    "
-  >
-    {{ isEditMode ? "Update Model" : "Create Model" }}
-  </button>
+  <p-button
+    label="Cancel"
+    severity="secondary"
+    (onClick)="onCancel()"
+  />
 </mat-dialog-actions>

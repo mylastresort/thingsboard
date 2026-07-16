@@ -14,35 +14,21 @@
  * limitations under the License.
  */
 
-// Dark mode styling - Apply to the dialog container globally
+// Dialog container dark mode
 ::ng-deep .tb-dark .mat-mdc-dialog-container {
-  background: #1c1c1c !important; // Same as sidenav background
-  color: rgba(255, 255, 255, 0.87) !important; // Light text for dark background
-  border-radius: 10px !important; // Add border radius
+  background: #1c1c1c !important;
+  color: rgba(255, 255, 255, 0.87) !important;
+  border-radius: 10px !important;
 }
 
-// Edit mode styling - Add subtle border like forecast chart
-::ng-deep .mat-mdc-dialog-container.edit-mode {
-  border: 1px solid #5d5d5d91 !important;
-  box-shadow: none !important;
-}
-
-::ng-deep .tb-dark .mat-mdc-dialog-container.edit-mode {
-  border: 1px solid #3f4449 !important;
-  box-shadow: none !important;
-}
-
-// General dialog container styling - Apply border radius for all themes
 ::ng-deep .mat-mdc-dialog-container {
   border-radius: 10px !important;
 }
 
-// Dark mode styling for dialog title
 ::ng-deep .tb-dark .mat-mdc-dialog-title {
   color: rgba(255, 255, 255, 0.87) !important;
 }
 
-// Dark mode styling for dialog content
 ::ng-deep .tb-dark .mat-mdc-dialog-content {
   color: rgba(255, 255, 255, 0.87) !important;
 }
@@ -50,131 +36,20 @@
 .dialog-content {
   display: flex;
   flex-direction: column;
-  // gap: 15px;
 }
 
-.readonly-device-input {
-  cursor: default;
-}
-
-// Progress Bar Styles
-.progress-container {
-  margin-bottom: 30px;
-  padding: 0 20px;
-}
-
-.progress-steps {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 2;
-}
-
-.step-number {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #e0e0e0;
-  color: #757575;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  font-size: 14px;
-  transition: all 0.3s ease;
-}
-
-.step-number.edit-mode {
-  background-color: #1976d2;
-  color: white;
-  font-size: 18px;
-}
-
-.step.active .step-number {
-  background-color: var(--tb-primary-color, #3f51b5);
-  color: white;
-}
-
-.step.completed .step-number {
-  background-color: var(--tb-success-color, #4caf50);
-  color: white;
-}
-
-.step-label {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #757575;
-  text-align: center;
-  font-weight: 500;
-  min-width: 80px;
-}
-
-.step.active .step-label {
-  color: var(--tb-primary-color, #3f51b5);
-}
-
-.step.completed .step-label {
-  color: var(--tb-success-color, #4caf50);
-}
-
-.progress-line {
-  flex: 1;
-  height: 2px;
-  background-color: #e0e0e0;
-  margin: 0 20px;
-  position: relative;
-  top: -16px;
-  transition: background-color 0.3s ease;
-}
-
-.progress-line.active {
-  background-color: var(--tb-primary-color, #3f51b5);
-}
-
-// Dark mode styles for progress bar
-::ng-deep .tb-dark .step-number {
-  background-color: #424242;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-::ng-deep .tb-dark .step.active .step-number {
-  background-color: var(--tb-primary-color, #3f51b5);
-  color: white;
-}
-
-::ng-deep .tb-dark .step.completed .step-number {
-  background-color: var(--tb-success-color, #4caf50);
-  color: white;
-}
-
-::ng-deep .tb-dark .step-label {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-::ng-deep .tb-dark .step.active .step-label {
-  color: var(--tb-primary-color, #3f51b5);
-}
-
-::ng-deep .tb-dark .step.completed .step-label {
-  color: var(--tb-success-color, #4caf50);
-}
-
-::ng-deep .tb-dark .progress-line {
-  background-color: #424242;
-}
-
-// Step content styles
+// Step content
 .step-content {
   animation: fadeIn 0.3s ease-in-out;
+  padding: 1rem 0;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+// Edit mode banner
 .edit-mode-banner {
   display: flex;
   align-items: center;
@@ -186,12 +61,6 @@
   margin-bottom: 16px;
   font-size: 0.875rem;
   color: #1565c0;
-
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
 }
 
 ::ng-deep .tb-dark .edit-mode-banner {
@@ -199,53 +68,47 @@
   color: #42a5f5;
 }
 
-.step-title {
-  font-size: 1.2rem;
+// Field labels
+.field-label {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-bottom: 4px;
+  margin-top: 12px;
   font-weight: 500;
-  margin-bottom: 20px;
-  color: rgba(0, 0, 0, 0.87);
+  color: rgba(0, 0, 0, 0.6);
 }
 
-::ng-deep .tb-dark .step-title {
-  color: rgba(255, 255, 255, 0.87);
+::ng-deep .tb-dark .field-label {
+  color: rgba(255, 255, 255, 0.6);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.field-label-sm {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-bottom: 2px;
+  margin-top: 8px;
+  color: rgba(0, 0, 0, 0.5);
 }
 
-// Dialog actions styling
-::ng-deep .mat-mdc-dialog-actions {
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
-  margin-top: 20px;
+::ng-deep .tb-dark .field-label-sm {
+  color: rgba(255, 255, 255, 0.5);
 }
 
-::ng-deep .tb-dark .mat-mdc-dialog-actions {
-  border-top: 1px solid #424242;
+.field-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.5);
+  margin-top: 4px;
 }
 
-// Button spacing in dialog actions
-::ng-deep .mat-mdc-dialog-actions button {
-  margin-left: 8px;
+::ng-deep .tb-dark .field-hint {
+  color: rgba(255, 255, 255, 0.5);
 }
 
-::ng-deep .mat-mdc-dialog-actions button:first-child {
-  margin-left: 0;
-}
-
-// Enhanced dialog content padding
-::ng-deep .mat-mdc-dialog-content {
-  padding: 20px 24px;
-  max-height: 70vh;
-  overflow-y: auto;
+.field {
+  margin-bottom: 8px;
 }
 
 .no-telemetry-message {
@@ -261,10 +124,19 @@
   border-left: 3px solid #2196f3;
 }
 
-// Dark mode styles for no telemetry message
 ::ng-deep .tb-dark .no-telemetry-message {
   color: rgba(33, 150, 243, 0.9);
   background-color: rgba(33, 150, 243, 0.15);
+}
+
+.info-icon {
+  font-size: 16px;
+  color: #2196f3;
+}
+
+.warning-icon {
+  font-size: 16px;
+  color: #ff9800;
 }
 
 .optional-message {
@@ -280,27 +152,11 @@
   border-left: 3px solid #2196f3;
 }
 
-.info-icon {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  color: #2196f3;
-}
-
-.warning-icon {
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-  color: #ff9800;
-}
-
-// Dark mode styles for optional message
 ::ng-deep .tb-dark .optional-message {
   color: rgba(255, 255, 255, 0.7);
   background-color: rgba(33, 150, 243, 0.15);
 }
 
-// No keys message styling
 .no-keys-message {
   font-size: 0.875rem;
   color: rgba(255, 152, 0, 0.8);
@@ -314,26 +170,34 @@
   border-left: 3px solid #ff9800;
 }
 
-// Dark mode styles for no keys message
 ::ng-deep .tb-dark .no-keys-message {
   color: rgba(255, 152, 0, 0.9);
   background-color: rgba(255, 152, 0, 0.15);
 }
 
-.full-width {
-  margin-top: 0px; // Remove top margin to position closer to label
-  margin-bottom: 0px; // Remove bottom margin to position labels closer
-  width: 100%;
-}
-
-.date-field {
-  width: calc(50% - 10px);
-}
-
+// Fields container
 .fields-container {
   display: flex;
   flex-direction: column;
-  gap: 0px;
+  gap: 0;
+}
+
+// Date and time range
+.date-time-range {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    gap: 16px;
+  }
+}
+
+.field-item {
+  flex: 1;
+  min-width: 0;
 }
 
 .global-date-section,
@@ -341,282 +205,12 @@
 .anomalies-date-section,
 .anomalies-algorithm-section {
   margin: 16px 0;
-
-  mat-label {
-    color: rgba(0, 0, 0, 0.6);
-    font-weight: 500;
-  }
 }
 
-// Date and time picker range styling
-.date-time-range {
-  margin-top: 8px;
-
-  mat-form-field {
-    margin: 0;
-  }
-}
-
-// Dark mode styling for all sections
-::ng-deep .tb-dark .global-date-section,
-::ng-deep .tb-dark .algorithm-section,
-::ng-deep .tb-dark .anomalies-date-section,
-::ng-deep .tb-dark .anomalies-algorithm-section {
-  mat-label {
-    color: rgba(255, 255, 255, 0.6) !important;
-  }
-}
-
-// Dark mode styling for date time range
-::ng-deep .tb-dark .date-time-range {
-  mat-form-field {
-    .mat-mdc-text-field-wrapper {
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-  }
-}
-
-// Date picker selected date styling with maximum specificity
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected
-  .mat-calendar-body-cell-content {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-// Dark theme overrides
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected
-  .mat-calendar-body-cell-content {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-// Date range picker selected range styling with maximum specificity
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start,
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content,
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-// Fix for in-range dates (dates between start and end)
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range {
-  background-color: rgba(var(--tb-primary-color-rgb), 0.3) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range
-  .mat-calendar-body-cell-content {
-  background-color: transparent !important;
-  color: #000000 !important;
-}
-
-// Dark theme range selection
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start,
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content,
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-// Dark theme in-range dates
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range {
-  background-color: rgba(var(--tb-primary-color-rgb), 0.3) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range
-  .mat-calendar-body-cell-content {
-  background-color: transparent !important;
-  color: #000000 !important;
-}
-
-// Hover states for better UX
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-cell:not(.mat-calendar-body-disabled):hover
-  > .mat-calendar-body-cell-content:not(.mat-calendar-body-selected):not(
-    .mat-calendar-body-comparison-identical
-  ) {
-  background-color: rgba(var(--tb-primary-color-rgb), 0.3) !important;
-}
-
-// Ensure proper contrast for today's date
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-today:not(.mat-calendar-body-selected) {
-  border-color: var(--tb-primary-color) !important;
-}
-
-// Date range picker selected range styling with maximum specificity
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start,
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content,
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range {
-  background-color: rgba(var(--tb-primary-color-rgb), 0.2) !important;
-}
-
-// Dark theme range selection
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start,
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content,
-::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-  background-color: var(--tb-primary-color) !important;
-  color: #000000 !important;
-}
-
-// Hover states for better UX
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-cell:not(.mat-calendar-body-disabled):hover
-  > .mat-calendar-body-cell-content:not(.mat-calendar-body-selected):not(
-    .mat-calendar-body-comparison-identical
-  ) {
-  background-color: rgba(var(--tb-primary-color-rgb), 0.3) !important;
-}
-
-// Ensure proper contrast for today's date
-::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-today:not(.mat-calendar-body-selected) {
-  border-color: var(--tb-primary-color) !important;
-}
-
-// Field wrapper - contains each sensor configuration
+// Field wrapper
 .field-wrapper {
-  margin-bottom: 20px;
-  padding: 16px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   background-color: rgba(0, 0, 0, 0.02);
@@ -627,7 +221,6 @@
   background-color: rgba(255, 255, 255, 0.02);
 }
 
-// Field header with delete button and title
 .field-header {
   display: flex;
   align-items: center;
@@ -651,7 +244,6 @@
   color: rgba(255, 255, 255, 0.87);
 }
 
-// Field row - contains the three dropdowns
 .field-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -659,32 +251,12 @@
   align-items: start;
 }
 
-// Each field item (sensor name, aggregation, group by)
-.field-item {
-  display: flex;
-  flex-direction: column;
-  min-width: 0; // Allow proper text truncation
+.delete-button {
+  width: 32px;
+  height: 32px;
 }
 
-.delete_button {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  min-width: 36px;
-}
-
-button {
-  margin: 0;
-}
-
-.input-field {
-  width: 100%;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-// Group by header with label and advanced button
+// Group by header
 .group-by-header {
   display: flex;
   align-items: center;
@@ -695,35 +267,9 @@ button {
 .advanced-button {
   font-size: 0.75rem;
   height: 28px;
-  line-height: 28px;
-  padding: 0 8px;
-  min-width: auto;
-  border-radius: 4px;
-  color: var(--tb-primary-color, #3f51b5);
-  background-color: rgba(var(--tb-primary-color-rgb, 63, 81, 181), 0.08);
-
-  mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    margin-right: 4px;
-  }
-
-  &:hover {
-    background-color: rgba(var(--tb-primary-color-rgb, 63, 81, 181), 0.12);
-  }
 }
 
-::ng-deep .tb-dark .advanced-button {
-  color: var(--tb-primary-color, #3f51b5);
-  background-color: rgba(var(--tb-primary-color-rgb, 63, 81, 181), 0.15);
-
-  &:hover {
-    background-color: rgba(var(--tb-primary-color-rgb, 63, 81, 181), 0.22);
-  }
-}
-
-// Custom time inline (shown in place of dropdown)
+// Custom time inputs
 .custom-time-inline {
   width: 100%;
   display: flex;
@@ -738,8 +284,6 @@ button {
 }
 
 .time-input {
-  margin: 0;
-
   input[type="number"] {
     text-align: center;
     font-size: 0.95rem;
@@ -757,346 +301,129 @@ button {
   color: rgba(33, 150, 243, 0.9);
 }
 
-// Dark mode styling for custom time inputs
-::ng-deep .tb-dark .custom-time-inline {
-  .time-input {
-    .mat-mdc-text-field-wrapper {
-      background-color: rgba(255, 255, 255, 0.05);
+// Dialog actions
+::ng-deep .mat-mdc-dialog-actions {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 8px;
+}
+
+::ng-deep .tb-dark .mat-mdc-dialog-actions {
+  border-top: 1px solid #424242;
+}
+
+// PrimeNG component dark theme overrides
+::ng-deep .tb-dark {
+  // Input fields
+  .p-inputtext,
+  .p-inputnumber-input,
+  .p-textarea {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.87);
+
+    &:enabled:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    &:enabled:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
     }
   }
+
+  // Select dropdown
+  .p-select {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+
+    &:not(.p-disabled):hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .p-select-label {
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+
+  // AutoComplete
+  .p-autocomplete {
+    .p-inputtext {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+
+  // Calendar
+  .p-calendar {
+    .p-inputtext {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+
+  // Stepper
+  .p-stepper {
+    .p-stepper-header {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .p-stepper-number {
+      background-color: #424242;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .p-stepper-header.p-highlight .p-stepper-number {
+      background-color: #6366f1;
+      color: white;
+    }
+
+    .p-stepper-header.p-highlight .p-stepper-title {
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+
+  // Dropdown panel
+  .p-select-overlay,
+  .p-autocomplete-panel,
+  .p-calendar-panel {
+    background-color: #2a2a2a;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.87);
+
+    .p-select-option,
+    .p-autocomplete-item,
+    .p-calendar-event {
+      color: rgba(255, 255, 255, 0.87);
+
+      &:not(.p-highlight):not(.p-disabled):hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      &.p-highlight {
+        background-color: #6366f1;
+        color: white;
+      }
+    }
+  }
+
+  // Buttons
+  .p-button {
+    &.p-button-secondary {
+      background-color: transparent;
+      border-color: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.87);
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+
+  // Error text
+  .p-error {
+    color: #f87171;
+  }
 }
-
-.date-container {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-// Styling for mat-label elements
-mat-label {
-  font-size: 0.75rem; // Smaller font size
-  opacity: 0.5; // 50% opacity
-  margin-bottom: 2px; // Very small margin to input below
-  margin-top: 8px; // Small margin from element above (except first one)
-  display: block; // Make it a block element for proper spacing
-
-  &:first-child {
-    margin-top: 0px; // No margin for first label
-  }
-}
-
-// Auto-generated dark theme — do not edit manually
-  .dark-theme ::ng-deep .tb-dark .mat-mdc-dialog-container {
-    background: #151718;
-    color: rgba(232, 230, 227, 0.87);
-  }
-  .dark-theme ::ng-deep .mat-mdc-dialog-container.edit-mode {
-    border: 1px solid rgba(109, 102, 90, 0.57);
-  }
-  .dark-theme ::ng-deep .tb-dark .mat-mdc-dialog-container.edit-mode {
-    border: 1px solid #766d61;
-  }
-  .dark-theme ::ng-deep .tb-dark .mat-mdc-dialog-title {
-    color: rgba(232, 230, 227, 0.87);
-  }
-  .dark-theme ::ng-deep .tb-dark .mat-mdc-dialog-content {
-    color: rgba(232, 230, 227, 0.87);
-  }
-  .dark-theme .step-number {
-    background-color: #2a2d2f;
-    color: #9e9689;
-  }
-  .dark-theme .step-number.edit-mode {
-    background-color: #145ea8;
-    color: #e8e6e3;
-  }
-  .dark-theme .step.active .step-number {
-    background-color: var(--tb-primary-color, #324191);
-    color: #e8e6e3;
-  }
-  .dark-theme .step.completed .step-number {
-    background-color: var(--tb-success-color, #3d8c40);
-    color: #e8e6e3;
-  }
-  .dark-theme .step-label {
-    color: #9e9689;
-  }
-  .dark-theme .step.active .step-label {
-    color: var(--tb-primary-color, #6d95cc);
-  }
-  .dark-theme .step.completed .step-label {
-    color: var(--tb-success-color, #61ba65);
-  }
-  .dark-theme .progress-line {
-    background-color: #2a2d2f;
-  }
-  .dark-theme .progress-line.active {
-    background-color: var(--tb-primary-color, #324191);
-  }
-  .dark-theme ::ng-deep .tb-dark .step-number {
-    background-color: #323638;
-    color: rgba(232, 230, 227, 0.7);
-  }
-  .dark-theme ::ng-deep .tb-dark .step.active .step-number {
-    background-color: var(--tb-primary-color, #324191);
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep .tb-dark .step.completed .step-number {
-    background-color: var(--tb-success-color, #3d8c40);
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep .tb-dark .step-label {
-    color: rgba(232, 230, 227, 0.7);
-  }
-  .dark-theme ::ng-deep .tb-dark .step.active .step-label {
-    color: var(--tb-primary-color, #6d95cc);
-  }
-  .dark-theme ::ng-deep .tb-dark .step.completed .step-label {
-    color: var(--tb-success-color, #61ba65);
-  }
-  .dark-theme ::ng-deep .tb-dark .progress-line {
-    background-color: #323638;
-  }
-  .dark-theme .edit-mode-banner {
-    background-color: rgba(20, 94, 168, 0.1);
-    border-left: 3px solid #145da5;
-    color: #5eabed;
-  }
-  .dark-theme ::ng-deep .tb-dark .edit-mode-banner {
-    background-color: rgba(20, 94, 168, 0.2);
-    color: #4aacf5;
-  }
-  .dark-theme .step-title {
-    color: rgba(232, 230, 227, 0.87);
-  }
-  .dark-theme ::ng-deep .tb-dark .step-title {
-    color: rgba(232, 230, 227, 0.87);
-  }
-  .dark-theme ::ng-deep .mat-mdc-dialog-actions {
-    border-top: 1px solid #393d40;
-  }
-  .dark-theme ::ng-deep .tb-dark .mat-mdc-dialog-actions {
-    border-top: 1px solid #766e61;
-  }
-  .dark-theme .no-telemetry-message {
-    color: rgba(51, 162, 244, 0.8);
-    background-color: rgba(10, 106, 182, 0.08);
-    border-left: 3px solid #095fa3;
-  }
-  .dark-theme ::ng-deep .tb-dark .no-telemetry-message {
-    color: rgba(51, 162, 244, 0.9);
-    background-color: rgba(10, 106, 182, 0.15);
-  }
-  .dark-theme .optional-message {
-    color: rgba(232, 230, 227, 0.6);
-    background-color: rgba(10, 106, 182, 0.08);
-    border-left: 3px solid #095fa3;
-  }
-  .dark-theme .info-icon {
-    color: #33a2f4;
-  }
-  .dark-theme .warning-icon {
-    color: #ffa21a;
-  }
-  .dark-theme ::ng-deep .tb-dark .optional-message {
-    color: rgba(232, 230, 227, 0.7);
-    background-color: rgba(10, 106, 182, 0.15);
-  }
-  .dark-theme .no-keys-message {
-    color: rgba(255, 162, 26, 0.8);
-    background-color: rgba(204, 122, 0, 0.08);
-    border-left: 3px solid #b36a00;
-  }
-  .dark-theme ::ng-deep .tb-dark .no-keys-message {
-    color: rgba(255, 162, 26, 0.9);
-    background-color: rgba(204, 122, 0, 0.15);
-  }
-  .dark-theme .global-date-section mat-label, .dark-theme .algorithm-section mat-label, .dark-theme .anomalies-date-section mat-label, .dark-theme .anomalies-algorithm-section mat-label {
-    color: rgba(232, 230, 227, 0.6);
-  }
-  .dark-theme ::ng-deep .tb-dark .global-date-section mat-label, .dark-theme ::ng-deep .tb-dark .algorithm-section mat-label, .dark-theme ::ng-deep .tb-dark .anomalies-date-section mat-label, .dark-theme ::ng-deep .tb-dark .anomalies-algorithm-section mat-label {
-    color: rgba(232, 230, 227, 0.6);
-  }
-  .dark-theme ::ng-deep .tb-dark .date-time-range mat-form-field .mat-mdc-text-field-wrapper {
-    background-color: rgba(24, 26, 27, 0.05);
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected
-  .mat-calendar-body-cell-content {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-selected
-  .mat-calendar-body-cell-content {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start, .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content, .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range
-  .mat-calendar-body-cell-content {
-    background-color: rgba(0, 0, 0, 0);
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start, .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content, .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-in-range
-  .mat-calendar-body-cell-content {
-    background-color: rgba(0, 0, 0, 0);
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start, .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content, .dark-theme ::ng-deep
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start, .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end {
-    color: #e8e6e3;
-  }
-  .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-start
-  .mat-calendar-body-cell-content, .dark-theme ::ng-deep
-  .tb-dark
-  .cdk-overlay-container
-  .mat-datepicker-popup
-  .mat-calendar-body-range-end
-  .mat-calendar-body-cell-content {
-    color: #e8e6e3;
-  }
-  .dark-theme .field-wrapper {
-    border: 1px solid rgba(140, 130, 115, 0.12);
-  }
-  .dark-theme ::ng-deep .tb-dark .field-wrapper {
-    border-color: rgba(48, 52, 54, 0.12);
-    background-color: rgba(24, 26, 27, 0.02);
-  }
-  .dark-theme .field-header {
-    border-bottom: 1px solid rgba(140, 130, 115, 0.08);
-  }
-  .dark-theme ::ng-deep .tb-dark .field-header {
-    border-bottom-color: rgba(48, 52, 54, 0.08);
-  }
-  .dark-theme .field-title {
-    color: rgba(232, 230, 227, 0.87);
-  }
-  .dark-theme ::ng-deep .tb-dark .field-title {
-    color: rgba(232, 230, 227, 0.87);
-  }
-  .dark-theme .advanced-button {
-    color: var(--tb-primary-color, #6d95cc);
-  }
-  .dark-theme ::ng-deep .tb-dark .advanced-button {
-    color: var(--tb-primary-color, #6d95cc);
-  }
-  .dark-theme .custom-hint {
-    color: rgba(51, 162, 244, 0.8);
-  }
-  .dark-theme ::ng-deep .tb-dark .custom-hint {
-    color: rgba(51, 162, 244, 0.9);
-  }
-  .dark-theme ::ng-deep .tb-dark .custom-time-inline .time-input .mat-mdc-text-field-wrapper {
-    background-color: rgba(24, 26, 27, 0.05);
-  }
