@@ -14,6 +14,8 @@ RUN uv pip install --system --no-cache -r /app/requirements.txt
 
 COPY . /app
 
+RUN pytest tests/ -v --tb=short
+
 EXPOSE 8300
 
 CMD ["adk", "api_server", "--with_ui", "--host", "0.0.0.0", "--port", "8300", "thingsboard_ops_agent"]
