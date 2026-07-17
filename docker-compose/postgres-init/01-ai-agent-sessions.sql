@@ -1,1 +1,1 @@
-CREATE DATABASE ai_agent_sessions;
+CREATE SCHEMA IF NOT EXISTS ai_agent;
