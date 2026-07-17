@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.139.0",
     "google-adk[eval]>=2.4.0",
     "httpx>=0.28.1",
+    "langfuse>=2.60.0",
     "litellm>=1.85.7",
     "mcp>=1.28.1",
     "orjson>=3.11.9",

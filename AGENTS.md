@@ -19,9 +19,28 @@ Use the root `Makefile` as the entrypoint. It merges split files from `docker-co
 
 Ports: ThingsBoard `8080`, Angular dev UI `4200`, web UI `8090`, Quarkus JVM `8083`, Quarkus dev `8082`, Postgres `5431`, config API `9000`, MCP `8201`.
 
+## Worktree Workflow for PR Testing
+
+Use `wt-*` Makefile targets to test PR branches in isolated Docker environments. Each worktree gets its own postgres data, redis, kafka, and build caches. Worktrees share host ports with the main stack — **stop it before running a worktree**. All `wt-*` targets run from the main repo dir.
+
+- `make wt-setup BRANCH=name`: create worktree, isolated volumes, copy tb-config, restore postgres from backup.
+- `make wt-up BRANCH=name` / `make wt-up-prod BRANCH=name`: start full dev or prod-only stack.
+- `make wt-down BRANCH=name` / `make wt-destroy BRANCH=name`: stop containers / stop + remove volumes.
+- `make wt-install BRANCH=name` / `make wt-install-demo BRANCH=name`: seed DB schema / demo data.
+- `make wt-install-restore BRANCH=name`: restore postgres from backup.
+- `make wt-switch BRANCH=name PR=42`: switch worktree to a different PR.
+- `make wt-teardown BRANCH=name`: remove worktree, branch, volumes, and /etc/hosts entry.
+- `make wt-list`, `make wt-hosts`, `make wt-ps`, `make wt-logs`: inspect worktrees.
+
+Worktrees live at `../thingsboard-wt-<branch>/`, isolated volumes at `.worktrees/<branch>/`. Domains are `<branch>.localhost` (add to `/etc/hosts` with `make wt-hosts`). Compose files resolve from the main repo via `--project-directory $(CURDIR)` — the worktree override remaps bind-mounts for data isolation. Teardown uses an alpine container to force-remove root-owned Docker artifacts. Postgres 18 init restart is handled with a `SELECT 1` readiness check.
+
 ## Schema-First API Workflow
 
 Treat `api-specs/` as the source of truth. Edit the split files under `api-specs/openapi/` (schemas, paths, parameters, responses) before REST changes and `api-specs/asyncapi.yaml` before event model changes. Run `make bundle-openapi` to reassemble the split files into `api-specs/openapi.yaml`, or any dependent target (`make up`, `make build`) will do it automatically. Then regenerate: `cd ui-ngx && yarn generate:api` for Angular, or `make tb-quarkus-gen-openapi` / `cd tb-quarkus/gateway && ./gradlew openApiGenerate` for Quarkus. Implement or override generated Quarkus interfaces under `tb-quarkus/gateway/src/main/java/...`; do not bypass OpenAPI with standalone public endpoints.
+
+## Database per Service
+
+Each service owns its own database schema. Any action that adds a new service database integration must define its schema (tables, columns, types, indexes) before writing application code. Use versioned migration scripts in the service module (e.g. `tb-quarkus/gateway/src/main/resources/db/migration/`). Every schema change must be a versioned migration and must not use the `default` schema.
 
 ## ThingsBoard Upgrade Workflow
 

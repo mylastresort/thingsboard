@@ -19,6 +19,9 @@ class Settings:
     session_db_url: str | None = None
     pandas_mcp_server_url: str = os.getenv("PANDAS_MCP_SERVER_URL", "http://pandas-mcp:8000/sse")
     pdm_mcp_server_url: str = os.getenv("PDM_MCP_SERVER_URL", "http://tb-quarkus:8081/mcp/sse")
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str = "http://langfuse:3000"
 
 
 def _getenv_int(key: str, default: int) -> int:
@@ -55,4 +58,7 @@ def load_settings() -> Settings:
         tb_customer_id=os.environ.get("TB_CUSTOMER_ID") or None,
         tb_tenant_id=os.environ.get("TB_TENANT_ID") or None,
         session_db_url=os.environ.get("SESSION_DB_URL") or None,
+        langfuse_public_key=os.environ.get("LANGFUSE_PUBLIC_KEY") or None,
+        langfuse_secret_key=os.environ.get("LANGFUSE_SECRET_KEY") or None,
+        langfuse_host=os.environ.get("LANGFUSE_HOST", "http://langfuse:3000"),
     )

@@ -97,6 +97,9 @@ services:
       PANDAS_MCP_SERVER_URL: "http://pandas-mcp:8000/sse"
       PDM_MCP_SERVER_URL: "http://tb-quarkus:8081/mcp/sse"
       SESSION_DB_URL: "${SESSION_DB_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/thingsboard?options=-csearch_path%3Dai_agent}"
+      LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY:-}"
+      LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY:-}"
+      LANGFUSE_HOST: "http://langfuse:3000"
     ports:
       - "${TINY_AGENT_PORT:-8300}:8300"
     depends_on:
@@ -116,6 +119,34 @@ services:
         reservations:
           cpus: "0.25"
           memory: 256M
+
+  langfuse:
+    image: langfuse/langfuse:2
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/thingsboard"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "${LANGFUSE_NEXTAUTH_SECRET:-super-secret-dev-key-change-in-prod}"
+      SALT: "${LANGFUSE_SALT:-super-secret-salt-change-in-prod}"
+    ports:
+      - "${LANGFUSE_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/public/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 
   pandas-mcp:
