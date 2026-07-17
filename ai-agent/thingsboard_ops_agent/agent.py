@@ -1,3 +1,4 @@
+import atexit
 import pathlib
 
 from google.adk.agents import LlmAgent
@@ -9,6 +10,7 @@ from .subagents import build_model, build_subagents, build_pandas_agent, build_p
 from .scope import build_scope_resolver, harvest_known_ids
 from .settings import load_settings, Settings
 from .datetime_tool import get_current_datetime
+from .langfuse import after_model_callback as langfuse_after_model_callback, shutdown_langfuse
 
 SKILLS_DIR = pathlib.Path(__file__).parent / "skills"
 
@@ -122,6 +124,7 @@ def build_root_agent(settings: Settings) -> LlmAgent:
         model=build_model(settings),
         instruction=ROOT_INSTRUCTION,
         before_agent_callback=build_scope_resolver(settings),
+        after_model_callback=langfuse_after_model_callback,
         after_tool_callback=harvest_known_ids,
         tools=[
             skill_toolset.SkillToolset(
@@ -144,3 +147,5 @@ def build_root_agent(settings: Settings) -> LlmAgent:
 
 settings = load_settings()
 root_agent = build_root_agent(settings)
+
+atexit.register(shutdown_langfuse)
