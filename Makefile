@@ -644,3 +644,192 @@ rsync: ## Rsync project + bind-mount data volumes to remote (RSYNC_DEST=user@hos
 		--exclude='.git/' \
 		$(CURDIR)/ $(RSYNC_DEST)/
 	@echo "Synced to $(RSYNC_DEST)"
+
+# ─── worktree helpers ──────────────────────────────────────────────────────
+# These targets manage git worktrees with isolated Docker volumes so you can
+# test PR branches without touching the main stack's data.
+#
+# Quick start:
+#   make wt-setup BRANCH=feat/test                # create worktree from HEAD
+#   make wt-setup BRANCH=feat/test PR=42          # create from PR #42
+#   make wt-up BRANCH=feat/test                   # start the stack
+#   make wt-install-demo BRANCH=feat/test         # seed DB + demo data
+#   make wt-teardown BRANCH=feat/test             # clean up everything
+#
+# All wt-* targets run from the MAIN repo dir — never cd into worktrees.
+
+WT_BRANCH    ?= $(BRANCH)
+WT_PR        ?= $(PR)
+
+# Derive paths from WT_BRANCH (all relative to main repo)
+WT_SAFE_BRANCH := $(subst /,-,$(WT_BRANCH))
+WT_PROJECT     := thingsboard-wt-$(WT_SAFE_BRANCH)
+WT_WORKTREE    := $(CURDIR)/../thingsboard-wt-$(WT_SAFE_BRANCH)
+WT_VOLUMES     := $(CURDIR)/.worktrees/$(WT_SAFE_BRANCH)
+WT_EXPORT      := WORKTREE_VOLUMES_DIR=$(WT_VOLUMES) WT_WORKTREE=$(WT_WORKTREE)
+WT_DOMAIN      := $(WT_SAFE_BRANCH).localhost
+
+# Compose command targeting the main repo's compose files with worktree project dir.
+# Relative paths in compose files (./psql_data-merge, etc.) resolve to the
+# main repo, but bind-mount overrides in worktree.yml use WORKTREE_VOLUMES_DIR
+# for data isolation.
+# Worktree compose resolves base files from the worktree dir so PR-branch
+# changes to docker-compose/*.yml (new services like langfuse) are picked up.
+# All -f paths must be absolute (or relative to worktree) — Docker Compose v5
+# resolves -f relative to CWD, not --project-directory.
+# The two worktree override files live in the main repo.
+WT_DC  := $(WT_WORKTREE)/docker-compose
+
+WT_COMPOSE   := docker compose --project-directory $(WT_WORKTREE) \
+	-f $(WT_DC)/docker-compose.base.yml \
+	-f $(WT_DC)/docker-compose.db.yml \
+	-f $(WT_DC)/docker-compose.tb.yml \
+	-f $(WT_DC)/docker-compose.gateway.yml \
+	-f $(WT_DC)/docker-compose.web.yml \
+	-f $(WT_DC)/docker-compose.model.yml \
+	-f $(WT_DC)/docker-compose.config.yml \
+	-f $(WT_DC)/docker-compose.mcp.yml \
+	-f $(WT_DC)/docker-compose.toolbox.yml \
+	-f $(WT_DC)/docker-compose.dev.yml \
+	-f $(CURDIR)/docker-compose/docker-compose.worktree.yml \
+	-f $(CURDIR)/docker-compose/docker-compose.worktree-dev.yml \
+	-p $(WT_PROJECT)
+
+# Prod-only compose (no dev/toolbox)
+WT_COMPOSE_PROD := docker compose --project-directory $(WT_WORKTREE) \
+	-f $(WT_DC)/docker-compose.base.yml \
+	-f $(WT_DC)/docker-compose.db.yml \
+	-f $(WT_DC)/docker-compose.tb.yml \
+	-f $(WT_DC)/docker-compose.gateway.yml \
+	-f $(WT_DC)/docker-compose.web.yml \
+	-f $(WT_DC)/docker-compose.model.yml \
+	-f $(WT_DC)/docker-compose.config.yml \
+	-f $(WT_DC)/docker-compose.mcp.yml \
+	-f $(CURDIR)/docker-compose/docker-compose.worktree.yml \
+	-p $(WT_PROJECT)
+
+.PHONY: wt-setup
+wt-setup: ## Create a worktree with isolated volumes (BRANCH=name [PR=42])
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required. Usage: make wt-setup BRANCH=feat/test"; exit 1)
+	./scripts/worktree-setup.sh "$(WT_BRANCH)" $(if $(WT_PR),--from-pr $(WT_PR))
+
+.PHONY: wt-teardown
+wt-teardown: ## Remove worktree, volumes, and branch (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required. Usage: make wt-teardown BRANCH=feat/test"; exit 1)
+	./scripts/worktree-teardown.sh "$(WT_BRANCH)"
+
+.PHONY: wt-switch
+wt-switch: ## Switch worktree to a different PR and reset volumes (BRANCH=name PR=42)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	@test -n "$(WT_PR)" || (echo "Error: PR is required. Usage: make wt-switch BRANCH=feat/test PR=42"; exit 1)
+	./scripts/worktree-switch.sh "$(WT_BRANCH)" "$(WT_PR)"
+
+.PHONY: wt-up
+wt-up: ## Start worktree dev stack (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) up -d \
+		--scale pdm-forecast-worker=$(PDM_FORECAST_WORKERS) \
+		--scale pdm-anomaly-worker=$(PDM_ANOMALY_WORKERS)
+
+.PHONY: wt-up-prod
+wt-up-prod: ## Start worktree prod-only stack (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE_PROD) up -d
+
+.PHONY: wt-down
+wt-down: ## Stop worktree containers (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) down
+
+.PHONY: wt-destroy
+wt-destroy: ## Stop worktree containers and remove volumes (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) down -v
+
+.PHONY: wt-install
+wt-install: ## Install TB schema in worktree (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) up -d postgres
+	@echo "Waiting for postgres..."; \
+	ATTEMPTS=0; \
+	while ! $(WT_EXPORT) $(WT_COMPOSE) exec -T postgres psql -U postgres -d thingsboard -c "SELECT 1" >/dev/null 2>&1; do \
+		ATTEMPTS=$$((ATTEMPTS + 1)); \
+		if [ $$ATTEMPTS -ge 120 ]; then echo "ERROR: postgres not ready"; exit 1; fi; \
+		sleep 1; \
+	done; echo "  Postgres ready."
+	$(WT_EXPORT) $(WT_COMPOSE) run --rm --no-deps -e INSTALL_TB=true thingsboard
+
+.PHONY: wt-install-demo
+wt-install-demo: ## Install TB schema + demo data in worktree (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) up -d postgres
+	@echo "Waiting for postgres..."; \
+	ATTEMPTS=0; \
+	while ! $(WT_EXPORT) $(WT_COMPOSE) exec -T postgres psql -U postgres -d thingsboard -c "SELECT 1" >/dev/null 2>&1; do \
+		ATTEMPTS=$$((ATTEMPTS + 1)); \
+		if [ $$ATTEMPTS -ge 120 ]; then echo "ERROR: postgres not ready"; exit 1; fi; \
+		sleep 1; \
+	done; echo "  Postgres ready."
+	$(WT_EXPORT) $(WT_COMPOSE) run --rm --no-deps \
+		-e INSTALL_TB=true -e LOAD_DEMO=true \
+		-e INSTALL_DATA_DIR=/usr/share/thingsboard/data \
+		thingsboard
+
+.PHONY: wt-build
+wt-build: ## Build all images in worktree (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) build
+
+.PHONY: wt-ps
+wt-ps: ## Show worktree container status (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) ps
+
+.PHONY: wt-logs
+wt-logs: ## Tail all worktree logs (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) logs -f
+
+.PHONY: wt-logs-tb
+wt-logs-tb: ## Tail thingsboard logs in worktree (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	$(WT_EXPORT) $(WT_COMPOSE) logs -f thingsboard
+
+.PHONY: wt-list
+wt-list: ## List all worktrees and their status
+	@echo "=== Git Worktrees ==="
+	@git worktree list
+	@echo ""
+	@echo "=== Worktree Volumes ==="
+	@idx=0; \
+	for d in .worktrees/*/; do \
+		if [ -d "$$d" ]; then \
+			branch=$$(basename "$$d"); \
+			pg_size=$$(du -sh "$$d/psql_data-merge" 2>/dev/null | cut -f1 || echo "?"); \
+			offset=$$((idx * 100)); \
+			tb_port=$$((8080 + offset)); \
+			echo "  $$branch  (postgres: $$pg_size, TB: http://wt-$$branch.localhost:$$tb_port)"; \
+			idx=$$((idx + 1)); \
+		fi; \
+	done
+
+.PHONY: wt-hosts
+wt-hosts: ## Add worktree local domains to /etc/hosts
+	@for d in .worktrees/*/; do \
+		if [ -d "$$d" ]; then \
+			branch=$$(basename "$$d"); \
+			domain="wt-$$branch.localhost"; \
+			if grep -q "$$domain" /etc/hosts 2>/dev/null; then \
+				echo "  $$domain already in /etc/hosts"; \
+			else \
+				echo "127.0.0.1  $$domain" | sudo tee -a /etc/hosts >/dev/null 2>&1 && \
+					echo "  Added $$domain to /etc/hosts" || \
+					echo "  WARNING: Could not add $$domain (sudo required)"; \
+			fi; \
+		fi; \
+	done
+
+.PHONY: wt-install-restore
+wt-install-restore: ## Restore postgres from backup via docker compose (BRANCH=name)
+	@test -n "$(WT_BRANCH)" || (echo "Error: BRANCH is required"; exit 1)
+	./scripts/worktree-restore-db.sh "$(WT_BRANCH)"
