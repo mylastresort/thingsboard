@@ -30,6 +30,8 @@ import { RouterModule, Routes } from '@angular/router';
 import { DefaultUrlSerializer, UrlSerializer, UrlTree } from '@angular/router';
 import { DarkThemeService } from './core/services/dark-theme.service';
 import { DarkThemeOverlayComponent } from './dark-theme-overlay.component';
+import { providePrimeNG } from 'primeng/config';
+import Aura from '@primeng/themes/aura';
 
 export default class TbUrlSerializer implements UrlSerializer {
   private _defaultUrlSerializer: DefaultUrlSerializer = new DefaultUrlSerializer();
@@ -77,7 +79,16 @@ export class PageNotFoundRoutingModule { }
   ],
   providers: [
     { provide: UrlSerializer, useClass: TbUrlSerializer },
-    DarkThemeService
+    DarkThemeService,
+    providePrimeNG({
+      theme: {
+        preset: Aura,
+        options: {
+          darkModeSelector: '.tb-dark',
+          cssLayer: false
+        }
+      }
+    })
   ],
   bootstrap: [AppComponent]
 })

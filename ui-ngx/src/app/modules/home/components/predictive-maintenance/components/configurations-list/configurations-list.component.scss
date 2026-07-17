@@ -1,325 +1,269 @@
+///
+/// Copyright © 2016-2024 The Thingsboard Authors
+///
+/// Licensed under the Apache License, Version 2.0 (the "License");
+/// you may not use this file except in compliance with the License.
+/// You may obtain a copy of the License at
+///
+///     http://www.apache.org/licenses/LICENSE-2.0
+///
+/// Unless required by applicable law or agreed to in writing, software
+/// distributed under the License is distributed on an "AS IS" BASIS,
+/// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+/// See the License for the specific language governing permissions and
+/// limitations under the License.
+///
+
 :host {
-  display: flex;
-  flex-direction: column;
+  display: block;
   height: 100%;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.page-tabs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0.75rem 1rem 0;
-  flex-shrink: 0;
-
-  .page-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.58);
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    padding: 10px 14px;
-    border-radius: 6px 6px 0 0;
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.85);
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    &.active {
-      color: #fff;
-      border-bottom-color: #3f51b5;
-    }
-  }
 }
 
 .tb-configurations-page {
-  border: solid 1px var(--tb-dark-mat-800);
-  padding: 1rem;
-  border-radius: 4px;
-  box-sizing: border-box;
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  padding: 16px;
+  background: #121212;
+  height: 100%;
+  overflow: auto;
+}
 
-  .page-hidden {
-    display: none !important;
+.configurations-toolbar {
+  margin-bottom: 16px;
+  background: #1e1e1e !important;
+  border: 1px solid #333333 !important;
+  border-radius: 6px !important;
+
+  .toolbar-title {
+    margin: 0;
+    color: #ffffff;
+    font-size: 18px;
   }
 
-  .tb-configurations-toolbar {
-    flex: 0 0 auto;
-
-    .mat-mdc-table-toolbar {
-      height: 64px;
-
-      h4 {
-        font-weight: 400;
-      }
-
-      .tb-configurations-toolbar-wrapper {
-        width: 100%;
-      }
-
-      .tb-configurations-action-panels {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-      }
-
-      .tb-left-panel {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .tb-right-panel {
-        .toolbar-actions {
-          display: flex;
-          gap: 4px;
-          align-items: center;
-        }
-      }
-    }
-
-    .selection-toolbar {
-      .mat-toolbar-tools {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        width: 100%;
-      }
-
-      .selection-count {
-        font-weight: 500;
-        font-size: 16px;
-      }
-    }
+  .toolbar-search-icon {
+    color: #9e9e9e;
+    margin-right: 8px;
   }
 
-  .configurations-content-card {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-    background: #050707;
-    box-shadow: none;
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 0;
-      background: #050707;
-
-      .table-container {
-        flex: 1;
-        overflow: auto;
-        min-height: 0;
-        background: #050707;
-
-        table {
-          width: 100%;
-          // min-height: 100%;
-          background: #050707;
-          box-shadow: none;
-
-          .mat-mdc-header-row {
-            background: #050707;
-          }
-
-          .mat-mdc-row {
-            background: #101415;
-          }
-
-          .mat-mdc-row:nth-child(odd) {
-            background: #050707;
-          }
-
-          th,
-          td {
-            padding: 8px 16px;
-            border-bottom-color: rgba(255, 255, 255, 0.04);
-          }
-
-          .mat-column-select {
-            width: 64px;
-          }
-
-          .mat-column-actions {
-            width: 100px;
-            text-align: center;
-          }
-
-          .clickable-row {
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-
-            &:hover {
-              background-color: rgba(0, 0, 0, 0.04);
-            }
-          }
-        }
-      }
-
-      mat-paginator {
-        flex-shrink: 0;
-        background: #050707;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-        color: rgba(255, 255, 255, 0.78);
-      }
-    }
-  }
-
-  .failure-mode-page {
+  .search-input-wrapper {
     flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    padding: 0 1rem 1rem;
+
+    .search-input {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+  }
+
+  .selection-count {
+    color: #ffffff;
+    font-size: 14px;
+    margin-left: 8px;
   }
 }
 
-::ng-deep .tb-dark {
-  .tb-configurations-page {
-    border-color: rgba(255, 255, 255, 0.12);
+// Table wrapper
+.p-datatable {
+  .p-datatable-header {
+    background: #1e1e1e;
+    border: 1px solid #333333;
+    color: #ffffff;
+  }
 
-    .configurations-content-card {
-      background-color: inherit;
+  .p-datatable-thead > tr > th {
+    background: #1e1e1e !important;
+    color: #9e9e9e !important;
+    border-color: #333333 !important;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+  }
+
+  .p-datatable-tbody > tr {
+    background: #121212 !important;
+    color: #ffffff !important;
+    transition: background-color 0.2s;
+
+    > td {
+      border-color: #2a2a2a !important;
+      padding: 12px 16px;
+      font-size: 14px;
     }
 
-    .clickable-row:hover {
-      background-color: rgba(255, 255, 255, 0.08);
+    &.clickable-row {
+      cursor: pointer;
+
+      &:hover {
+        background: #1e1e1e !important;
+      }
     }
 
-    .selection-toolbar {
-      // Keep same background as normal toolbar in dark mode
+    &.p-highlight {
+      background: #1a3a5c !important;
+
+      > td {
+        color: #ffffff !important;
+      }
+    }
+
+    &.p-datatable-row-select:hover {
+      background: #1e1e1e !important;
+    }
+  }
+
+  .p-datatable-tbody > tr.p-datatable-row-select > td {
+    background: #1a3a5c !important;
+  }
+
+  .p-datatable-footer {
+    background: #1e1e1e !important;
+    border-color: #333333 !important;
+    color: #ffffff;
+    padding: 12px 16px;
+  }
+
+  .p-datatable-emptymessage > td {
+    color: #9e9e9e;
+    background: #121212 !important;
+    text-align: center;
+    padding: 32px;
+  }
+
+  .p-paginator {
+    background: #1e1e1e !important;
+    border-color: #333333 !important;
+    color: #ffffff;
+
+    .p-paginator-pages .p-paginator-page {
+      color: #b0b0b0;
+
+      &.p-highlight {
+        background: #3b82f6 !important;
+        color: #ffffff;
+      }
+    }
+
+    .p-paginator-pages .p-paginator-page:hover {
+      background: #2a2a2a;
+    }
+
+    .p-paginator-first,
+    .p-paginator-prev,
+    .p-paginator-next,
+    .p-paginator-last {
+      color: #b0b0b0;
+
+      &:hover {
+        background: #2a2a2a;
+      }
+    }
+
+    .p-dropdown {
+      background: #2a2a2a;
+      border-color: #333333;
+      color: #ffffff;
+
+      .p-dropdown-trigger {
+        color: #b0b0b0;
+      }
     }
   }
 }
 
+// Checkbox overrides in table
+.p-checkbox {
+  .p-checkbox-box {
+    background: #2a2a2a;
+    border-color: #555555;
+
+    &.p-highlight {
+      background: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    &:not(.p-highlight):not(.p-disabled):hover {
+      border-color: #3b82f6;
+    }
+  }
+}
+
+// Sort icon overrides
+.p-sortable-column-icon {
+  color: #9e9e9e !important;
+}
+
+.p-sortable-column:not(.p-highlight):hover .p-sortable-column-icon {
+  color: #ffffff !important;
+}
+
+// Empty message
+.empty-message {
+  text-align: center;
+  color: #9e9e9e;
+  padding: 32px;
+  font-size: 14px;
+}
+
+// Tooltip override
 :host ::ng-deep {
-  .tb-configurations-page .configurations-content-card {
-    .mat-mdc-paginator,
-    .mat-mdc-paginator-container {
-      background: #050707;
-      color: rgba(255, 255, 255, 0.78);
+  .p-tooltip {
+    background: #333333;
+    color: #ffffff;
+
+    .p-tooltip-arrow {
+      border-color: #333333;
+    }
+  }
+
+  // PrimeNG confirm dialog dark theme
+  .p-confirm-dialog {
+    background: #1e1e1e;
+    border: 1px solid #333333;
+
+    .p-confirm-dialog-message {
+      color: #ffffff;
     }
 
-    .mat-mdc-paginator-container {
-      min-height: 64px;
+    .p-confirmpopup {
+      background: #1e1e1e;
+      border: 1px solid #333333;
+    }
+  }
+
+  // Menu popup override
+  .p-menu {
+    background: #1e1e1e;
+    border: 1px solid #333333;
+
+    .p-menuitem-link {
+      color: #ffffff;
+      background: transparent;
+
+      &:hover {
+        background: #2a2a2a;
+      }
+
+      .p-menuitem-icon {
+        color: #9e9e9e;
+      }
     }
 
-    .mat-mdc-paginator-page-size,
-    .mat-mdc-paginator-range-actions {
-      color: rgba(255, 255, 255, 0.78);
+    .p-menuitem:not(.p-disabled):focus > .p-menuitem-link {
+      background: #2a2a2a;
     }
+  }
 
-    .mat-mdc-paginator-icon {
-      fill: rgba(255, 255, 255, 0.62);
-    }
+  // Toolbar button hover in dark mode
+  .p-toolbar {
+    .p-button {
+      &.p-button-text {
+        color: #ffffff;
 
-    .mat-mdc-icon-button:not(:disabled):hover {
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .mat-mdc-form-field-subscript-wrapper {
-      display: none;
-    }
-
-    .mat-mdc-select-value,
-    .mat-mdc-select-arrow {
-      color: rgba(255, 255, 255, 0.82);
-    }
-
-    .mat-mdc-text-field-wrapper {
-      background: #070a0a;
-      border: 1px solid rgba(255, 255, 255, 0.06);
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: #ffffff;
+        }
+      }
     }
   }
 }
-
-// Auto-generated dark theme — do not edit manually
-  .dark-theme .page-tabs .page-tab {
-    background: rgba(0, 0, 0, 0);
-    color: rgba(232, 230, 227, 0.58);
-  }
-  .dark-theme .page-tabs .page-tab:hover {
-    color: rgba(232, 230, 227, 0.85);
-    background: rgba(24, 26, 27, 0.04);
-  }
-  .dark-theme .page-tabs .page-tab.active {
-    color: #e8e6e3;
-    border-bottom-color: #2f3c87;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card {
-    background: #040606;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container {
-    background: #040606;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container .table-container {
-    background: #040606;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container .table-container table {
-    background: #040606;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container .table-container table .mat-mdc-header-row {
-    background: #040606;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container .table-container table .mat-mdc-row {
-    background: #0d1011;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container .table-container table .mat-mdc-row:nth-child(odd) {
-    background: #040606;
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container .table-container table th, .dark-theme .tb-configurations-page .configurations-content-card .container .table-container table td {
-    border-bottom-color: rgba(48, 52, 54, 0.04);
-  }
-  .dark-theme .tb-configurations-page .configurations-content-card .container mat-paginator {
-    background: #040606;
-    border-top: 1px solid rgba(48, 52, 54, 0.06);
-    color: rgba(232, 230, 227, 0.78);
-  }
-  .dark-theme ::ng-deep .tb-dark .tb-configurations-page {
-    border-color: rgba(48, 52, 54, 0.12);
-  }
-  .dark-theme ::ng-deep .tb-dark .tb-configurations-page .clickable-row:hover {
-    background-color: rgba(24, 26, 27, 0.08);
-  }
-  .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-paginator, .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-paginator-container {
-    background: #040606;
-    color: rgba(232, 230, 227, 0.78);
-  }
-  .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-paginator-page-size, .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-paginator-range-actions {
-    color: rgba(232, 230, 227, 0.78);
-  }
-  .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-paginator-icon {
-    fill: rgba(232, 230, 227, 0.62);
-  }
-  .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-icon-button:not(:disabled):hover {
-    background: rgba(24, 26, 27, 0.06);
-  }
-  .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-select-value, .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-select-arrow {
-    color: rgba(232, 230, 227, 0.82);
-  }
-  .dark-theme :host ::ng-deep .tb-configurations-page .configurations-content-card .mat-mdc-text-field-wrapper {
-    background: #060808;
-    border: 1px solid rgba(48, 52, 54, 0.06);
-  }
