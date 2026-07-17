@@ -11,6 +11,11 @@ from .scope import build_scope_resolver, harvest_known_ids
 from .settings import load_settings, Settings
 from .datetime_tool import get_current_datetime
 from .langfuse import after_model_callback as langfuse_after_model_callback, shutdown_langfuse
+from .redis_session_service import register_redis_session_service
+
+# Register the redis:// session service scheme so ADK's api_server picks it up
+# when SESSION_SERVICE_URI=redis://... is provided.
+register_redis_session_service()
 
 SKILLS_DIR = pathlib.Path(__file__).parent / "skills"
 

@@ -17,6 +17,10 @@ RUN uv pip install --system --no-cache .
 
 RUN pytest tests/ -v --tb=short
 
+COPY entrypoint.sh /app/entrypoint.sh
+COPY run_server.py /app/run_server.py
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8300
 
-CMD ["adk", "api_server", "--with_ui", "--host", "0.0.0.0", "--port", "8300", "thingsboard_ops_agent"]
+ENTRYPOINT ["/app/entrypoint.sh"]
