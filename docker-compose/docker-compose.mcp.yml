@@ -96,6 +96,9 @@ services:
       PORT: "8300"
       PANDAS_MCP_SERVER_URL: "http://pandas-mcp:8000/sse"
       PDM_MCP_SERVER_URL: "http://tb-quarkus:8081/mcp/sse"
+      # Redis-backed session persistence (makes ai-agent-py stateless).
+      # Empty -> falls back to per-agent local SQLite under .adk/.
+      SESSION_SERVICE_URI: "${SESSION_SERVICE_URI:-redis://redis:6379/0}"
       LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY:-}"
       LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY:-}"
       LANGFUSE_HOST: "http://langfuse:3000"
@@ -105,6 +108,8 @@ services:
       thingsboard-mcp:
         condition: service_healthy
       tb-quarkus:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       # ollama:
       #   condition: service_healthy
@@ -117,19 +122,41 @@ services:
           cpus: "0.25"
           memory: 256M
 
-  langfuse:
-    image: langfuse/langfuse:2
-    restart: unless-stopped
+  langfuse-db-init:
+    image: postgres:18-alpine
+    restart: "no"
     environment:
-      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/thingsboard"
-      NEXTAUTH_URL: "http://localhost:3000"
-      NEXTAUTH_SECRET: "${LANGFUSE_NEXTAUTH_SECRET:-super-secret-dev-key-change-in-prod}"
-      SALT: "${LANGFUSE_SALT:-super-secret-salt-change-in-prod}"
-    ports:
-      - "${LANGFUSE_PORT:-3000}:3000"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    command: >
+      sh -c "until pg_isready -h $$PGHOST -p $$PGPORT -U $$PGUSER; do sleep 1; done &&
+             psql -h $$PGHOST -p $$PGPORT -U $$PGUSER -tc \"SELECT 1 FROM pg_database WHERE datname='langfuse'\" | grep -q 1 ||
+             psql -h $$PGHOST -p $$PGPORT -U $$PGUSER -c 'CREATE DATABASE langfuse'"
     depends_on:
       postgres:
         condition: service_healthy
+
+  langfuse:
+    image: langfuse/langfuse:2
+    restart: unless-stopped
+    entrypoint: ["./langfuse-entrypoint.sh"]
+    volumes:
+      - ./docker-compose/langfuse-entrypoint.sh:/app/langfuse-entrypoint.sh:ro
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/langfuse"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "${LANGFUSE_NEXTAUTH_SECRET:-super-secret-dev-key-change-in-prod}"
+      SALT: "${LANGFUSE_SALT:-super-secret-salt-change-in-prod}"
+      HOSTNAME: "0.0.0.0"
+      LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY:-}"
+      LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY:-}"
+    ports:
+      - "${LANGFUSE_PORT:-3000}:3000"
+    depends_on:
+      langfuse-db-init:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -139,7 +166,7 @@ services:
           cpus: "0.25"
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/public/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/public/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
