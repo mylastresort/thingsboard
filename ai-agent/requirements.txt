@@ -1,6 +1,7 @@
 fastapi
 google-adk
 httpx
+langfuse
 litellm
 mcp
 pytest

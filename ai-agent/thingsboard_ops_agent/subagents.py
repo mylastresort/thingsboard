@@ -18,6 +18,7 @@ from .scope import (
     build_scoped_tool_filter,
     guard_scoped_tool_calls,
 )
+from .langfuse import after_model_callback as langfuse_after_model_callback
 
 # name -> (description/instruction, tool_filter)
 # Grouped from the ThingsBoard MCP server tools.
@@ -211,6 +212,7 @@ def build_subagents(settings: Settings) -> list[BaseAgent]:
             model=model,
             description=text,  # shown to the root as this tool's docstring
             instruction=build_scoped_instruction(name, text),
+            after_model_callback=langfuse_after_model_callback,
             tools=[
                 MCPToolset(
                     connection_params=SseConnectionParams(url=settings.mcp_server_url),
@@ -290,6 +292,7 @@ def build_pandas_agent(settings: Settings) -> BaseAgent:
         model=build_model(settings),
         description=text,
         instruction=build_scoped_instruction(name, text),
+        after_model_callback=langfuse_after_model_callback,
         tools=[
             MCPToolset(
                 connection_params=SseConnectionParams(
@@ -309,6 +312,7 @@ def build_pdm_agent(settings: Settings) -> BaseAgent:
         model=build_model(settings),
         description=text,
         instruction=build_scoped_instruction(name, text),
+        after_model_callback=langfuse_after_model_callback,
         tools=[
             MCPToolset(
                 connection_params=SseConnectionParams(url=settings.pdm_mcp_server_url),
