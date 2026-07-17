@@ -1,0 +1,22 @@
+# Complete postgres service override for worktree restore.
+# Replaces db.yml postgres entirely — includes image, env, healthcheck,
+# and a single port mapping via POSTGRES_HOST_PORT.
+
+services:
+  postgres:
+    image: "postgres:18"
+    restart: "no"
+    ports:
+      - "5431:5432"
+    environment:
+      POSTGRES_DB: thingsboard
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/psql_data-merge:/var/lib/postgresql
+      - ${WT_WORKTREE:-.}:/app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d thingsboard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
