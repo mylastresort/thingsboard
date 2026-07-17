@@ -18,6 +18,7 @@ RUN uv pip install --system --no-cache .
 RUN pytest tests/ -v --tb=short
 
 COPY entrypoint.sh /app/entrypoint.sh
+COPY run_server.py /app/run_server.py
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8300

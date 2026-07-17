@@ -1457,6 +1457,14 @@
 }
 
 // Auto-generated dark theme — do not edit manually
+  .dark-theme :host .recovery-banner {
+    background: rgba(204, 122, 0, 0.12);
+    border: 1px solid rgba(179, 106, 0, 0.4);
+    color: #ffb84f;
+  }
+  .dark-theme :host .recovery-banner .recovery-icon {
+    color: #ffad34;
+  }
   .dark-theme :host .device-name.clickable {
     text-decoration-color: rgba(232, 230, 227, 0);
   }

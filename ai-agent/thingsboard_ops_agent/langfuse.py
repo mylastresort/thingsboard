@@ -11,7 +11,7 @@ Disable by omitting LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY env vars.
 from __future__ import annotations
 
 import logging
-import time
+import re
 from typing import Any
 
 from google.adk.agents.callback_context import CallbackContext
@@ -20,8 +20,10 @@ from google.adk.models.llm_response import LlmResponse
 logger = logging.getLogger(__name__)
 
 _lf_client: Any | None = None
-_trace_id: str | None = None
-_generation_name: int = 0
+_traces: dict[str, Any] = {}
+_generation_seq: int = 0
+
+_MODEL_PREFIX_RE = re.compile(r"^(?:ollama_chat/|ollama/)")
 
 
 def _get_langfuse() -> Any | None:
@@ -43,6 +45,9 @@ def _get_langfuse() -> Any | None:
     host = os.environ.get("LANGFUSE_HOST", host)
 
     if not public_key or not secret_key:
+        logger.warning(
+            "Langfuse disabled: LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY not set"
+        )
         return None
 
     try:
@@ -50,7 +55,6 @@ def _get_langfuse() -> Any | None:
             public_key=public_key,
             secret_key=secret_key,
             host=host,
-            enabled=True,
             flush_at=15,
             flush_interval=1,
         )
@@ -65,7 +69,7 @@ def shutdown_langfuse() -> None:
     """Flush buffered events on process exit."""
     if _lf_client is not None:
         try:
-            _lf_client.flush(timeout=10)
+            _lf_client.flush()
         except Exception:
             logger.debug("Langfuse flush error (non-fatal)")
 
@@ -94,6 +98,7 @@ async def after_model_callback(
 
     # Model name from the LlmResponse or fall back to env
     model_name = getattr(llm_response, "model_version", None) or "unknown"
+    model_name = _MODEL_PREFIX_RE.sub("", model_name)
 
     # Conversation ID from session state
     session_state = callback_context.state
@@ -114,13 +119,23 @@ async def after_model_callback(
             text_parts.append(candidate.text)
     output_text = "\n".join(text_parts)[:4000] if text_parts else ""
 
-    global _generation_name
-    _generation_name += 1
+    global _generation_seq
+    _generation_seq += 1
 
-    generation_name = f"{agent_name}:generation:{_generation_name}"
+    generation_name = f"{agent_name}:generation:{_generation_seq}"
 
     try:
-        lf.generation(
+        trace = _traces.get(conversation_id)
+        if trace is None:
+            trace = lf.trace(
+                name=agent_name,
+                session_id=conversation_id,
+                user_id=user_id,
+                metadata={"conversation_id": conversation_id},
+            )
+            _traces[conversation_id] = trace
+
+        trace.generation(
             name=generation_name,
             model=model_name,
             input={"conversation_id": conversation_id},
