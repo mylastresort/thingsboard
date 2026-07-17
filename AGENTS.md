@@ -23,6 +23,10 @@ Ports: ThingsBoard `8080`, Angular dev UI `4200`, web UI `8090`, Quarkus JVM `80
 
 Treat `api-specs/` as the source of truth. Edit the split files under `api-specs/openapi/` (schemas, paths, parameters, responses) before REST changes and `api-specs/asyncapi.yaml` before event model changes. Run `make bundle-openapi` to reassemble the split files into `api-specs/openapi.yaml`, or any dependent target (`make up`, `make build`) will do it automatically. Then regenerate: `cd ui-ngx && yarn generate:api` for Angular, or `make tb-quarkus-gen-openapi` / `cd tb-quarkus/gateway && ./gradlew openApiGenerate` for Quarkus. Implement or override generated Quarkus interfaces under `tb-quarkus/gateway/src/main/java/...`; do not bypass OpenAPI with standalone public endpoints.
 
+## Database per Service
+
+Each service owns its own database schema. Any action that adds a new service database integration must define its schema (tables, columns, types, indexes) before writing application code. Use versioned migration scripts in the service module (e.g. `tb-quarkus/gateway/src/main/resources/db/migration/`). Every schema change must be a versioned migration and must not use the `default` schema.
+
 ## ThingsBoard Upgrade Workflow
 
 Do not build ThingsBoard from this repo. Update the upstream image version through `.env` variables such as `TB_VERSION`, `DOCKER_REPO`, or `TB_NODE_DOCKER_NAME`, then set `TB_PREV_VERSION` in `Makefile` to the version being upgraded from. Run `make upgrade-db` to destroy/recreate the DB service, build the `thingsboard` container wrapper, and execute the `UPGRADE_TB=true` path with `FROM_VERSION=$(TB_PREV_VERSION)`. After upgrade, use `make up` or `make up-prod` with the new upstream image tag.
