@@ -673,32 +673,39 @@ WT_DOMAIN      := $(WT_SAFE_BRANCH).localhost
 # Relative paths in compose files (./psql_data-merge, etc.) resolve to the
 # main repo, but bind-mount overrides in worktree.yml use WORKTREE_VOLUMES_DIR
 # for data isolation.
-WT_COMPOSE   := docker compose --project-directory $(CURDIR) \
-	-f docker-compose/docker-compose.base.yml \
-	-f docker-compose/docker-compose.db.yml \
-	-f docker-compose/docker-compose.tb.yml \
-	-f docker-compose/docker-compose.gateway.yml \
-	-f docker-compose/docker-compose.web.yml \
-	-f docker-compose/docker-compose.model.yml \
-	-f docker-compose/docker-compose.config.yml \
-	-f docker-compose/docker-compose.mcp.yml \
-	-f docker-compose/docker-compose.toolbox.yml \
-	-f docker-compose/docker-compose.dev.yml \
-	-f docker-compose/docker-compose.worktree.yml \
-	-f docker-compose/docker-compose.worktree-dev.yml \
+# Worktree compose resolves base files from the worktree dir so PR-branch
+# changes to docker-compose/*.yml (new services like langfuse) are picked up.
+# All -f paths must be absolute (or relative to worktree) — Docker Compose v5
+# resolves -f relative to CWD, not --project-directory.
+# The two worktree override files live in the main repo.
+WT_DC  := $(WT_WORKTREE)/docker-compose
+
+WT_COMPOSE   := docker compose --project-directory $(WT_WORKTREE) \
+	-f $(WT_DC)/docker-compose.base.yml \
+	-f $(WT_DC)/docker-compose.db.yml \
+	-f $(WT_DC)/docker-compose.tb.yml \
+	-f $(WT_DC)/docker-compose.gateway.yml \
+	-f $(WT_DC)/docker-compose.web.yml \
+	-f $(WT_DC)/docker-compose.model.yml \
+	-f $(WT_DC)/docker-compose.config.yml \
+	-f $(WT_DC)/docker-compose.mcp.yml \
+	-f $(WT_DC)/docker-compose.toolbox.yml \
+	-f $(WT_DC)/docker-compose.dev.yml \
+	-f $(CURDIR)/docker-compose/docker-compose.worktree.yml \
+	-f $(CURDIR)/docker-compose/docker-compose.worktree-dev.yml \
 	-p $(WT_PROJECT)
 
 # Prod-only compose (no dev/toolbox)
-WT_COMPOSE_PROD := docker compose --project-directory $(CURDIR) \
-	-f docker-compose/docker-compose.base.yml \
-	-f docker-compose/docker-compose.db.yml \
-	-f docker-compose/docker-compose.tb.yml \
-	-f docker-compose/docker-compose.gateway.yml \
-	-f docker-compose/docker-compose.web.yml \
-	-f docker-compose/docker-compose.model.yml \
-	-f docker-compose/docker-compose.config.yml \
-	-f docker-compose/docker-compose.mcp.yml \
-	-f docker-compose/docker-compose.worktree.yml \
+WT_COMPOSE_PROD := docker compose --project-directory $(WT_WORKTREE) \
+	-f $(WT_DC)/docker-compose.base.yml \
+	-f $(WT_DC)/docker-compose.db.yml \
+	-f $(WT_DC)/docker-compose.tb.yml \
+	-f $(WT_DC)/docker-compose.gateway.yml \
+	-f $(WT_DC)/docker-compose.web.yml \
+	-f $(WT_DC)/docker-compose.model.yml \
+	-f $(WT_DC)/docker-compose.config.yml \
+	-f $(WT_DC)/docker-compose.mcp.yml \
+	-f $(CURDIR)/docker-compose/docker-compose.worktree.yml \
 	-p $(WT_PROJECT)
 
 .PHONY: wt-setup
