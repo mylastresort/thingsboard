@@ -5,6 +5,7 @@ from confluent_kafka import DeserializingConsumer, KafkaException
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import StringDeserializer
+from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log
 
 from src.logger import logger
 from src.model import job as job_module
@@ -28,6 +29,12 @@ class PdmKafkaWorker:
         self._consumer = self._build_consumer(config)
         self._install_event_hooks()
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=2, max=60),
+        before_sleep=before_sleep_log(logger, "WARNING"),
+        reraise=True,
+    )
     def run(self) -> None:
         self._consumer.subscribe([self._config.command_topic])
         logger.info(

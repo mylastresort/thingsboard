@@ -8,6 +8,7 @@ from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
+from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log
 
 from src.logger import logger
 from src.model.job import MAX_LOG_ENTRIES, to_native
@@ -26,15 +27,25 @@ class PdmEventPublisher:
         event_schema = (schema_dir / "pdm-events-value.avsc").read_text(encoding="utf-8")
         registry_client = SchemaRegistryClient({"url": schema_registry_url})
         self._topic = event_topic
-        self._redis = redis.Redis.from_url(redis_url, decode_responses=True)
+        self._redis = redis.Redis.from_url(
+            redis_url, decode_responses=True, socket_connect_timeout=5, socket_timeout=5,
+            retry_on_timeout=True,
+        )
         self._producer = SerializingProducer(
             {
                 "bootstrap.servers": bootstrap_servers,
                 "key.serializer": StringSerializer("utf_8"),
                 "value.serializer": AvroSerializer(registry_client, event_schema),
+                "message.timeout.ms": 30000,
             }
         )
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(logger, "WARNING"),
+        reraise=True,
+    )
     def log(self, model_id: str, level: str, message: Any) -> None:
         text = message if isinstance(message, str) else json.dumps(message, default=to_native)
         source = self._source(model_id)
@@ -71,6 +82,12 @@ class PdmEventPublisher:
             }
         )
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(logger, "WARNING"),
+        reraise=True,
+    )
     def progress(self, model_id: str, progress: dict[str, Any] | None) -> None:
         if not progress:
             return
@@ -95,6 +112,12 @@ class PdmEventPublisher:
             }
         )
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(logger, "WARNING"),
+        reraise=True,
+    )
     def prediction(
         self,
         model_id: str,
@@ -125,6 +148,12 @@ class PdmEventPublisher:
             }
         )
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(logger, "WARNING"),
+        reraise=True,
+    )
     def publish(self, event: dict[str, Any]) -> None:
         forecast_id = str(event["forecastId"])
         self._producer.produce(

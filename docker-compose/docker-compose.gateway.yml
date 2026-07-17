@@ -1,6 +1,7 @@
 services:
   proxy:
     image: haproxy:2.9-alpine
+    restart: always
     environment:
       QUARKUS_BACKEND_HOST: ${QUARKUS_BACKEND_HOST:-tb-quarkus}
       QUARKUS_BACKEND_HOST_DEV: ${QUARKUS_BACKEND_HOST_DEV:-tb-quarkus-dev}

@@ -7,6 +7,7 @@ PDM_ANOMALY_WORKER  := pdm-anomaly-worker
 PDM_FORECAST_WORKERS ?= 5
 PDM_ANOMALY_WORKERS  ?= 5
 PDM_KAFKA_PARTITIONS ?= 16
+PDM_KAFKA_REPLICATION_FACTOR ?= 3
 PDM_KAFKA_TOPICS := pdm-commands pdm-events pdm-job-state
 RESET_PDM_STATE_ON_RECREATE ?= true
 CONFIG_SERVICE  := config-api
@@ -84,9 +85,9 @@ reset-pdm-kafka: ## Delete and recreate PdM Kafka topics
 				$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --delete --topic $$topic >/dev/null 2>&1 || true; \
 			done; \
 			sleep 2; \
-			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-commands --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor 1; \
-			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-events --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor 1; \
-			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-job-state --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor 1 --config cleanup.policy=compact; \
+			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-commands --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor $(PDM_KAFKA_REPLICATION_FACTOR); \
+			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-events --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor $(PDM_KAFKA_REPLICATION_FACTOR); \
+			$(COMPOSE) exec -T $$svc /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$bootstrap --create --if-not-exists --topic pdm-job-state --partitions $(PDM_KAFKA_PARTITIONS) --replication-factor $(PDM_KAFKA_REPLICATION_FACTOR) --config cleanup.policy=compact; \
 		fi; \
 	done
 

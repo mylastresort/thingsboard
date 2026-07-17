@@ -1,4 +1,5 @@
 import os
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -7,6 +8,9 @@ from quarkus_api_client.api.default_api import DefaultApi
 from quarkus_api_client.api_client import ApiClient
 from quarkus_api_client.configuration import Configuration
 from quarkus_api_client.models.prediction_create_request import PredictionCreateRequest
+from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log
+
+log = logging.getLogger(__name__)
 
 
 class QuarkusApiClient:
@@ -21,9 +25,21 @@ class QuarkusApiClient:
         api_client = ApiClient(configuration)
         self.models = DefaultApi(api_client)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(log, "WARNING"),
+        reraise=True,
+    )
     def get_forecast(self, forecast_id: str) -> dict[str, Any]:
         return self.models.get_forecast(forecast_id, _request_timeout=self.timeout)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(log, "WARNING"),
+        reraise=True,
+    )
     def get_failure_mode_history(
         self,
         model_id: str,
@@ -38,6 +54,12 @@ class QuarkusApiClient:
         )
         return history.to_dict() if hasattr(history, "to_dict") else history
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(log, "WARNING"),
+        reraise=True,
+    )
     def create_anomaly_history_prediction(
         self,
         model_id: str,
@@ -57,6 +79,12 @@ class QuarkusApiClient:
             _request_timeout=self.timeout,
         )
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        before_sleep=before_sleep_log(log, "WARNING"),
+        reraise=True,
+    )
     def get_available_models(self) -> dict[str, Any]:
         return self.models.get_available_models(_request_timeout=self.timeout)
 
@@ -69,6 +97,12 @@ class QuarkusApiClient:
 _client: QuarkusApiClient | None = None
 
 
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=2, min=2, max=30),
+    before_sleep=before_sleep_log(log, "WARNING"),
+    reraise=True,
+)
 def get_quarkus_client() -> QuarkusApiClient:
     global _client
     if _client is None:

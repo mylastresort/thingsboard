@@ -1,11 +1,21 @@
 import os
+import logging
 
 from dotenv import load_dotenv
 from tb_ce_client import ThingsboardClient
+from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_log
+
+log = logging.getLogger(__name__)
 
 _client = None
 
 
+@retry(
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=2, min=2, max=30),
+    before_sleep=before_sleep_log(log, "WARNING"),
+    reraise=True,
+)
 def get_client() -> ThingsboardClient:
     global _client
 
