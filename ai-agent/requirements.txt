@@ -6,4 +6,6 @@ mcp
 pytest
 uvicorn
 orjson
+asyncpg
+greenlet
 google-adk[eval]

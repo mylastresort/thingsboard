@@ -96,12 +96,15 @@ services:
       PORT: "8300"
       PANDAS_MCP_SERVER_URL: "http://pandas-mcp:8000/sse"
       PDM_MCP_SERVER_URL: "http://tb-quarkus:8081/mcp/sse"
+      SESSION_DB_URL: "${SESSION_DB_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/ai_agent_sessions}"
     ports:
       - "${TINY_AGENT_PORT:-8300}:8300"
     depends_on:
       thingsboard-mcp:
         condition: service_healthy
       tb-quarkus:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
       # ollama:
       #   condition: service_healthy
