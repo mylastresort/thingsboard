@@ -68,3 +68,4 @@ tb-quarkus/cmd/openapi.yaml
 tb-quarkus/cmd/src/main/openapi/
 thingsboard_gradle
 .worktrees
+go-toolbox/dash
