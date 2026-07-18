@@ -269,6 +269,7 @@
     >
       <span class="tab-main">
         <mat-icon>sensors</mat-icon>
+        <span>Forecast</span>
         <span
           class="tab-circle-progress"
           *ngIf="shouldShowForecastTrainingSummary()"
@@ -276,7 +277,6 @@
         >
           {{ getForecastTrainedSensorCount() }}/{{ getForecastSensorTotal() }}
         </span>
-        <span>Forecast</span>
       </span>
     </button>
     <button
@@ -290,13 +290,13 @@
     >
       <span class="tab-main">
         <mat-icon>bug_report</mat-icon>
+        <span>Anomalies</span>
         <mat-icon
           class="tab-pending-icon"
           *ngIf="anomalyModelPending"
           matTooltip="Anomaly model pending"
           >schedule</mat-icon
         >
-        <span>Anomalies</span>
       </span>
     </button>
     <button
