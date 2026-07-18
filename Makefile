@@ -23,6 +23,13 @@ TB_QUARKUS_SMOKE_URL ?= http://localhost:8081/models/failure-mode-history?limit=
 TB_QUARKUS_DEV_SMOKE_URL ?= http://localhost:8082/models/failure-mode-history?limit=1
 AI_AGENT       := ai-agent-py
 
+# ─── version scheme: PRODUCT_VERSION + THINGSBOARD_VERSION ───────────────
+# Combined tag format: <PRODUCT_VERSION>-tb<THINGSBOARD_VERSION>
+# Example: 1.4.0-tb4.3.1.3  (Docker) or 1.4.0+tb4.3.1.3 (semver metadata)
+PRODUCT_VERSION ?= 1.0.0
+THINGSBOARD_VERSION ?= $(shell grep '^THINGSBOARD_VERSION=' docker/.env 2>/dev/null | head -1 | cut -d= -f2- || echo '4.3.1.3')
+COMBINED_VERSION := $(PRODUCT_VERSION)-tb$(THINGSBOARD_VERSION)
+
 # ─── compose file sets ───────────────────────────────────────────────────────
 COMPOSE_DIR := docker-compose
 
@@ -47,6 +54,20 @@ COMPOSE := docker compose --project-directory . $(DEV_FILES) -p $(PROJECT)
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# ─── version ─────────────────────────────────────────────────────────────
+
+.PHONY: version
+version: ## Print the combined version tag (PRODUCT_VERSION + THINGSBOARD_VERSION)
+	@echo "$(COMBINED_VERSION)"
+
+.PHONY: version-info
+version-info: ## Print detailed version information
+	@echo "Product:       $(PRODUCT_VERSION)"
+	@echo "ThingsBoard:   $(THINGSBOARD_VERSION)"
+	@echo "Combined:      $(COMBINED_VERSION)"
+	@echo "Docker format: $(COMBINED_VERSION)"
+	@echo "Semver format: $(PRODUCT_VERSION)+tb$(THINGSBOARD_VERSION)"
 
 # ─── lifecycle ───────────────────────────────────────────────────────────────
 
