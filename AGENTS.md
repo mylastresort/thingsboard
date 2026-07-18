@@ -27,6 +27,20 @@ Treat `api-specs/` as the source of truth. Edit the split files under `api-specs
 
 Do not build ThingsBoard from this repo. Update the upstream image version through `.env` variables such as `TB_VERSION`, `DOCKER_REPO`, or `TB_NODE_DOCKER_NAME`, then set `TB_PREV_VERSION` in `Makefile` to the version being upgraded from. Run `make upgrade-db` to destroy/recreate the DB service, build the `thingsboard` container wrapper, and execute the `UPGRADE_TB=true` path with `FROM_VERSION=$(TB_PREV_VERSION)`. After upgrade, use `make up` or `make up-prod` with the new upstream image tag.
 
+## Version Scheme
+
+The product version is decoupled from the upstream ThingsBoard version. Format: `PRODUCT_VERSION+tbTHINGSBOARD_VERSION`.
+
+- **PRODUCT_VERSION** — semver for this stack's releases (e.g. `1.4.0`), tracked in `docker/.env` as `THINGSBOARD_VERSION` and bumped by release-please.
+- **THINGSBOARD_VERSION** — the upstream ThingsBoard image version this stack builds on (e.g. `4.3.1.3`), set in `docker/.env`.
+
+Docker tags use `-` instead of `+` (Docker doesn't allow `+`): `1.4.0-tb4.3.1.3`.
+
+- `make version` — prints the combined tag (`1.4.0-tb4.3.1.3`).
+- `make version-info` — prints product, ThingsBoard, and combined versions.
+
+Release-please runs on push to `dev` (`.github/workflows/release-please.yml`). It manages a single root `package.json` for the product version. Conventional commits on `dev` create/update a release PR; merging it bumps versions and pushes Docker images tagged with the combined scheme.
+
 ## Build, Test, and Development Commands
 
 - `make tb-quarkus-dev-up-with-deps`: run Quarkus dev with dependencies.
