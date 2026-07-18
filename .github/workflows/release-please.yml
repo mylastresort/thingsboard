@@ -3,7 +3,7 @@ name: Release Please
 on:
   push:
     branches:
-      - dev
+      - staging
 
 permissions:
   contents: write
