@@ -58,6 +58,7 @@ pip-cache
 docs/superpowers/
 models-cache
 cassandra-data
+minio-data
 
 # OpenAPI bundled output (source of truth lives in api-specs/openapi/)
 api-specs/openapi.yaml
