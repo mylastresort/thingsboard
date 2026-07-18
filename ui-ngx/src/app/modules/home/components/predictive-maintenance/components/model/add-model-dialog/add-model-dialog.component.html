@@ -141,24 +141,20 @@
 
   <!-- Step 2: Telemetry & Attributes -->
   <div *ngIf="currentStep === 2" class="step-content">
-    <!-- Fields with telemetry attributes -->
     <div class="fields-container">
       <mat-label *ngIf="selectedDevice && availableTelemetry.length > 0"
-        >Time-Series Keys (Optional):</mat-label
+        >All Time-Series Keys (auto-discovered):</mat-label
       >
       <p
-        *ngIf="
-          selectedDevice && fields.length === 0 && availableTelemetry.length > 0
-        "
+        *ngIf="selectedDevice && fields.length > 0"
         class="optional-message"
       >
-        <mat-icon class="info-icon">info</mat-icon>
-        Select time-series keys (ts_kv) from the database for specific
-        forecasting, or proceed without them for general model creation.
+        <mat-icon class="info-icon">check_circle</mat-icon>
+        All {{ fields.length }} telemetry keys from this device have been
+        automatically selected for the model.
       </p>
       <div *ngFor="let field of fields; let i = index" class="field-wrapper">
         <div class="field-header">
-          <!-- Button to remove the field -->
           <button
             mat-icon-button
             (click)="removeField(i)"
@@ -167,33 +163,10 @@
           >
             <mat-icon>remove_circle</mat-icon>
           </button>
-          <span class="field-title">Time-Series Key {{ i + 1 }}</span>
+          <span class="field-title">{{ field.key }}</span>
         </div>
 
         <div class="field-row">
-          <!-- Select dropdown for telemetry keys from database -->
-          <div class="field-item">
-            <mat-label>Sensor Name:</mat-label>
-            <mat-form-field appearance="outline" class="input-field">
-              <mat-select
-                [(ngModel)]="field.key"
-                placeholder="Select from database"
-                [attr.aria-label]="'Time-series key ' + (i + 1) + ' selection'"
-              >
-                <mat-option
-                  *ngFor="let telemetry of getFilteredTelemetry(i)"
-                  [value]="telemetry"
-                >
-                  {{ telemetry }}
-                </mat-option>
-              </mat-select>
-              <mat-hint>
-                Select from available ts_kv keys in database
-              </mat-hint>
-            </mat-form-field>
-          </div>
-
-          <!-- Aggregation function dropdown for this sensor -->
           <div class="field-item">
             <mat-label>Aggregation Function:</mat-label>
             <mat-form-field appearance="outline" class="input-field">
@@ -209,31 +182,11 @@
                   {{ agg.label }}
                 </mat-option>
               </mat-select>
-              <mat-hint>
-                How to aggregate data points within time intervals
-              </mat-hint>
             </mat-form-field>
           </div>
 
-          <!-- Group By interval dropdown for this sensor -->
           <div class="field-item">
-            <div class="group-by-header">
-              <mat-label>Group By Interval:</mat-label>
-              <button
-                mat-button
-                class="advanced-button"
-                (click)="toggleCustomTime(i)"
-                type="button"
-                [attr.aria-label]="
-                  'Toggle advanced time input for field ' + (i + 1)
-                "
-              >
-                <mat-icon>{{
-                  isCustomTime(i) ? "arrow_back" : "schedule"
-                }}</mat-icon>
-                {{ isCustomTime(i) ? "Presets" : "Advanced" }}
-              </button>
-            </div>
+            <mat-label>Group By Interval:</mat-label>
             <mat-form-field
               appearance="outline"
               class="input-field"
@@ -251,10 +204,8 @@
                   {{ groupBy.label }}
                 </mat-option>
               </mat-select>
-              <mat-hint> Time interval for data grouping </mat-hint>
             </mat-form-field>
 
-            <!-- Custom time inputs (inline when Advanced is selected) -->
             <div *ngIf="isCustomTime(i)" class="custom-time-inline">
               <div class="custom-time-inputs">
                 <mat-form-field appearance="outline" class="time-input">
@@ -297,37 +248,33 @@
                   />
                 </mat-form-field>
               </div>
-              <mat-hint class="custom-hint"
-                >Specify custom time interval using hours, minutes, and
-                seconds</mat-hint
-              >
             </div>
           </div>
+
+          <div class="field-item">
+            <mat-label>Epochs:</mat-label>
+            <mat-form-field appearance="outline" class="input-field">
+              <input
+                matInput
+                type="number"
+                min="1"
+                max="1000"
+                [(ngModel)]="field.epochs"
+                placeholder="1"
+                [attr.aria-label]="'Training epochs for ' + (i + 1)"
+              />
+            </mat-form-field>
+          </div>
         </div>
-        <!-- End of field-row -->
       </div>
-      <!-- End of field wrapper -->
 
-      <!-- Button to add a new field -->
-      <button
-        *ngIf="canAddField"
-        mat-raised-button
-        color="primary"
-        (click)="addField()"
-        [disabled]="!selectedDevice || availableTelemetry.length === 0"
-        [attr.aria-label]="'Add new time-series key'"
-      >
-        <mat-icon>add_circle</mat-icon> Add Telemetry Key
-      </button>
-
-      <!-- Helper text when no telemetry available -->
       <p
         *ngIf="selectedDevice && availableTelemetry.length === 0"
         class="no-keys-message"
       >
         <mat-icon class="warning-icon">info_outline</mat-icon>
         No time-series keys found in database for this device. Ensure the device
-        has ts_kv data before adding attributes.
+        has ts_kv data before creating a model.
       </p>
     </div>
   </div>

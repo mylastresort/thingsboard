@@ -93,6 +93,11 @@ public class ModelsApiImpl implements ModelsApi {
     }
 
     @Override
+    public DiscoveredKeysResponse getDiscoveredKeysByDeviceId(String deviceId) {
+        return predictiveModelsRestService.getDiscoveredKeys(deviceId);
+    }
+
+    @Override
     public PdmSeedMachineOptions getSeedMachineOptions() {
         return pdmSeedService.getOptions();
     }

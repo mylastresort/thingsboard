@@ -8,10 +8,14 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
+import org.tb.quarkus.entity.pdm.DeviceErrorEntity;
+import org.tb.quarkus.entity.pdm.DeviceFailureEntity;
+import org.tb.quarkus.entity.pdm.DeviceMaintenanceEntity;
 import org.tb.quarkus.entity.pdm.PredictionEntity;
 import org.tb.quarkus.entity.pdm.PredictiveMaintenanceConfigEntity;
 import org.tb.quarkus.entity.pdm.PredictiveModelLoadModelConfigEntity;
 import org.tb.quarkus.model.AvailableAlgorithmOption;
+import org.tb.quarkus.model.DiscoveredKeysResponse;
 import org.tb.quarkus.model.PredictionCreateRequest;
 
 import java.time.Instant;
@@ -167,6 +171,45 @@ public class PredictiveModelsRestService {
                 .list();
         List<Map<String, Object>> data = entities.stream().map(this::toPredictiveModel).toList();
         return page(data, total, size, offset);
+    }
+
+    public DiscoveredKeysResponse getDiscoveredKeys(String deviceId) {
+        UUID deviceUuid = UUID.fromString(deviceId);
+
+        List<String> errorCodes = DeviceErrorEntity
+                .<DeviceErrorEntity>find("deviceId = ?1", deviceUuid)
+                .list()
+                .stream()
+                .map(e -> e.errorCode)
+                .filter(code -> code != null && !code.isBlank())
+                .distinct()
+                .sorted()
+                .toList();
+
+        List<String> rootCauses = DeviceFailureEntity
+                .<DeviceFailureEntity>find("deviceId = ?1", deviceUuid)
+                .list()
+                .stream()
+                .map(f -> f.rootCause)
+                .filter(rc -> rc != null && !rc.isBlank())
+                .distinct()
+                .sorted()
+                .toList();
+
+        List<String> partsReplaced = DeviceMaintenanceEntity
+                .<DeviceMaintenanceEntity>find("deviceId = ?1", deviceUuid)
+                .list()
+                .stream()
+                .map(m -> m.partsReplaced)
+                .filter(pr -> pr != null && !pr.isBlank())
+                .distinct()
+                .sorted()
+                .toList();
+
+        return new DiscoveredKeysResponse()
+                .errorCodes(errorCodes)
+                .rootCauses(rootCauses)
+                .partsReplaced(partsReplaced);
     }
 
     // --- Prediction history (unchanged naming: keyed by modelId, values are forecast/anomaly predictions) ---

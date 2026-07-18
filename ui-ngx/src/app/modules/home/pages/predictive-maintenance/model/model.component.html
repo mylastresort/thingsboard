@@ -210,6 +210,34 @@
   <span>Inference is reconnecting after a service restart. Predictions will resume shortly.</span>
 </div>
 
+<div class="error-banner" *ngIf="status.toLowerCase() === 'failed' && errorMessage">
+  <mat-icon class="error-icon">error_outline</mat-icon>
+  <div class="error-content">
+    <span class="error-message">{{ errorMessage }}</span>
+    <span class="error-hint" *ngIf="errorCode === 'NO_FAILURE_DATA'">
+      Go to the <strong>Failure Mode</strong> tab and add failure/maintenance records for this device.
+    </span>
+    <span class="error-hint" *ngIf="errorCode === 'NO_COMPONENT_KEYS'">
+      Add maintenance records (parts replaced) or failure records (root causes) to this device in ThingsBoard.
+    </span>
+    <span class="error-hint" *ngIf="errorCode === 'NO_ERROR_KEYS'">
+      Add error records to this device in ThingsBoard before training.
+    </span>
+    <span class="error-hint" *ngIf="errorCode === 'NO_TELEMETRY_KEYS'">
+      Ensure the device has telemetry data configured in ThingsBoard.
+    </span>
+    <span class="error-hint" *ngIf="errorCode === 'MODEL_SAVE_FAILED'">
+      Check disk space and file permissions on the model storage path.
+    </span>
+    <span class="error-hint" *ngIf="errorCode === 'JOB_CRASHED' || errorCode === 'PREDICTION_FAILED'">
+      Check the logs for the full error details.
+    </span>
+  </div>
+  <button mat-icon-button (click)="errorMessage = null" matTooltip="Dismiss">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
 <div class="model-dashboard">
   <div
     class="global-training-progress"
@@ -241,6 +269,7 @@
     >
       <span class="tab-main">
         <mat-icon>sensors</mat-icon>
+        <span>Forecast</span>
         <span
           class="tab-circle-progress"
           *ngIf="shouldShowForecastTrainingSummary()"
@@ -248,7 +277,6 @@
         >
           {{ getForecastTrainedSensorCount() }}/{{ getForecastSensorTotal() }}
         </span>
-        <span>Forecast</span>
       </span>
     </button>
     <button
@@ -262,13 +290,13 @@
     >
       <span class="tab-main">
         <mat-icon>bug_report</mat-icon>
+        <span>Anomalies</span>
         <mat-icon
           class="tab-pending-icon"
           *ngIf="anomalyModelPending"
           matTooltip="Anomaly model pending"
           >schedule</mat-icon
         >
-        <span>Anomalies</span>
       </span>
     </button>
     <button

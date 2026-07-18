@@ -1,0 +1,20 @@
+get:
+  operationId: getDiscoveredKeysByDeviceId
+  summary: Discover error codes, root causes, and parts replaced from failure/error/maintenance records for a device
+  parameters:
+    - name: device_id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    "200":
+      description: Discovered keys for the device
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/DiscoveredKeysResponse.yaml"
+    "404":
+      $ref: "../responses/_index.yaml#/Error"
+    "500":
+      $ref: "../responses/_index.yaml#/Error"

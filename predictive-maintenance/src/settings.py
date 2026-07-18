@@ -19,15 +19,11 @@ class Settings(BaseSettings):
     models_path: str = os.getenv("MODELS_PATH", "/app/models")
 
     # Telemetry configuration for predictive maintenance
-    telemetry_keys: Union[List[str], str] = ["volt", "rotate", "pressure", "vibration"]
-    error_keys: Union[List[str], str] = [
-        "error1",
-        "error2",
-        "error3",
-        "error4",
-        "error5",
-    ]
-    component_keys: Union[List[str], str] = ["comp1", "comp2", "comp3", "comp4"]
+    # These are now discovered dynamically from the database per device.
+    # Override via env vars only if needed (comma-separated).
+    telemetry_keys: Union[List[str], str] = []
+    error_keys: Union[List[str], str] = []
+    component_keys: Union[List[str], str] = []
 
     @field_validator("cors_origins", mode="before")
     @classmethod

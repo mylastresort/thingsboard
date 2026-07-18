@@ -401,7 +401,7 @@ def build_consumer(sr: SchemaRegistryClient) -> AvroConsumer:
             "enable.auto.commit": False,
         },
         schema_registry=sr,
-        schema=cmd_schema_str,
+        reader_value_schema=cmd_schema_str,
     )
 
 

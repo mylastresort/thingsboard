@@ -41,6 +41,7 @@ export interface ForecastAttribute {
   key: string;
   aggregation?: string; // 'average', 'min', 'max'
   groupByMs?: number; // grouping interval in milliseconds
+  epochs?: number; // training epochs per sensor (default 1)
 }
 
 export interface Forecast extends BaseData<ForecastId> {
