@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.0](https://github.com/mylastresort/thingsboard/compare/thingsboard-v1.1.0...thingsboard-v1.2.0) (2026-07-18)
+
+
+### Features
+
+* **go-toolbox:** update dash with dynamic device handling ([6b7144a](https://github.com/mylastresort/thingsboard/commit/6b7144ab152b5db94b62eab96649175904542d95))
+* **pdm:** add model storage service with MinIO and PostgreSQL backends ([2ee9b75](https://github.com/mylastresort/thingsboard/commit/2ee9b755a8f12ba9e23b159f7bd44b25cdfc695b))
+* **pdm:** add model storage service with MinIO and PostgreSQL backends ([ec754aa](https://github.com/mylastresort/thingsboard/commit/ec754aac96667b860258410ec395075b9a9b1145))
+* **pdm:** parallelize forecast training/inference per sensor ([13a52d5](https://github.com/mylastresort/thingsboard/commit/13a52d5d3a0d0372cc1a4a7e0c92d94360845161))
+* **pdm:** per-sensor fan-out, dynamic activation, prediction streaming ([91cb104](https://github.com/mylastresort/thingsboard/commit/91cb1044ca0b6af900ced33d86b2f5783ad4339f))
+* **pdm:** Rust native inference engine with Python→ONNX training bridge ([b4a2cc6](https://github.com/mylastresort/thingsboard/commit/b4a2cc688d3eef84b768e70c8c141bf28811b4c3))
+
+
+### Bug Fixes
+
+* minio ([d957980](https://github.com/mylastresort/thingsboard/commit/d957980efe61336841bb06b218471238e0f0725a))
+
 ## [1.1.0](https://github.com/mylastresort/thingsboard/compare/thingsboard-v1.0.0...thingsboard-v1.1.0) (2026-07-18)
 
 
