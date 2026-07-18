@@ -1,5 +1,10 @@
 {
-  ".": "4.3.1.3",
-  "ui-ngx": "4.3.1",
-  "tb-quarkus/gateway": "4.3.1"
+  ".": "1.0.0",
+  "ui-ngx": "1.0.0",
+  "msa/web-ui": "1.0.0",
+  "tb-quarkus/gateway": "1.0.0",
+  "tb-quarkus/cmd": "1.0.0",
+  "predictive-maintenance": "1.0.0",
+  "ai-agent": "1.0.0",
+  "config-api": "1.0.0"
 }
