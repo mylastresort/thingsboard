@@ -1,4 +1,6 @@
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -16,6 +18,9 @@ from tensorflow.keras.models import Sequential, load_model
 from src.logger import logger
 
 from ..core.model_interface import BaseModel
+
+MAX_TRAIN_WORKERS = int(os.getenv("PDM_FORECAST_TRAIN_WORKERS", "4"))
+MAX_PREDICT_WORKERS = int(os.getenv("PDM_FORECAST_PREDICT_WORKERS", "4"))
 
 
 class ForecastModel(BaseModel):
@@ -132,6 +137,90 @@ class ForecastModel(BaseModel):
         column_name = sensor_key if sensor_key else "y"
         return pd.DataFrame({"datetime": timestamps, column_name: values})
 
+    def _train_single_sensor(
+        self,
+        sensor_key: str,
+        df: pd.DataFrame,
+        sensor_index: int,
+        total_sensors: int,
+        epochs: int,
+        batch_size: int,
+        lstm_units: int,
+        use_gpu: bool,
+        train_percentage: float,
+        progress_lock: threading.Lock,
+        progress_callback: Callable[[dict[str, Any]], None] | None,
+    ) -> Tuple[str, dict]:
+        sensor_start_percent = 50 + int(((sensor_index - 1) / total_sensors) * 30)
+        sensor_end_percent = 50 + int((sensor_index / total_sensors) * 30)
+
+        with progress_lock:
+            _emit_training_progress(
+                progress_callback,
+                step=f"ForecastModel {sensor_key} preparing",
+                message=(
+                    f"ForecastModel training sensor {sensor_key}: "
+                    f"preparing data ({sensor_index}/{total_sensors})"
+                ),
+                progress=sensor_start_percent,
+                sensor=sensor_key,
+                model="ForecastModel",
+            )
+
+        logger.info(f"Processing sensor: {sensor_key} with {len(df)} data points")
+        sensor = prepare_sensor_data(df, sensor=sensor_key)
+        logger.info(f"Prepared sensor data for {sensor_key}")
+
+        logger.info(f"Scaling and splitting data for {sensor_key}")
+        train_data, test_data, scaler = scale_and_split_data(
+            sensor, sensor_key, train_percentage, self.lookback
+        )
+        logger.info(
+            f"Scaled and split data for {sensor_key}: "
+            f"train_size={len(train_data)}, test_size={len(test_data)}"
+        )
+
+        logger.info(f"Creating RNN datasets for {sensor_key}")
+        train_x, train_y = create_rnn_dataset(train_data, self.lookback)
+        train_x = np.reshape(train_x, (train_x.shape[0], 1, train_x.shape[1]))
+        test_x, test_y = create_rnn_dataset(test_data, self.lookback)
+        test_x = np.reshape(test_x, (test_x.shape[0], 1, test_x.shape[1]))
+        logger.info(
+            f"Created RNN datasets for {sensor_key}: "
+            f"train_x.shape={train_x.shape}, test_x.shape={test_x.shape}"
+        )
+
+        logger.info(f"Building LSTM model for {sensor_key}")
+        model = build_lstm_model(self.lookback, lstm_units, use_gpu=use_gpu)
+        logger.info(f"Training LSTM model for {sensor_key} with {epochs} epochs...")
+
+        def _thread_safe_progress(payload):
+            with progress_lock:
+                progress_callback(payload)
+
+        model = train_lstm_model(
+            model,
+            train_x,
+            train_y,
+            epochs,
+            batch_size,
+            progress_callback=(
+                _sensor_epoch_progress_callback(
+                    _thread_safe_progress if progress_callback else None,
+                    sensor_key=sensor_key,
+                    sensor_index=sensor_index,
+                    total_sensors=total_sensors,
+                    start_percent=sensor_start_percent,
+                    end_percent=sensor_end_percent,
+                )
+                if progress_callback
+                else None
+            ),
+        )
+        logger.info(f"Finished training LSTM model for {sensor_key}")
+
+        return sensor_key, {"model": model, "scaler": scaler}
+
     def train(self, progress_callback: Callable[[dict[str, Any]], None] | None = None):
         logger.info(f"Starting to fetch training data for sensors: {self.sensors}")
         data = self.fetch(
@@ -150,81 +239,45 @@ class ForecastModel(BaseModel):
         EPOCHS = 35
         BATCH_SIZE = 128
 
-        models = dict()
+        total_sensors = max(len(data), 1)
+        max_workers = min(MAX_TRAIN_WORKERS, total_sensors)
 
         logger.info(
             "Training LSTM models for "
             f"{len(data)} sensors with lookback={self.lookback}, "
-            f"epochs={EPOCHS}, batch_size={BATCH_SIZE}"
+            f"epochs={EPOCHS}, batch_size={BATCH_SIZE}, "
+            f"workers={max_workers}"
         )
 
-        total_sensors = max(len(data), 1)
+        progress_lock = threading.Lock()
+        models = dict()
 
-        for sensor_index, (sensor_key, df) in enumerate(data.items(), start=1):
-            sensor_start_percent = 50 + int(((sensor_index - 1) / total_sensors) * 30)
-            sensor_end_percent = 50 + int((sensor_index / total_sensors) * 30)
-            _emit_training_progress(
-                progress_callback,
-                step=f"ForecastModel {sensor_key} preparing",
-                message=(
-                    f"ForecastModel training sensor {sensor_key}: "
-                    f"preparing data ({sensor_index}/{total_sensors})"
-                ),
-                progress=sensor_start_percent,
-                sensor=sensor_key,
-                model="ForecastModel",
-            )
-            logger.info(f"Processing sensor: {sensor_key} with {len(df)} data points")
-            sensor = prepare_sensor_data(df, sensor=sensor_key)
-            logger.info(f"Prepared sensor data for {sensor_key}")
-
-            logger.info(f"Scaling and splitting data for {sensor_key}")
-            train_data, test_data, scaler = scale_and_split_data(
-                sensor, sensor_key, TRAIN_PERCENTAGE, self.lookback
-            )
-            logger.info(
-                f"Scaled and split data for {sensor_key}: "
-                f"train_size={len(train_data)}, test_size={len(test_data)}"
-            )
-
-            logger.info(f"Creating RNN datasets for {sensor_key}")
-            train_x, train_y = create_rnn_dataset(train_data, self.lookback)
-            train_x = np.reshape(train_x, (train_x.shape[0], 1, train_x.shape[1]))
-            test_x, test_y = create_rnn_dataset(test_data, self.lookback)
-            test_x = np.reshape(test_x, (test_x.shape[0], 1, test_x.shape[1]))
-            logger.info(
-                f"Created RNN datasets for {sensor_key}: "
-                f"train_x.shape={train_x.shape}, test_x.shape={test_x.shape}"
-            )
-
-            logger.info(f"Building LSTM model for {sensor_key}")
-            model = build_lstm_model(self.lookback, LSTM_UNITS, use_gpu=USE_GPU)
-            logger.info(f"Training LSTM model for {sensor_key} with {EPOCHS} epochs...")
-            model = train_lstm_model(
-                model,
-                train_x,
-                train_y,
-                EPOCHS,
-                BATCH_SIZE,
-                progress_callback=(
-                    _sensor_epoch_progress_callback(
-                        progress_callback,
-                        sensor_key=sensor_key,
-                        sensor_index=sensor_index,
-                        total_sensors=total_sensors,
-                        start_percent=sensor_start_percent,
-                        end_percent=sensor_end_percent,
-                    )
-                    if progress_callback
-                    else None
-                ),
-            )
-            logger.info(f"Finished training LSTM model for {sensor_key}")
-
-            models[sensor_key] = {
-                "model": model,
-                "scaler": scaler,
-            }
+        if max_workers <= 1:
+            for sensor_index, (sensor_key, df) in enumerate(data.items(), start=1):
+                sensor_key, result = self._train_single_sensor(
+                    sensor_key, df, sensor_index, total_sensors,
+                    EPOCHS, BATCH_SIZE, LSTM_UNITS, USE_GPU, TRAIN_PERCENTAGE,
+                    progress_lock, progress_callback,
+                )
+                models[sensor_key] = result
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                futures = {
+                    pool.submit(
+                        self._train_single_sensor,
+                        sensor_key, df, sensor_index, total_sensors,
+                        EPOCHS, BATCH_SIZE, LSTM_UNITS, USE_GPU, TRAIN_PERCENTAGE,
+                        progress_lock, progress_callback,
+                    ): sensor_key
+                    for sensor_index, (sensor_key, df) in enumerate(data.items(), start=1)
+                }
+                for future in as_completed(futures):
+                    sensor_key = futures[future]
+                    try:
+                        key, result = future.result()
+                        models[key] = result
+                    except Exception:
+                        logger.exception(f"Failed to train sensor {sensor_key}")
 
         logger.info(f"Completed training for all {len(models)} sensors")
         self.models = models
@@ -289,6 +342,88 @@ class ForecastModel(BaseModel):
         self.is_trained = len(models) > 0
         self.last_updated = datetime.now() if self.is_trained else None
 
+    def _predict_single_sensor(
+        self, sensor_key: str, model_dict: dict, predict_for: int
+    ) -> Optional[Tuple[str, dict]]:
+        try:
+            model = model_dict.get("model", None)
+            scaler = model_dict.get("scaler", None)
+            sensor_df = model_dict.get("data", None)
+            if model is None or scaler is None or sensor_df is None:
+                logger.warning(f"[PREDICT] {sensor_key}: Skipping - missing components")
+                return None
+
+            if sensor_df is None or sensor_df.empty:
+                logger.warning(f"[PREDICT] {sensor_key}: Skipping - no data")
+                return None
+
+            sensor_data = prepare_sensor_data(sensor_df, sensor_key)
+
+            sensor_values = sensor_data[sensor_key].values.reshape(-1, 1)
+            scaled_data = scaler.transform(sensor_values)
+
+            test_x, _ = create_rnn_dataset(scaled_data, self.lookback)
+
+            if len(test_x) == 0:
+                logger.warning(
+                    f"[PREDICT] {sensor_key}: Skipping - insufficient data for lookback window"
+                )
+                return None
+
+            test_x = np.reshape(test_x, (test_x.shape[0], 1, test_x.shape[1]))
+
+            result = forecast_future(
+                model,
+                test_x,
+                scaler,
+                self.lookback,
+                predict_for=predict_for,
+            )
+
+            max_timestamp = sensor_df["datetime"].max()
+            min_timestamp = sensor_df["datetime"].min()
+
+            logger.info(
+                f"{sensor_key}: INPUT data range [{min_timestamp} to "
+                f"{max_timestamp}], {len(sensor_df)} points"
+            )
+
+            last_ts = int(max_timestamp.timestamp() * 1000)
+
+            logger.info(
+                f"{sensor_key}: last_real_timestamp stored = {max_timestamp} ({last_ts} ms)"
+            )
+
+            sensor_result = {}
+
+            sensor_result["prediction_info"] = {
+                "group_by_period_ms": self.group_by_ms_per_sensor.get(sensor_key, 5000),
+                "recent_point_ts": last_ts,
+            }
+
+            if isinstance(result, np.ndarray):
+                sensor_result["forecast"] = result.flatten().tolist()
+            else:
+                sensor_result["forecast"] = result
+
+            sensor_group_by_ms = self.group_by_ms_per_sensor.get(sensor_key, 5000)
+            future_timestamps = [
+                max_timestamp + pd.Timedelta(milliseconds=sensor_group_by_ms * (i + 1))
+                for i in range(predict_for)
+            ]
+            sensor_result["timestamp"] = [
+                int(ts.timestamp() * 1000) for ts in future_timestamps
+            ]
+
+            return sensor_key, sensor_result, last_ts
+
+        except Exception as e:
+            import traceback
+
+            logger.error(f"[PREDICT] Error forecasting {sensor_key}: {str(e)}")
+            traceback.print_exc()
+            return None
+
     def predict(
         self,
         predict_for: int = 24,
@@ -296,88 +431,30 @@ class ForecastModel(BaseModel):
         results = dict()
         results["forecast_max_steps"] = predict_for
 
-        for sensor_key, model_dict in self.models.items():
-            try:
-                model = model_dict.get("model", None)
-                scaler = model_dict.get("scaler", None)
-                sensor_df = model_dict.get("data", None)
-                if model is None or scaler is None or sensor_df is None:
-                    logger.warning(f"[PREDICT] {sensor_key}: Skipping - missing components")
-                    continue
+        total_sensors = len(self.models)
+        max_workers = min(MAX_PREDICT_WORKERS, total_sensors) if total_sensors > 0 else 1
 
-                if sensor_df is None or sensor_df.empty:
-                    logger.warning(f"[PREDICT] {sensor_key}: Skipping - no data")
-                    continue
-
-                sensor_data = prepare_sensor_data(sensor_df, sensor_key)
-
-                sensor_values = sensor_data[sensor_key].values.reshape(-1, 1)
-                scaled_data = scaler.transform(sensor_values)
-
-                test_x, _ = create_rnn_dataset(scaled_data, self.lookback)
-
-                if len(test_x) == 0:
-                    logger.warning(
-                        f"[PREDICT] {sensor_key}: Skipping - insufficient data for lookback window"
-                    )
-                    continue
-
-                test_x = np.reshape(test_x, (test_x.shape[0], 1, test_x.shape[1]))
-
-                result = forecast_future(
-                    model,
-                    test_x,
-                    scaler,
-                    self.lookback,
-                    predict_for=predict_for,
-                )
-
-                max_timestamp = sensor_df["datetime"].max()
-                min_timestamp = sensor_df["datetime"].min()
-
-                logger.info(
-                    f"{sensor_key}: INPUT data range [{min_timestamp} to "
-                    f"{max_timestamp}], {len(sensor_df)} points"
-                )
-
-                self.last_real_timestamps[sensor_key] = int(max_timestamp.timestamp() * 1000)
-
-                logger.info(
-                    f"{sensor_key}: last_real_timestamp stored = {max_timestamp} "
-                    f"({self.last_real_timestamps[sensor_key]} ms)"
-                )
-
-                results[sensor_key] = {}
-
-                results[sensor_key]["prediction_info"] = {
-                    "group_by_period_ms": self.group_by_ms_per_sensor.get(sensor_key, 5000)
+        if max_workers <= 1:
+            for sensor_key, model_dict in self.models.items():
+                outcome = self._predict_single_sensor(sensor_key, model_dict, predict_for)
+                if outcome is not None:
+                    key, result, last_ts = outcome
+                    self.last_real_timestamps[key] = last_ts
+                    results[key] = result
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                futures = {
+                    pool.submit(
+                        self._predict_single_sensor, sensor_key, model_dict, predict_for
+                    ): sensor_key
+                    for sensor_key, model_dict in self.models.items()
                 }
-
-                results[sensor_key]["prediction_info"]["recent_point_ts"] = (
-                    self.last_real_timestamps[sensor_key]
-                )
-
-                if isinstance(result, np.ndarray):
-                    results[sensor_key]["forecast"] = result.flatten().tolist()
-                else:
-                    results[sensor_key]["forecast"] = result
-
-                sensor_group_by_ms = self.group_by_ms_per_sensor.get(sensor_key, 5000)
-
-                future_timestamps = [
-                    max_timestamp + pd.Timedelta(milliseconds=sensor_group_by_ms * (i + 1))
-                    for i in range(predict_for)
-                ]
-                results[sensor_key]["timestamp"] = [
-                    int(ts.timestamp() * 1000) for ts in future_timestamps
-                ]
-
-            except Exception as e:
-                import traceback
-
-                logger.error(f"[PREDICT] Error forecasting {sensor_key}: {str(e)}")
-                traceback.print_exc()
-                continue
+                for future in as_completed(futures):
+                    outcome = future.result()
+                    if outcome is not None:
+                        key, result, last_ts = outcome
+                        self.last_real_timestamps[key] = last_ts
+                        results[key] = result
 
         return results
 

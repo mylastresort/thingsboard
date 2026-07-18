@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Callable
 
@@ -39,8 +40,10 @@ def activate_forecast(
         if "key" in sensor
     }
 
-    if target in {"BOTH", "FORECAST"}:
-        forecast_model_id = f"{forecast_id}/forecast_model"
+    forecast_model_id = f"{forecast_id}/forecast_model"
+    anomaly_model_id = f"{forecast_id}/anomaly_predictor"
+
+    def _train_forecast():
         _progress(
             progress_callback,
             forecast_model_id,
@@ -69,16 +72,8 @@ def activate_forecast(
             "forecast_complete",
             "ForecastModel trained successfully",
         )
-        job_manager.start(
-            forecast_model_id,
-            "ForecastModel",
-            device_id,
-            group_by_ms_per_sensor=group_by_ms_per_sensor,
-            aggregation_funcs=aggregation_funcs,
-        )
 
-    if target in {"BOTH", "ANOMALY"}:
-        anomaly_model_id = f"{forecast_id}/anomaly_predictor"
+    def _train_anomaly():
         _progress(
             progress_callback,
             anomaly_model_id,
@@ -105,7 +100,34 @@ def activate_forecast(
             "anomaly_complete",
             "AnomalyPredictor trained successfully",
         )
+
+    if target == "BOTH":
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f_future = pool.submit(_train_forecast)
+            a_future = pool.submit(_train_anomaly)
+            f_future.result()
+            a_future.result()
+        job_manager.start(
+            forecast_model_id,
+            "ForecastModel",
+            device_id,
+            group_by_ms_per_sensor=group_by_ms_per_sensor,
+            aggregation_funcs=aggregation_funcs,
+        )
         job_manager.start(anomaly_model_id, "AnomalyPredictor", device_id)
+    else:
+        if target == "FORECAST":
+            _train_forecast()
+            job_manager.start(
+                forecast_model_id,
+                "ForecastModel",
+                device_id,
+                group_by_ms_per_sensor=group_by_ms_per_sensor,
+                aggregation_funcs=aggregation_funcs,
+            )
+        elif target == "ANOMALY":
+            _train_anomaly()
+            job_manager.start(anomaly_model_id, "AnomalyPredictor", device_id)
 
     logger.info(f"Kafka worker activation complete for forecastId={forecast_id}")
 
