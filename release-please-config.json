@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "packages": {
     ".": {
-      "release-type": "maven",
+      "release-type": "node",
       "component": "thingsboard",
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
@@ -14,90 +14,6 @@
         { "type": "refactor", "section": "Code Refactoring", "hidden": true },
         { "type": "test", "section": "Tests", "hidden": true },
         { "type": "ci", "section": "Continuous Integration", "hidden": true }
-      ],
-      "bump-minor-pre-major": false,
-      "bump-patch-for-minor-pre-major": false
-    },
-    "ui-ngx": {
-      "release-type": "node",
-      "component": "ui-ngx",
-      "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance Improvements" },
-        { "type": "deps", "section": "Dependencies" }
-      ],
-      "bump-minor-pre-major": false,
-      "bump-patch-for-minor-pre-major": false
-    },
-    "msa/web-ui": {
-      "release-type": "node",
-      "component": "msa-web-ui",
-      "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance Improvements" },
-        { "type": "deps", "section": "Dependencies" }
-      ],
-      "bump-minor-pre-major": false,
-      "bump-patch-for-minor-pre-major": false
-    },
-    "tb-quarkus/gateway": {
-      "release-type": "gradle",
-      "component": "tb-quarkus-gateway",
-      "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance Improvements" },
-        { "type": "deps", "section": "Dependencies" }
-      ],
-      "bump-minor-pre-major": false,
-      "bump-patch-for-minor-pre-major": false
-    },
-    "tb-quarkus/cmd": {
-      "release-type": "gradle",
-      "component": "tb-quarkus-cmd",
-      "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance Improvements" },
-        { "type": "deps", "section": "Dependencies" }
-      ],
-      "bump-minor-pre-major": false,
-      "bump-patch-for-minor-pre-major": false
-    },
-    "predictive-maintenance": {
-      "release-type": "python",
-      "component": "pdm-workers",
-      "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance Improvements" },
-        { "type": "deps", "section": "Dependencies" }
-      ],
-      "bump-minor-pre-major": false,
-      "bump-patch-for-minor-pre-major": false
-    },
-    "ai-agent": {
-      "release-type": "python",
-      "component": "ai-agent",
-      "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance Improvements" },
-        { "type": "deps", "section": "Dependencies" }
-      ],
-      "bump-minor-pre-major": false,
-      "bump-patch-for-minor-pre-major": false
-    },
-    "config-api": {
-      "release-type": "python",
-      "component": "config-api",
-      "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance Improvements" },
-        { "type": "deps", "section": "Dependencies" }
       ],
       "bump-minor-pre-major": false,
       "bump-patch-for-minor-pre-major": false
@@ -115,8 +31,5 @@
     { "type": "chore", "section": "Miscellaneous" }
   ],
   "prerelease": false,
-  "signoff": false,
-  "extra-files": [
-    "Makefile"
-  ]
+  "signoff": false
 }
