@@ -1,0 +1,16 @@
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    pandas numpy redis pyyaml confluent-kafka avro-python3
+
+COPY feature-worker/schemas/ /app/feature-worker/schemas/
+COPY feature-worker/src/ /app/feature-worker/src/
+COPY src/logger.py /app/src/logger.py
+COPY library/ /app/library/
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "-m", "feature_worker.src.feature_worker"]

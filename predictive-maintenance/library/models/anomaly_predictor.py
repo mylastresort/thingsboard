@@ -864,13 +864,22 @@ def preprocess_data(telemetry, errors, maint, failures, machines, components, er
         ),
         flush=True,
     )
-    telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
-    telemetry_feat = create_telemetry_features(telemetry)
-    error_count = create_error_count_features(telemetry, errors, error_classes)
-    print("errors: \n", flush=True)
-    print(error_count, flush=True)
-    comp_rep = create_comp_replacement_features(telemetry, maint, components)
-    labeled_features = merge_features(telemetry_feat, error_count, comp_rep, machines, failures)
+    try:
+        from feature_worker.src.feature_bridge import compute_anomaly_features_batch
+
+        telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
+        features_df = compute_anomaly_features_batch(telemetry, errors, maint, machines)
+        features_df["datetime"] = pd.to_datetime(telemetry["datetime"].iloc[: len(features_df)])
+        features_df["machineID"] = telemetry["machineID"].iloc[: len(features_df)] if "machineID" in telemetry.columns else 1
+        labeled_features = merge_features(features_df, pd.DataFrame(), pd.DataFrame(), machines, failures)
+        print("[PREPROCESS_DATA] Using shared FeatureEngine", flush=True)
+    except ImportError:
+        telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
+        telemetry_feat = create_telemetry_features(telemetry)
+        error_count = create_error_count_features(telemetry, errors, error_classes)
+        comp_rep = create_comp_replacement_features(telemetry, maint, components)
+        labeled_features = merge_features(telemetry_feat, error_count, comp_rep, machines, failures)
+        print("[PREPROCESS_DATA] Using inline feature engineering", flush=True)
 
     print("\n[DEBUG] After merge_features, failure column value_counts:", flush=True)
     print(labeled_features["failure"].value_counts(), flush=True)
