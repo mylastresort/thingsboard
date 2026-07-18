@@ -204,21 +204,14 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
         }));
       }
     });
-    // Initialize forecast dates with default values (last 30 days) and set specific times
+    // Default to all time (epoch to now)
+    this.globalStartDate = new Date(0);
     this.globalEndDate = new Date();
-    this.globalEndDate.setHours(23, 59, 59, 999); // Set to end of day
+    this.globalEndDate.setHours(23, 59, 59, 999);
 
-    this.globalStartDate = new Date();
-    this.globalStartDate.setDate(this.globalStartDate.getDate() - 30);
-    this.globalStartDate.setHours(0, 0, 0, 0); // Set to start of day
-
-    // Initialize anomalies dates with default values (last 60 days) and set specific times
+    this.anomaliesStartDate = new Date(0);
     this.anomaliesEndDate = new Date();
-    this.anomaliesEndDate.setHours(23, 59, 59, 999); // Set to end of day
-
-    this.anomaliesStartDate = new Date();
-    this.anomaliesStartDate.setDate(this.anomaliesStartDate.getDate() - 60);
-    this.anomaliesStartDate.setHours(0, 0, 0, 0); // Set to start of day
+    this.anomaliesEndDate.setHours(23, 59, 59, 999);
 
     this.filteredDevices = this.devicesSubject.asObservable();
 
@@ -431,6 +424,18 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
           // Set available telemetry keys
           this.availableTelemetry = telemetryKeys;
 
+          // Auto-add ALL available telemetry keys as fields (no manual selection needed)
+          if (!this.isEditMode && telemetryKeys.length > 0) {
+            this.fields = telemetryKeys.map((key) => ({
+              key,
+              startDate: null,
+              endDate: null,
+              aggregation: 'average',
+              groupByMs: 5000,
+              epochs: 1,
+            }));
+          }
+
           // If no telemetry available, show message
           if (telemetryKeys.length === 0) {
             this.noTelemetryMessage =
@@ -563,6 +568,7 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
         endDate: null,
         aggregation: 'average', // Default aggregation
         groupByMs, // Default grouping
+        epochs: 1, // Default training epochs
       });
     }
   }
@@ -681,12 +687,13 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
     const deviceId = this.selectedDevice.id;
 
     // Only use manually added fields (sensors) - no auto-detection
-    const attributes: { key: string; aggregation: string; groupByMs: number }[] = this.fields
+    const attributes: { key: string; aggregation: string; groupByMs: number; epochs: number }[] = this.fields
       .filter((field) => field.key && field.key.trim() !== '')
       .map((el) => ({
         key: el.key,
         aggregation: el.aggregation || 'average',
-        groupByMs: el.groupByMs || 5000, // Use field-specific grouping or default to 5 seconds
+        groupByMs: el.groupByMs || 5000,
+        epochs: el.epochs || 1,
       }));
 
     const forecastData: ForecastCreate = {
@@ -797,14 +804,15 @@ export class AddModelDialogComponent implements OnInit, OnDestroy {
       const attributeKeys = this.editingForecast.attributesText
         .split(', ')
         .filter((key) => key.trim());
-      this.fields = attributeKeys.map((key, index: number) => {
+      this.fields = attributeKeys.map((key: string, index: number) => {
         const groupByMs = 3600000; // Default to hourly for legacy models
         return {
           key: key.trim(),
           startDate: null,
           endDate: null,
-          aggregation: 'average', // Default aggregation for existing models
-          groupByMs, // Default to hourly
+          aggregation: 'average',
+          groupByMs,
+          epochs: 1,
         };
       });
       // Store original attributes for change detection

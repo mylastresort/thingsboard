@@ -3,6 +3,7 @@ Shared utilities and constants for model services
 """
 
 import os
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -11,9 +12,17 @@ import pandas as pd
 from library import AnomalyPredictor, ForecastModel
 from library.core.data_registry import DataRegistry
 from library.models.anomaly_predictor import save_models, train_model
-import library.storage as storage
 from src.logger import logger
 from src.settings import settings
+
+
+class TrainingError(Exception):
+    """Raised when model training fails with a user-actionable reason."""
+
+    def __init__(self, message: str, code: str = "TRAINING_FAILED", cause: Exception | None = None):
+        super().__init__(message)
+        self.code = code
+        self.cause = cause
 
 
 def get_data_registry() -> DataRegistry:
@@ -73,6 +82,7 @@ def train_and_save_model(
     sensors: list | None = None,
     group_by_ms_per_sensor: dict | None = None,
     aggregation_funcs: dict | None = None,
+    epochs_per_sensor: dict | None = None,
     progress_callback=None,
     **kwargs,
 ) -> dict:
@@ -101,6 +111,31 @@ def train_and_save_model(
             datetime.now() - pd.Timedelta(days=365 * 2),
         )
         train_end_date = kwargs.get("train_end_date", datetime.now())
+
+        discovered = data_registry.discover_device_keys(device_id)
+        component_keys = discovered["root_causes"] or discovered["parts_replaced"]
+        error_keys = discovered["error_codes"]
+
+        if not component_keys:
+            raise TrainingError(
+                f"No component keys found for device {device_id}. "
+                "Add failure or maintenance records (root causes / parts replaced) "
+                "to the database before training the anomaly model.",
+                code="NO_COMPONENT_KEYS",
+            )
+        if not error_keys:
+            raise TrainingError(
+                f"No error keys found for device {device_id}. "
+                "Add error records to the database before training the anomaly model.",
+                code="NO_ERROR_KEYS",
+            )
+        if not sensors:
+            raise TrainingError(
+                f"No telemetry keys provided for device {device_id}. "
+                "Add telemetry data to ThingsBoard before training.",
+                code="NO_TELEMETRY_KEYS",
+            )
+
         model = ModelClass(
             name=model_id,
             algorithm_name=algorithm,
@@ -109,10 +144,13 @@ def train_and_save_model(
             device_id=device_id,
             additional_info=kwargs,
             sensors=sensors,
+            error_keys=error_keys,
+            component_keys=component_keys,
             train_start_date=train_start_date,
             train_end_date=train_end_date,
         )
 
+        # Update progress: fetching data
         update_training_progress(
             model_id,
             {
@@ -142,13 +180,14 @@ def train_and_save_model(
         )
         print(f"[TRAIN] Data fetched. Training model...", flush=True)
         if failures_df.empty:
-            return {
-                "status": "failed",
-                "reason": "No failure data found",
-                "model_id": model_id,
-                "model_type": model_type,
-            }
+            raise TrainingError(
+                f"No failure records found for device {device_id}. "
+                "To train the anomaly model, add failure/maintenance records to the device "
+                "in ThingsBoard first (via the Failure Mode tab or API).",
+                code="NO_FAILURE_DATA",
+            )
 
+        # Update progress: training
         update_training_progress(
             model_id,
             {"step": "training", "message": "Training AnomalyPredictor model...", "progress": 40},
@@ -163,28 +202,27 @@ def train_and_save_model(
             )
 
         print(f"[TRAIN] Training AnomalyPredictor model for device_id={device_id}...", flush=True)
+
         hourly_models, feature_cols, labeled_features_clean = train_model(
             telemetry_df,
             errors_df,
             maintenance_df,
             failures_df,
             machines_df,
-            components=[
-                "comp1",
-                "comp2",
-                "comp3",
-                "comp4",
-            ],
-            error_classes=[
-                "error1",
-                "error2",
-                "error3",
-                "error4",
-                "error5",
-            ],
+            components=component_keys,
+            error_classes=error_keys,
+            sensors=sensors,
             algorithm="random_forest",
         )
 
+        if not hourly_models:
+            raise TrainingError(
+                "Training produced no models. The data may not contain enough variation "
+                "to learn failure patterns. Check that failure records span different time periods.",
+                code="EMPTY_TRAINING_OUTPUT",
+            )
+
+        # Update progress: saving
         update_training_progress(
             model_id, {"step": "saving", "message": "Saving trained model...", "progress": 80}
         )
@@ -194,15 +232,23 @@ def train_and_save_model(
             )
 
         print(f"[TRAIN] Model trained. Saving models...", flush=True)
-        save_models(hourly_models, model_dir)
         try:
-            storage.save_model(model_id, model_dir)
-            print(f"[TRAIN] Models synced to model-store", flush=True)
-        except Exception as sync_err:
-            print(f"[TRAIN] Model-store sync failed (local save OK): {sync_err}", flush=True)
+            save_models(hourly_models, model_dir)
+        except Exception as save_err:
+            raise TrainingError(
+                f"Model trained successfully but failed to save to disk ({model_dir}). "
+                f"Check disk space and permissions. Error: {save_err}",
+                code="MODEL_SAVE_FAILED",
+                cause=save_err,
+            ) from save_err
     elif model_type == "ForecastModel":
         logger.info(
             f"{rand_id} - Starting training for ForecastModel with model_id={model_id}",
+            extra={"rand_id": rand_id},
+        )
+        # Update progress: initializing
+        logger.info(
+            f"{rand_id} - Updating progress to initializing for model_id={model_id}",
             extra={"rand_id": rand_id},
         )
         update_training_progress(
@@ -220,6 +266,7 @@ def train_and_save_model(
             extra={"rand_id": rand_id},
         )
 
+        # Initialize model with data registry
         model = ModelClass(
             name=model_id,
             algorithm_name=algorithm,
@@ -230,12 +277,14 @@ def train_and_save_model(
             sensors=sensors,
             group_by_ms_per_sensor=group_by_ms_per_sensor,
             aggregation_funcs=aggregation_funcs,
+            epochs_per_sensor=epochs_per_sensor,
         )
         logger.info(
             f"{rand_id} - ForecastModel instance initialized for model_id={model_id}",
             extra={"rand_id": rand_id},
         )
 
+        # Update progress: training
         update_training_progress(
             model_id,
             {"step": "training", "message": "Training ForecastModel...", "progress": 50},
@@ -255,6 +304,7 @@ def train_and_save_model(
         logger.info(
             f"{rand_id} - ForecastModel trained for model_id={model_id}", extra={"rand_id": rand_id}
         )
+        # Update progress: saving
         update_training_progress(
             model_id,
             {"step": "saving", "message": "Saving trained model...", "progress": 80},
@@ -265,18 +315,15 @@ def train_and_save_model(
                 {"step": "saving", "message": "Saving trained model...", "progress": 80}
             )
 
-        model.save(model_dir)
         try:
-            storage.save_model(model_id, model_dir)
-            logger.info(
-                f"{rand_id} - ForecastModel synced to model-store for model_id={model_id}",
-                extra={"rand_id": rand_id},
-            )
-        except Exception as sync_err:
-            logger.warning(
-                f"{rand_id} - Model-store sync failed (local save OK): {sync_err}",
-                extra={"rand_id": rand_id},
-            )
+            model.save(model_dir)
+        except Exception as save_err:
+            raise TrainingError(
+                f"Forecast model trained successfully but failed to save to disk ({model_dir}). "
+                f"Check disk space and permissions. Error: {save_err}",
+                code="MODEL_SAVE_FAILED",
+                cause=save_err,
+            ) from save_err
 
     update_training_progress(model_id, None, rand_id=rand_id)
 

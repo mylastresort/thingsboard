@@ -76,6 +76,31 @@ class PdmEventPublisher:
             return
         percent = int(progress.get("progress", progress.get("percent", 0)))
         step = str(progress.get("step", ""))
+        status = progress.get("status", "")
+
+        if status == "failed" or step == "failed":
+            error_code = progress.get("errorCode", "TRAINING_FAILED")
+            error_msg = str(progress.get("message", "Training failed"))
+            self._write_job_failed(model_id, error_code, error_msg)
+            self.publish(
+                {
+                    "eventType": "PROGRESS",
+                    "forecastId": self._forecast_id(model_id),
+                    "modelId": model_id,
+                    "iteration": None,
+                    "timestamp": self._now_millis(),
+                    "progress": {
+                        "step": "failed",
+                        "message": error_msg,
+                        "percent": 0,
+                    },
+                    "prediction": None,
+                    "alarm": None,
+                    "log": None,
+                }
+            )
+            return
+
         self._write_job_progress(model_id, step, percent)
         self.publish(
             {
@@ -195,6 +220,22 @@ class PdmEventPublisher:
                 "last_run": now,
             },
         )
+
+    def _write_job_failed(self, model_id: str, error_code: str, error_message: str) -> None:
+        now = datetime.now(tz=timezone.utc).isoformat()
+        self._redis.hset(
+            f"job:{model_id}",
+            mapping={
+                "status": "FAILED",
+                "paused": "0",
+                "model_type": self._source_model_type(model_id),
+                "start_time": self._redis.hget(f"job:{model_id}", "start_time") or now,
+                "last_run": now,
+                "error_code": error_code,
+                "error_message": error_message,
+            },
+        )
+        self._redis.expire(f"job:{model_id}", 24 * 60 * 60)
 
     def _source_model_type(self, model_id: str) -> str:
         return "ForecastModel" if "forecast" in model_id.lower() else "AnomalyPredictor"

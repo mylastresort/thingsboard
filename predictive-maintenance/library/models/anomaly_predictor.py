@@ -15,9 +15,6 @@ except ImportError:
     from library.core.model_interface import BaseModel
     from library.core.types import AlgorithmType, SupervisedConfig, TaskType
 
-import os
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -44,6 +41,8 @@ class AnomalyPredictor(BaseModel):
         device_id: str | None = None,
         additional_info: Optional[Dict[str, Any]] = None,
         sensors: Optional[List[str]] = None,
+        error_keys: Optional[List[str]] = None,
+        component_keys: Optional[List[str]] = None,
         train_start_date=datetime.now() - pd.Timedelta(days=365 * 2),
         train_end_date=datetime.now(),
     ):
@@ -52,7 +51,24 @@ class AnomalyPredictor(BaseModel):
         self.algorithm_hyperparams = algorithm_hyperparams or {}
         self.feature_columns = []
         self.device_id = device_id
-        self.sensors = sensors or ["volt", "rotate", "pressure", "vibration"]
+        if not sensors:
+            raise ValueError(
+                "sensors parameter is required. "
+                "Pass the device's telemetry keys (discovered from ThingsBoard ts_kv API)."
+            )
+        self.sensors = sensors
+        if not error_keys:
+            raise ValueError(
+                "error_keys parameter is required. "
+                "Pass error codes discovered from device_errors table."
+            )
+        self.error_keys = error_keys
+        if not component_keys:
+            raise ValueError(
+                "component_keys parameter is required. "
+                "Pass root causes or parts replaced discovered from device_failures/device_maintenance tables."
+            )
+        self.component_keys = component_keys
         self.additional_info = additional_info or {}
         self.train_start_date = train_start_date
         self.train_end_date = train_end_date
@@ -276,7 +292,7 @@ class AnomalyPredictor(BaseModel):
             classes = self.class_labels
         else:
             predictions = predictions_encoded
-            classes = ["none", "comp1", "comp2", "comp3", "comp4"]
+            classes = ["none"] + self.component_keys
 
         component_probs_list = []
         for i in range(len(predictions)):
@@ -373,7 +389,7 @@ class AnomalyPredictor(BaseModel):
             pass
 
 
-def create_3h_mean_features(telemetry, fields=["volt", "rotate", "pressure", "vibration"]):
+def create_3h_mean_features(telemetry, fields: List[str]):
     temp = []
     for col in fields:
         temp.append(
@@ -400,7 +416,7 @@ def create_3h_mean_features(telemetry, fields=["volt", "rotate", "pressure", "vi
     return telemetry_mean_3h, telemetry_sd_3h
 
 
-def create_24h_mean_features(telemetry, fields=["volt", "rotate", "pressure", "vibration"]):
+def create_24h_mean_features(telemetry, fields: List[str]):
     temp = []
     for col in fields:
         temp.append(
@@ -414,7 +430,8 @@ def create_24h_mean_features(telemetry, fields=["volt", "rotate", "pressure", "v
     telemetry_mean_24h = pd.concat(temp, axis=1)
     telemetry_mean_24h.columns = [i + "mean_24h" for i in fields]
     telemetry_mean_24h.reset_index(inplace=True)
-    telemetry_mean_24h = telemetry_mean_24h.loc[-telemetry_mean_24h["voltmean_24h"].isnull()]
+    first_mean_col = f"{fields[0]}mean_24h"
+    telemetry_mean_24h = telemetry_mean_24h.loc[-telemetry_mean_24h[first_mean_col].isnull()]
 
     temp = []
     for col in fields:
@@ -429,20 +446,22 @@ def create_24h_mean_features(telemetry, fields=["volt", "rotate", "pressure", "v
     telemetry_sd_24h = pd.concat(temp, axis=1)
     telemetry_sd_24h.columns = [i + "sd_24h" for i in fields]
     telemetry_sd_24h.reset_index(inplace=True)
-    telemetry_sd_24h = telemetry_sd_24h.loc[-telemetry_sd_24h["voltsd_24h"].isnull()]
+    first_sd_col = f"{fields[0]}sd_24h"
+    telemetry_sd_24h = telemetry_sd_24h.loc[-telemetry_sd_24h[first_sd_col].isnull()]
     return telemetry_mean_24h, telemetry_sd_24h
 
 
-def create_telemetry_features(telemetry, fields=["volt", "rotate", "pressure", "vibration"]):
+def create_telemetry_features(telemetry, fields: List[str]):
     print("[TRAIN_ANOMALY_MODEL] create_telemetry_features", flush=True)
     telemetry_mean_3h, telemetry_sd_3h = create_3h_mean_features(telemetry, fields)
     telemetry_mean_24h, telemetry_sd_24h = create_24h_mean_features(telemetry, fields)
+    n = len(fields)
     telemetry_feat = pd.concat(
         [
             telemetry_mean_3h,
-            telemetry_sd_3h.iloc[:, 2:6],
-            telemetry_mean_24h.iloc[:, 2:6],
-            telemetry_sd_24h.iloc[:, 2:6],
+            telemetry_sd_3h.iloc[:, 2:2 + n],
+            telemetry_mean_24h.iloc[:, 2:2 + n],
+            telemetry_sd_24h.iloc[:, 2:2 + n],
         ],
         axis=1,
     ).dropna()
@@ -491,7 +510,7 @@ def create_error_count_features(telemetry, errors, error_classes):
         )
 
     temp = []
-    fields = error_classes if error_classes else ["error%d" % i for i in range(1, 6)]
+    fields = error_classes
     for col in fields:
         temp.append(
             pd.pivot_table(error_count, index="datetime", columns="machineID", values=col)
@@ -512,8 +531,18 @@ def create_comp_replacement_features(telemetry, maint, components):
     telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
     maint["datetime"] = pd.to_datetime(maint["datetime"])
 
-    comp_rep = pd.get_dummies(maint.set_index("datetime")).reset_index()
-    comp_rep.columns = ["datetime", "machineID"] + components
+    comp_col = "comp" if "comp" in maint.columns else "parts_replaced"
+    maint_filtered = maint[maint[comp_col].isin(components)].copy() if components else maint.copy()
+
+    comp_rep = pd.get_dummies(maint_filtered.set_index("datetime")[[comp_col]], prefix="", prefix_sep="").reset_index()
+    comp_rep.columns = ["datetime"] + [
+        c.replace(comp_col + "_", "") for c in comp_rep.columns if c != "datetime"
+    ]
+    if "machineID" in maint.columns:
+        comp_rep = comp_rep.merge(maint[["datetime", "machineID"]].drop_duplicates(), on="datetime", how="left")
+    else:
+        comp_rep["machineID"] = 1
+    comp_rep = comp_rep[["datetime", "machineID"] + [c for c in comp_rep.columns if c not in ("datetime", "machineID")]]
 
     comp_rep = (
         telemetry[["datetime", "machineID"]]
@@ -552,7 +581,7 @@ def merge_features(telemetry_feat, error_count, comp_rep, machines, failures):
     return labeled_features
 
 
-def create_targets(labeled_features, components=["comp1", "comp2", "comp3", "comp4"]):
+def create_targets(labeled_features, components: List[str]):
     labeled_features = labeled_features.sort_values(["machineID", "datetime"]).reset_index(
         drop=True
     )
@@ -584,37 +613,23 @@ def create_targets(labeled_features, components=["comp1", "comp2", "comp3", "com
     return labeled_features
 
 
-feature_cols = [
-    "voltmean_3h",
-    "rotatemean_3h",
-    "pressuremean_3h",
-    "vibrationmean_3h",
-    "voltsd_3h",
-    "rotatesd_3h",
-    "pressuresd_3h",
-    "vibrationsd_3h",
-    "voltmean_24h",
-    "rotatemean_24h",
-    "pressuremean_24h",
-    "vibrationmean_24h",
-    "voltsd_24h",
-    "rotatesd_24h",
-    "pressuresd_24h",
-    "vibrationsd_24h",
-    "error1count",
-    "error2count",
-    "error3count",
-    "error4count",
-    "error5count",
-    "comp1",
-    "comp2",
-    "comp3",
-    "comp4",
-    "age",
-]
+def build_feature_cols(sensors: List[str], error_keys: List[str], component_keys: List[str]) -> List[str]:
+    feature_cols = []
+    for key in sensors:
+        feature_cols.extend([
+            f"{key}mean_3h",
+            f"{key}sd_3h",
+            f"{key}mean_24h",
+            f"{key}sd_24h",
+        ])
+    for error_key in error_keys:
+        feature_cols.append(f"{error_key}count")
+    feature_cols.extend(component_keys)
+    feature_cols.append("age")
+    return feature_cols
 
 
-def create_labeled_features_clean(labeled_features: pd.DataFrame):
+def create_labeled_features_clean(labeled_features: pd.DataFrame, feature_cols: List[str]):
     if "model" in labeled_features.columns:
         le_model = LabelEncoder()
         labeled_features["model_encoded"] = le_model.fit_transform(
@@ -662,86 +677,6 @@ def split_data(labeled_features_clean: pd.DataFrame, feature_cols: list):
 key_hours = [1, 4, 8, 12, 16, 20, 24]
 
 
-MAX_ANOMALY_TRAIN_WORKERS = int(os.getenv("PDM_ANOMALY_TRAIN_WORKERS", "4"))
-
-
-def _train_hourly_pair(
-    hour, train, X_train, algorithm
-):
-    models = {}
-
-    multiclass_target = f"target_hour_{hour}_multiclass"
-    binary_target = f"target_hour_{hour}_binary"
-
-    y_train_mc = train[multiclass_target]
-    y_train_bin = train[binary_target]
-
-    if len(y_train_mc.value_counts()) > 1:
-        if algorithm == "random_forest":
-            rf_multiclass = RandomForestClassifier(
-                n_estimators=100,
-                max_depth=12,
-                min_samples_split=8,
-                min_samples_leaf=4,
-                class_weight="balanced",
-                random_state=42,
-                n_jobs=2,
-            )
-        elif algorithm == "xgboost":
-            le_mc = LabelEncoder()
-            y_train_mc_enc = le_mc.fit_transform(y_train_mc.astype(str))
-
-            rf_multiclass = XGBClassifier(
-                n_estimators=100,
-                max_depth=6,
-                learning_rate=0.1,
-                objective="multi:softprob",
-                num_class=len(le_mc.classes_),
-                use_label_encoder=False,
-                eval_metric="mlogloss",
-                random_state=42,
-                n_jobs=2,
-            )
-        else:
-            raise ValueError(f"Unsupported algorithm: {algorithm}")
-
-        if algorithm == "xgboost":
-            rf_multiclass.fit(X_train, y_train_mc_enc)
-            rf_multiclass._label_encoder = le_mc
-        else:
-            rf_multiclass.fit(X_train, y_train_mc)
-        models[f"hour_{hour}_multiclass"] = rf_multiclass
-
-    if len(y_train_bin.value_counts()) > 1:
-        if algorithm == "random_forest":
-            rf_binary = RandomForestClassifier(
-                n_estimators=100,
-                max_depth=12,
-                min_samples_split=8,
-                min_samples_leaf=4,
-                class_weight="balanced",
-                random_state=42,
-                n_jobs=2,
-            )
-        elif algorithm == "xgboost":
-            rf_binary = XGBClassifier(
-                n_estimators=100,
-                max_depth=6,
-                learning_rate=0.1,
-                objective="binary:logistic",
-                use_label_encoder=False,
-                eval_metric="logloss",
-                random_state=42,
-                n_jobs=2,
-            )
-        else:
-            raise ValueError(f"Unsupported algorithm: {algorithm}")
-        rf_binary.fit(X_train, y_train_bin)
-        models[f"hour_{hour}_binary"] = rf_binary
-
-    return hour, models
-
-
 def create_and_train_hourly_models(
     train,
     val,
@@ -753,31 +688,81 @@ def create_and_train_hourly_models(
     components,
     algorithm="random_forest",
 ):
+    hourly_models = {}
+
     if algorithm not in ["random_forest", "xgboost"]:
         algorithm = "random_forest"
 
-    total_hours = len(key_hours)
-    max_workers = min(MAX_ANOMALY_TRAIN_WORKERS, total_hours)
+    for hour in key_hours:
+        multiclass_target = f"target_hour_{hour}_multiclass"
+        binary_target = f"target_hour_{hour}_binary"
 
-    hourly_models = {}
+        y_train_mc = train[multiclass_target]
 
-    if max_workers <= 1:
-        for hour in key_hours:
-            _, pair = _train_hourly_pair(hour, train, X_train, algorithm)
-            hourly_models.update(pair)
-    else:
-        with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            futures = {
-                pool.submit(_train_hourly_pair, hour, train, X_train, algorithm): hour
-                for hour in key_hours
-            }
-            for future in as_completed(futures):
-                hour = futures[future]
-                try:
-                    _, pair = future.result()
-                    hourly_models.update(pair)
-                except Exception:
-                    logger.exception(f"Failed to train hourly model for hour {hour}")
+        y_train_bin = train[binary_target]
+
+        if len(y_train_mc.value_counts()) > 1:
+            if algorithm == "random_forest":
+                rf_multiclass = RandomForestClassifier(
+                    n_estimators=100,
+                    max_depth=12,
+                    min_samples_split=8,
+                    min_samples_leaf=4,
+                    class_weight="balanced",
+                    random_state=42,
+                    n_jobs=-1,
+                )
+            elif algorithm == "xgboost":
+                le_mc = LabelEncoder()
+                y_train_mc_enc = le_mc.fit_transform(y_train_mc.astype(str))
+
+                rf_multiclass = XGBClassifier(
+                    n_estimators=100,
+                    max_depth=6,
+                    learning_rate=0.1,
+                    objective="multi:softprob",
+                    num_class=len(le_mc.classes_),
+                    use_label_encoder=False,
+                    eval_metric="mlogloss",
+                    random_state=42,
+                    n_jobs=-1,
+                )
+            else:
+                raise ValueError(f"Unsupported algorithm: {algorithm}")
+
+            if algorithm == "xgboost":
+                rf_multiclass.fit(X_train, y_train_mc_enc)
+                rf_multiclass._label_encoder = le_mc
+            else:
+                rf_multiclass.fit(X_train, y_train_mc)
+            hourly_models[f"hour_{hour}_multiclass"] = rf_multiclass
+
+        if len(y_train_bin.value_counts()) > 1:
+            if algorithm == "random_forest":
+                rf_binary = RandomForestClassifier(
+                    n_estimators=100,
+                    max_depth=12,
+                    min_samples_split=8,
+                    min_samples_leaf=4,
+                    class_weight="balanced",
+                    random_state=42,
+                    n_jobs=-1,
+                )
+            elif algorithm == "xgboost":
+                rf_binary = XGBClassifier(
+                    n_estimators=100,
+                    max_depth=6,
+                    learning_rate=0.1,
+                    objective="binary:logistic",
+                    use_label_encoder=False,
+                    eval_metric="logloss",
+                    random_state=42,
+                    n_jobs=-1,
+                )
+            else:
+                raise ValueError(f"Unsupported algorithm: {algorithm}")
+            rf_binary.fit(X_train, y_train_bin)
+            hourly_models[f"hour_{hour}_binary"] = rf_binary
 
     return hourly_models
 
@@ -888,7 +873,7 @@ def load_models(model_path):
     return hourly_models
 
 
-def preprocess_data(telemetry, errors, maint, failures, machines, components, error_classes):
+def preprocess_data(telemetry, errors, maint, failures, machines, components, error_classes, sensors: List[str]):
     print(
         (
             f"[PREPROCESS_DATA] telemetry.shape={telemetry.shape} "
@@ -898,7 +883,7 @@ def preprocess_data(telemetry, errors, maint, failures, machines, components, er
         flush=True,
     )
     telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
-    telemetry_feat = create_telemetry_features(telemetry)
+    telemetry_feat = create_telemetry_features(telemetry, fields=sensors)
     error_count = create_error_count_features(telemetry, errors, error_classes)
     print("errors: \n", flush=True)
     print(error_count, flush=True)
@@ -911,8 +896,9 @@ def preprocess_data(telemetry, errors, maint, failures, machines, components, er
     failure_rows = labeled_features[labeled_features["failure"] != "none"]
     print(f"  Found {len(failure_rows)} rows with failures", flush=True)
 
-    labeled_features = create_targets(labeled_features)
-    labeled_features_clean, feature_cols = create_labeled_features_clean(labeled_features)
+    labeled_features = create_targets(labeled_features, components)
+    feature_cols = build_feature_cols(sensors, error_classes, components)
+    labeled_features_clean, feature_cols = create_labeled_features_clean(labeled_features, feature_cols)
     return labeled_features_clean, feature_cols
 
 
@@ -924,11 +910,12 @@ def train_model(
     machines,
     components,
     error_classes,
+    sensors: List[str],
     algorithm="random_forest",
 ):
     print("\n[TRAIN_MODEL] Starting training process...", flush=True)
     labeled_features_clean, feature_cols = preprocess_data(
-        telemetry, errors, maint, failures, machines, components, error_classes
+        telemetry, errors, maint, failures, machines, components, error_classes, sensors
     )
     print(f"Labeled features cleaned: {labeled_features_clean.shape}", flush=True)
 
@@ -962,9 +949,10 @@ def predict_failure(
     hourly_models,
     components,
     error_classes,
+    sensors: List[str],
 ):
     labeled_features_clean, _ = preprocess_data(
-        telemetry, errors, maint, failures, machines, components, error_classes
+        telemetry, errors, maint, failures, machines, components, error_classes, sensors
     )
 
     labeled_features_clean = labeled_features_clean[
@@ -1030,6 +1018,7 @@ if __name__ == "__main__":
 
     components = ["comp1", "comp2", "comp3", "comp4"]
     error_classes = ["error1", "error2", "error3", "error4", "error5"]
+    sensors = ["volt", "rotate", "pressure", "vibration"]
     hourly_models, feature_cols, labeled_features_clean = train_model(
         telemetry,
         errors,
@@ -1038,6 +1027,7 @@ if __name__ == "__main__":
         machines,
         components,
         error_classes,
+        sensors,
         algorithm="random_forest",
     )
 
@@ -1057,6 +1047,7 @@ if __name__ == "__main__":
         hourly_models,
         components,
         error_classes,
+        sensors,
     )
 
     for hour in range(1, 25):

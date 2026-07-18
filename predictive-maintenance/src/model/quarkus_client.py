@@ -22,7 +22,7 @@ class QuarkusApiClient:
         self.models = DefaultApi(api_client)
 
     def get_forecast(self, forecast_id: str) -> dict[str, Any]:
-        return self.models.get_forecast(forecast_id, _request_timeout=self.timeout)
+        return self.models.get_predictive_model_by_id(forecast_id, _request_timeout=self.timeout)
 
     def get_failure_mode_history(
         self,
@@ -58,7 +58,13 @@ class QuarkusApiClient:
         )
 
     def get_available_models(self) -> dict[str, Any]:
-        return self.models.get_available_models(_request_timeout=self.timeout)
+        return self.models.get_available_algorithms(_request_timeout=self.timeout)
+
+    def get_discovered_keys_by_device_id(self, device_id: str) -> dict[str, Any]:
+        result = self.models.get_discovered_keys_by_device_id(
+            device_id, _request_timeout=self.timeout
+        )
+        return result.to_dict() if hasattr(result, "to_dict") else result
 
     def _parse_datetime(self, value: Any) -> datetime | None:
         if value is None or isinstance(value, datetime):

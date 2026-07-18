@@ -29,6 +29,7 @@
       "name": "timestamp",
       "type": { "type": "long", "logicalType": "timestamp-millis" }
     },
-    { "name": "commandId", "type": ["null", "string"], "default": null }
+    { "name": "commandId", "type": ["null", "string"], "default": null },
+    { "name": "sensorKey", "type": ["null", "string"], "default": null }
   ]
 }

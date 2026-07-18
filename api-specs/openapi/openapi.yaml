@@ -29,6 +29,8 @@ paths:
     $ref: "./paths/models-predictive_model_id-status.yaml"
   /models/device/{device_id}:
     $ref: "./paths/models-device-device_id.yaml"
+  /models/device/{device_id}/discovered-keys:
+    $ref: "./paths/models-device-device_id-discovered-keys.yaml"
   /models/failure-mode-history:
     $ref: "./paths/models-failure-mode-history.yaml"
   /models/failure-mode-history/{model_id}:

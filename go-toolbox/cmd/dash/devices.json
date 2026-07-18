@@ -4,39 +4,15 @@
   "devices": [
     {
       "name": "pdm1",
-      "token": "kvwS3Jp5RRQcmARmgcF1",
+      "token": "pdm1token",
       "metric": "pdm1",
       "min": 0,
       "max": 0,
       "sleep_s": 2
     },
     {
-      "name": "device1_vibration1",
-      "token": "sc02igdNfcnBceA6Vwh2",
-      "metric": "vibration",
-      "min": 5000,
-      "max": 6000,
-      "sleep_s": 2
-    },
-    {
-      "name": "device1_vibration2",
-      "token": "sc02igdNfcnBceA6Vwh2",
-      "metric": "vibration",
-      "min": 5000,
-      "max": 6000,
-      "sleep_s": 2
-    },
-    {
-      "name": "device1_vibration3",
-      "token": "sc02igdNfcnBceA6Vwh2",
-      "metric": "vibration",
-      "min": 5000,
-      "max": 6000,
-      "sleep_s": 2
-    },
-    {
       "name": "device2_temperature1",
-      "token": "kBG5JB86PX0UkOgX3pwF",
+      "token": "d2t1token",
       "metric": "temperature",
       "min": 70,
       "max": 80,
@@ -44,7 +20,7 @@
     },
     {
       "name": "device2_temperature2",
-      "token": "cZLVz0o4qx5MIvVv7iz1",
+      "token": "d2t2token",
       "metric": "temperature",
       "min": 70,
       "max": 80,
@@ -52,7 +28,7 @@
     },
     {
       "name": "device2_temperature3",
-      "token": "8nyPLXgYNsa7VTvbISfM",
+      "token": "d2t3token",
       "metric": "temperature",
       "min": 70,
       "max": 80,
@@ -60,7 +36,7 @@
     },
     {
       "name": "device3_level1",
-      "token": "OKV950bum6RVI7x3Do6x",
+      "token": "d3l1token",
       "metric": "level",
       "min": 65,
       "max": 75,
@@ -68,7 +44,7 @@
     },
     {
       "name": "device3_level2",
-      "token": "2W8qDjUE3YkUas99J2cy",
+      "token": "d3l2token",
       "metric": "level",
       "min": 65,
       "max": 75,
@@ -76,7 +52,7 @@
     },
     {
       "name": "device3_level3",
-      "token": "AbAjNaxzfS8GC8MKnSYG",
+      "token": "d3l3token",
       "metric": "level",
       "min": 65,
       "max": 75,
@@ -84,7 +60,7 @@
     },
     {
       "name": "device3_level4",
-      "token": "pZdYAOfG962f4LNjl2Yw",
+      "token": "d3l4token",
       "metric": "level",
       "min": 65,
       "max": 75,
@@ -92,7 +68,7 @@
     },
     {
       "name": "device4_noise1",
-      "token": "ELlhq419gwHFDRVNl4JG",
+      "token": "d4n1token",
       "metric": "noise",
       "min": 70,
       "max": 90,
@@ -100,7 +76,7 @@
     },
     {
       "name": "device4_noise2",
-      "token": "js1YKGhrbqGbpXyxZ67w",
+      "token": "d4n2token",
       "metric": "noise",
       "min": 70,
       "max": 90,
@@ -108,7 +84,7 @@
     },
     {
       "name": "device4_noise3",
-      "token": "LzxImNW3ZLyXxQRIkBpk",
+      "token": "d4n3token",
       "metric": "noise",
       "min": 70,
       "max": 90,
@@ -116,7 +92,7 @@
     },
     {
       "name": "device4_noise4",
-      "token": "FOc8JdlJFBjoVjVvD2gu",
+      "token": "d4n4token",
       "metric": "noise",
       "min": 70,
       "max": 90,
@@ -124,7 +100,7 @@
     },
     {
       "name": "device5_pressure1",
-      "token": "Xf3yHz6EVsiaRMnfYvJn",
+      "token": "d5p1token",
       "metric": "pressure",
       "min": 0.2625,
       "max": 0.7875,
@@ -132,7 +108,7 @@
     },
     {
       "name": "device5_pressure2",
-      "token": "rm0KqfvfaZgH9OSKYm4n",
+      "token": "d5p2token",
       "metric": "pressure",
       "min": 0.2625,
       "max": 0.7875,
@@ -140,7 +116,7 @@
     },
     {
       "name": "device5_pressure3",
-      "token": "iGZBWG0dSp4xk9Qebioj",
+      "token": "d5p3token",
       "metric": "pressure",
       "min": 0.2625,
       "max": 0.7875,
@@ -148,7 +124,7 @@
     },
     {
       "name": "device5_pressure4",
-      "token": "yMKsAD5T8Du4xf5rRiEW",
+      "token": "d5p4token",
       "metric": "pressure",
       "min": 0.2625,
       "max": 0.7875,
@@ -156,7 +132,7 @@
     },
     {
       "name": "device5_pressure5",
-      "token": "R5GlBV2sf01nKbbcYZwt",
+      "token": "d5p5token",
       "metric": "pressure",
       "min": 0.2625,
       "max": 0.7875,
@@ -164,7 +140,15 @@
     },
     {
       "name": "device5_pressure6",
-      "token": "cdE4tjnKULxXcrtGSNCG",
+      "token": "d5p6token",
+      "metric": "pressure",
+      "min": 0.2625,
+      "max": 0.7875,
+      "sleep_s": 2
+    },
+    {
+      "name": "device5_pressure7",
+      "token": "jxl8ni3f0em9zpmuq0oq",
       "metric": "pressure",
       "min": 0.2625,
       "max": 0.7875,

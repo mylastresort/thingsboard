@@ -68,11 +68,9 @@ services:
         condition: service_healthy
     entrypoint: ["/bin/bash", "-lc"]
     command: >
-      "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-commands --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 &&
+      "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-commands --partitions 1 --replication-factor 1 &&
        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-events --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 &&
-       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-job-state --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 --config cleanup.policy=compact &&
-       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-storage-commands --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 &&
-       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-storage-responses --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1"
+       /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic pdm-job-state --partitions ${PDM_KAFKA_PARTITIONS:-16} --replication-factor 1 --config cleanup.policy=compact"
     restart: "no"
 
   # Optional time-series backend — only created when the "cassandra" profile

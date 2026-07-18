@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.hash.HashCommands;
 import io.quarkus.redis.datasource.keys.KeyCommands;
+import io.quarkus.redis.datasource.keys.KeyScanArgs;
 import io.quarkus.redis.datasource.list.ListCommands;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -14,6 +15,7 @@ import org.tb.quarkus.pdm.PdmJobStatus;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -153,6 +155,15 @@ public class PdmJobStateService {
         return matching.stream()
                 .skip(Math.max(0, matching.size() - cappedLimit))
                 .toList();
+    }
+
+    public List<String> scanJobKeys(String pattern) {
+        List<String> result = new ArrayList<>();
+        var cursor = keys.scan(new KeyScanArgs().match(pattern));
+        while (cursor.hasNext()) {
+            result.addAll(cursor.next());
+        }
+        return result;
     }
 
     public void save(PdmJobState state) {

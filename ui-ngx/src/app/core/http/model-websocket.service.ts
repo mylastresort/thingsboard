@@ -319,7 +319,7 @@ export class ModelWebSocketService {
         if (message.type === "complete") this.isActivating = false;
         break;
       case "error":
-        this.responses$.get(ResponseTopic.Activate)?.error(message);
+        this.responses$.get(ResponseTopic.Activate)?.next(message);
         this.isActivating = false;
         break;
       case "logs":

@@ -12,8 +12,7 @@ import pandas as pd
 from tb_ce_client.models import Alarm, AlarmSeverity, AlarmStatus, EntityId, EntityType, TenantId
 
 from library import AnomalyPredictor, ForecastModel
-from library.models.anomaly_predictor import feature_cols, load_models, predict_failure
-import library.storage as storage
+from library.models.anomaly_predictor import load_models, predict_failure, build_feature_cols
 from src.logger import logger
 from src.model.client import get_client
 from src.model.quarkus_client import get_quarkus_client
@@ -64,9 +63,32 @@ def anomaly_predict_model(
     device_id: str,
     hourly_models: dict,
     data_registry,
+    sensors: list,
 ):
     add_model_log(model_id, "info", f"Fetching latest data for device {device_id}")
-    anomalyModel = AnomalyPredictor(data_registry=get_data_registry())
+
+    discovered = data_registry.discover_device_keys(device_id)
+    component_keys = discovered["root_causes"] or discovered["parts_replaced"]
+    error_keys = discovered["error_codes"]
+
+    if not component_keys:
+        add_model_log(model_id, "error", f"No component keys found for device {device_id}")
+        return False
+    if not error_keys:
+        add_model_log(model_id, "error", f"No error keys found for device {device_id}")
+        return False
+    if not sensors:
+        add_model_log(model_id, "error", f"No telemetry keys provided for device {device_id}")
+        return False
+
+    feature_cols = build_feature_cols(sensors, error_keys, component_keys)
+
+    anomalyModel = AnomalyPredictor(
+        data_registry=get_data_registry(),
+        sensors=sensors,
+        error_keys=error_keys,
+        component_keys=component_keys,
+    )
     (
         telemetry_df,
         failures_df,
@@ -108,19 +130,9 @@ def anomaly_predict_model(
         machines_df,
         feature_cols,
         hourly_models,
-        components=[
-            "comp1",
-            "comp2",
-            "comp3",
-            "comp4",
-        ],
-        error_classes=[
-            "error1",
-            "error2",
-            "error3",
-            "error4",
-            "error5",
-        ],
+        components=component_keys,
+        error_classes=error_keys,
+        sensors=sensors,
     )
     hourly_records = list(predictions["hourly_predictions"].values())
     predictions_json_str = json.dumps(hourly_records, default=to_native)
@@ -344,29 +356,29 @@ class PredictionJobManager:
             model_dir = Path(settings.models_path) / model_id
             add_model_log(model_id, "info", f"Model directory: {model_dir}")
 
-            if not any(model_dir.iterdir()) if model_dir.exists() else True:
-                add_model_log(model_id, "info", "Local model dir empty, loading from model-store...")
-                try:
-                    storage.load_model(model_id, model_dir)
-                    add_model_log(model_id, "info", "Model loaded from model-store")
-                except (FileNotFoundError, TimeoutError) as exc:
-                    add_model_log(model_id, "error", f"No model artifacts found for {model_id}: {exc}")
-                    return
-
             hourly_models = None
             model = None
+            sensors = None
 
             if model_type == "AnomalyPredictor":
                 add_model_log(model_id, "info", "Getting data registry...")
+                model_config = data_registry.fetch_predictive_model_config(model_id)
+                sensors = model_config.get("attributes", [])
+                sensors = [s["key"] for s in sensors if "key" in s]
+                if not sensors:
+                    add_model_log(model_id, "error", f"No telemetry keys in model config for {model_id}")
+                    return
                 add_model_log(model_id, "info", f"Loading model from {model_dir}...")
                 hourly_models = load_models(model_dir)
                 add_model_log(model_id, "info", "Model loaded successfully from disk")
                 interval = 24 * 60 * 60 * 60
             elif model_type == "ForecastModel":
-                forecast_id = model_id.rsplit("/", 1)[0]
+                parts = model_id.rsplit("/", 2)
+                forecast_id = parts[0] if len(parts) >= 3 else parts[0]
+                sensor_from_id = parts[-1] if len(parts) >= 3 else None
                 model_config = data_registry.fetch_predictive_model_config(forecast_id)
-                sensors = model_config.get("attributes", [])
-                sensors = [sensor["key"] for sensor in sensors if "key" in sensor]
+                all_sensors = [sensor["key"] for sensor in model_config.get("attributes", []) if "key" in sensor]
+                sensors = [sensor_from_id] if sensor_from_id and sensor_from_id in all_sensors else all_sensors
                 device_id = device_id or model_config.get("device_id")
                 model = ForecastModel(
                     sensors=sensors,
@@ -399,16 +411,33 @@ class PredictionJobManager:
                     hourly_models,
                     iteration,
                     data_registry,
+                    sensors=sensors,
                 )
                 if should_break:
                     break
                 iteration += 1
                 threading.Event().wait(interval)
         except Exception as e:
-            add_model_log(model_id, "error", f"Job worker crashed: {str(e)}")
-        finally:
+            error_msg = f"Job worker crashed: {str(e)}"
+            add_model_log(model_id, "error", error_msg)
+            add_model_log(model_id, "error", f"Traceback: {traceback.format_exc()}")
             with self._lock:
                 if model_id in self._jobs:
+                    self._jobs[model_id]["status"] = "failed"
+                    self._jobs[model_id]["error_message"] = error_msg
+            add_model_log(
+                model_id,
+                "error",
+                {
+                    "status": "failed",
+                    "errorCode": "JOB_CRASHED",
+                    "message": error_msg,
+                },
+            )
+            return
+        finally:
+            with self._lock:
+                if model_id in self._jobs and self._jobs[model_id]["status"] == "running":
                     self._jobs[model_id]["status"] = "stopped"
             add_model_log(model_id, "info", "Job worker terminated")
 
@@ -421,6 +450,7 @@ class PredictionJobManager:
         hourly_models: dict,
         iteration: int,
         data_registry,
+        sensors: list = None,
     ) -> bool:
         with self._lock:
             if model_id not in self._jobs or self._jobs[model_id]["status"] != "running":
@@ -439,7 +469,7 @@ class PredictionJobManager:
 
             if model_type == "AnomalyPredictor":
                 anomaly_predict_model(
-                    model_id, iteration, device_id, hourly_models, data_registry
+                    model_id, iteration, device_id, hourly_models, data_registry, sensors=sensors
                 )
             elif model_type == "ForecastModel":
                 forecast_predict_model(model_id, iteration, device_id, model, data_registry)
@@ -447,6 +477,15 @@ class PredictionJobManager:
             error_details = traceback.format_exc()
             add_model_log(model_id, "error", f"Prediction failed: {str(e)}")
             add_model_log(model_id, "error", f"Traceback: {error_details}")
+            add_model_log(
+                model_id,
+                "error",
+                {
+                    "status": "failed",
+                    "errorCode": "PREDICTION_FAILED",
+                    "message": f"Prediction iteration #{iteration} failed: {str(e)}",
+                },
+            )
         return False
 
 

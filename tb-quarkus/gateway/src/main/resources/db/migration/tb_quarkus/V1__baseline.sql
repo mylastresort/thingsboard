@@ -2,8 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict ccC6RNmgKmVne6BuyUVJeAaSQnzSKceWU0Bhp6XRvhztS4DaNoFCcSm1XKRRqDn
-
 -- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
 -- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
 
@@ -23,7 +21,7 @@ SET row_security = off;
 -- Name: tb_quarkus; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA tb_quarkus;
+CREATE SCHEMA IF NOT EXISTS tb_quarkus;
 
 
 SET default_tablespace = '';
@@ -73,6 +71,4 @@ ALTER TABLE ONLY tb_quarkus.claim
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict ccC6RNmgKmVne6BuyUVJeAaSQnzSKceWU0Bhp6XRvhztS4DaNoFCcSm1XKRRqDn
 
