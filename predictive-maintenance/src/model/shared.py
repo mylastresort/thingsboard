@@ -11,6 +11,7 @@ import pandas as pd
 from library import AnomalyPredictor, ForecastModel
 from library.core.data_registry import DataRegistry
 from library.models.anomaly_predictor import save_models, train_model
+import library.storage as storage
 from src.logger import logger
 from src.settings import settings
 
@@ -108,13 +109,10 @@ def train_and_save_model(
             device_id=device_id,
             additional_info=kwargs,
             sensors=sensors,
-            # group_by_ms_per_sensor=group_by_ms_per_sensor,
-            # aggregation_funcs=aggregation_funcs,
             train_start_date=train_start_date,
             train_end_date=train_end_date,
         )
 
-        # Update progress: fetching data
         update_training_progress(
             model_id,
             {
@@ -151,7 +149,6 @@ def train_and_save_model(
                 "model_type": model_type,
             }
 
-        # Update progress: training
         update_training_progress(
             model_id,
             {"step": "training", "message": "Training AnomalyPredictor model...", "progress": 40},
@@ -185,11 +182,9 @@ def train_and_save_model(
                 "error4",
                 "error5",
             ],
-            # algorithm=algorithm,
             algorithm="random_forest",
         )
 
-        # Update progress: saving
         update_training_progress(
             model_id, {"step": "saving", "message": "Saving trained model...", "progress": 80}
         )
@@ -200,14 +195,14 @@ def train_and_save_model(
 
         print(f"[TRAIN] Model trained. Saving models...", flush=True)
         save_models(hourly_models, model_dir)
+        try:
+            storage.save_model(model_id, model_dir)
+            print(f"[TRAIN] Models synced to model-store", flush=True)
+        except Exception as sync_err:
+            print(f"[TRAIN] Model-store sync failed (local save OK): {sync_err}", flush=True)
     elif model_type == "ForecastModel":
         logger.info(
             f"{rand_id} - Starting training for ForecastModel with model_id={model_id}",
-            extra={"rand_id": rand_id},
-        )
-        # Update progress: initializing
-        logger.info(
-            f"{rand_id} - Updating progress to initializing for model_id={model_id}",
             extra={"rand_id": rand_id},
         )
         update_training_progress(
@@ -225,7 +220,6 @@ def train_and_save_model(
             extra={"rand_id": rand_id},
         )
 
-        # Initialize model with data registry
         model = ModelClass(
             name=model_id,
             algorithm_name=algorithm,
@@ -242,7 +236,6 @@ def train_and_save_model(
             extra={"rand_id": rand_id},
         )
 
-        # Update progress: training
         update_training_progress(
             model_id,
             {"step": "training", "message": "Training ForecastModel...", "progress": 50},
@@ -262,7 +255,6 @@ def train_and_save_model(
         logger.info(
             f"{rand_id} - ForecastModel trained for model_id={model_id}", extra={"rand_id": rand_id}
         )
-        # Update progress: saving
         update_training_progress(
             model_id,
             {"step": "saving", "message": "Saving trained model...", "progress": 80},
@@ -274,6 +266,17 @@ def train_and_save_model(
             )
 
         model.save(model_dir)
+        try:
+            storage.save_model(model_id, model_dir)
+            logger.info(
+                f"{rand_id} - ForecastModel synced to model-store for model_id={model_id}",
+                extra={"rand_id": rand_id},
+            )
+        except Exception as sync_err:
+            logger.warning(
+                f"{rand_id} - Model-store sync failed (local save OK): {sync_err}",
+                extra={"rand_id": rand_id},
+            )
 
     update_training_progress(model_id, None, rand_id=rand_id)
 
