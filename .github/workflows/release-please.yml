@@ -52,6 +52,9 @@ jobs:
         if: ${{ steps.release.outputs.releases_created }}
         run: |
           PRODUCT_VER="${{ steps.release.outputs.version }}"
+          if [ -z "$PRODUCT_VER" ]; then
+            PRODUCT_VER=$(jq -r '.version' package.json)
+          fi
           TB_VER="${{ steps.tb-version.outputs.thingsboard_version }}"
           # Docker tags cannot contain '+', use '-' as separator
           COMBINED="${PRODUCT_VER}-tb${TB_VER}"
