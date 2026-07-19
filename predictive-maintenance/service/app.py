@@ -20,9 +20,9 @@ import time
 from pathlib import Path
 
 from confluent_kafka import Consumer, Producer
-from confluent_kafka.avro import AvroConsumer, AvroProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
+from confluent_kafka.serialization import SerializationContext, MessageField
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -379,30 +379,24 @@ def build_schema_registry() -> SchemaRegistryClient:
     return SchemaRegistryClient({"url": SCHEMA_REGISTRY_URL})
 
 
-def build_producer(sr: SchemaRegistryClient) -> Producer:
+def build_producer(sr: SchemaRegistryClient) -> tuple[Producer, AvroSerializer]:
     resp_schema_str = (SCHEMA_DIR / "pdm-storage-responses-value.avsc").read_text(encoding="utf-8")
-    return AvroProducer(
-        {
-            "bootstrap.servers": KAFKA_BOOTSTRAP,
-            "acks": "all",
-        },
-        schema_registry=sr,
-        default_value_schema=resp_schema_str,
-    )
+    serializer = AvroSerializer(sr, resp_schema_str)
+    return Producer({"bootstrap.servers": KAFKA_BOOTSTRAP, "acks": "all", "message.max.bytes": 104857600}), serializer
 
 
-def build_consumer(sr: SchemaRegistryClient) -> AvroConsumer:
+def build_consumer(sr: SchemaRegistryClient) -> tuple[Consumer, AvroDeserializer]:
     cmd_schema_str = (SCHEMA_DIR / "pdm-storage-commands-value.avsc").read_text(encoding="utf-8")
-    return AvroConsumer(
+    deserializer = AvroDeserializer(sr, cmd_schema_str)
+    consumer = Consumer(
         {
             "bootstrap.servers": KAFKA_BOOTSTRAP,
             "group.id": CONSUMER_GROUP,
             "auto.offset.reset": "earliest",
             "enable.auto.commit": False,
-        },
-        schema_registry=sr,
-        reader_value_schema=cmd_schema_str,
+        }
     )
+    return consumer, deserializer
 
 
 # ---------------------------------------------------------------------------
@@ -412,8 +406,8 @@ def build_consumer(sr: SchemaRegistryClient) -> AvroConsumer:
 
 def main():
     sr = build_schema_registry()
-    producer = build_producer(sr)
-    consumer = build_consumer(sr)
+    producer, resp_serializer = build_producer(sr)
+    consumer, cmd_deserializer = build_consumer(sr)
     consumer.subscribe([COMMAND_TOPIC])
 
     orchestrator = StorageOrchestrator()
@@ -431,7 +425,7 @@ def main():
             logger.error("Consumer error: %s", msg.error())
             continue
 
-        cmd = msg.value()
+        cmd = cmd_deserializer(msg.value(), SerializationContext(COMMAND_TOPIC, MessageField.VALUE))
         if cmd is None:
             continue
 
@@ -448,7 +442,7 @@ def main():
             producer.produce(
                 topic=RESPONSE_TOPIC,
                 key=msg.key(),
-                value=response,
+                value=resp_serializer(response, SerializationContext(RESPONSE_TOPIC, MessageField.VALUE)),
             )
             producer.flush()
         except Exception as exc:

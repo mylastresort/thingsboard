@@ -19,9 +19,9 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from confluent_kafka import Consumer, Producer
-from confluent_kafka.avro import AvroConsumer, AvroProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
+from confluent_kafka.serialization import SerializationContext, MessageField
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,10 @@ _DEFAULT_TIMEOUT = 30.0
 # ---------------------------------------------------------------------------
 
 _sr: SchemaRegistryClient | None = None
-_producer: AvroProducer | None = None
-_consumer: AvroConsumer | None = None
+_producer: Producer | None = None
+_cmd_serializer: AvroSerializer | None = None
+_consumer: Consumer | None = None
+_resp_deserializer: AvroDeserializer | None = None
 _consumer_lock = threading.Lock()
 _pending: dict[str, threading.Event] = {}
 _responses: dict[str, dict] = {}
@@ -57,36 +59,32 @@ def _get_sr() -> SchemaRegistryClient:
     return _sr
 
 
-def _get_producer() -> AvroProducer:
-    global _producer
+def _get_producer() -> Producer:
+    global _producer, _cmd_serializer
     if _producer is None:
         sr = _get_sr()
         schema_str = (SCHEMA_DIR / "pdm-storage-commands-value.avsc").read_text(encoding="utf-8")
-        _producer = AvroProducer(
-            {"bootstrap.servers": KAFKA_BOOTSTRAP, "acks": "all"},
-            schema_registry=sr,
-            default_value_schema=schema_str,
-        )
+        _cmd_serializer = AvroSerializer(sr, schema_str)
+        _producer = Producer({"bootstrap.servers": KAFKA_BOOTSTRAP, "acks": "all", "message.max.bytes": 104857600})
     return _producer
 
 
-def _get_consumer() -> AvroConsumer:
-    global _consumer
+def _get_consumer() -> tuple[Consumer, AvroDeserializer]:
+    global _consumer, _resp_deserializer
     if _consumer is None:
         sr = _get_sr()
         schema_str = (SCHEMA_DIR / "pdm-storage-responses-value.avsc").read_text(encoding="utf-8")
-        _consumer = AvroConsumer(
+        _resp_deserializer = AvroDeserializer(sr, schema_str)
+        _consumer = Consumer(
             {
                 "bootstrap.servers": KAFKA_BOOTSTRAP,
                 "group.id": f"pdm-worker-{uuid.uuid4().hex[:8]}",
                 "auto.offset.reset": "latest",
                 "enable.auto.commit": True,
-            },
-            schema_registry=sr,
-            schema=schema_str,
+            }
         )
         _consumer.subscribe([RESPONSE_TOPIC])
-    return _consumer
+    return _consumer, _resp_deserializer
 
 
 _response_thread: threading.Thread | None = None
@@ -106,12 +104,12 @@ def _ensure_response_listener():
 
 
 def _drain_responses():
-    consumer = _get_consumer()
+    consumer, deserializer = _get_consumer()
     while True:
         msg = consumer.poll(1.0)
         if msg is None or msg.error():
             continue
-        resp = msg.value()
+        resp = deserializer(msg.value(), SerializationContext(RESPONSE_TOPIC, MessageField.VALUE))
         if resp is None:
             continue
         cid = resp["correlationId"]
@@ -140,7 +138,7 @@ def _send_and_wait(cmd: dict, timeout: float = _DEFAULT_TIMEOUT) -> dict:
     producer.produce(
         topic=COMMAND_TOPIC,
         key=model_id,
-        value=cmd,
+        value=_cmd_serializer(cmd, SerializationContext(COMMAND_TOPIC, MessageField.VALUE)),
     )
     producer.flush()
 

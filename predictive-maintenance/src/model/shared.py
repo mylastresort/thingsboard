@@ -3,6 +3,7 @@ Shared utilities and constants for model services
 """
 
 import os
+import shutil
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -243,6 +244,8 @@ def train_and_save_model(
         try:
             storage.save_model(model_id, model_dir)
             print(f"[TRAIN] Models synced to model-store", flush=True)
+            shutil.rmtree(model_dir, ignore_errors=True)
+            print(f"[TRAIN] Local model cache cleared: {model_dir}", flush=True)
         except Exception as sync_err:
             print(f"[TRAIN] Model-store sync failed (local save OK): {sync_err}", flush=True)
     elif model_type == "ForecastModel":
@@ -324,6 +327,11 @@ def train_and_save_model(
             storage.save_model(model_id, model_dir)
             logger.info(
                 f"{rand_id} - ForecastModel synced to model-store for model_id={model_id}",
+                extra={"rand_id": rand_id},
+            )
+            shutil.rmtree(model_dir, ignore_errors=True)
+            logger.info(
+                f"{rand_id} - Local model cache cleared: {model_dir}",
                 extra={"rand_id": rand_id},
             )
         except Exception as sync_err:
