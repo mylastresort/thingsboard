@@ -160,6 +160,9 @@ pdm:
   seed:
     data: ${PDM_SEED_DATA:/data}
 
+scenario:
+  path: ${SCENARIO_PATH:/scenarios}
+
 # ==============================================================================
 # DEV / TEST DATASOURCE
 # currentSchema=tb_quarkus sets the connection-level default schema —

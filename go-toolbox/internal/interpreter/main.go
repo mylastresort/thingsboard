@@ -24,7 +24,6 @@ type unit struct {
 }
 
 var units = []unit{
-	{"dash", "simulate devices, publishing telemetry over MQTT"},
 	{"darktheme", "append .dark-theme CSS block to ui-ngx SCSS files (requires node in PATH)"},
 }
 

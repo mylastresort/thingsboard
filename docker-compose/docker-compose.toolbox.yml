@@ -19,19 +19,6 @@ services:
       thingsboard:
         condition: service_healthy
 
-  go-toolbox-dash:
-    build:
-      context: ./go-toolbox
-      dockerfile: Dockerfile
-      target: dash
-    volumes:
-      - ./go-mod-cache:/go/pkg/mod
-      - ./go-build-cache:/root/.cache/go-build
-    depends_on:
-      thingsboard:
-        condition: service_healthy
-    command: /go/bin/dash
-
   go-toolbox-darktheme:
     build:
       context: ./go-toolbox
