@@ -1,13 +1,12 @@
-FROM python:3.12
+# syntax=docker/dockerfile:1.7
+
+FROM tb-python-tools:latest
 
 WORKDIR /app/send-telemetry
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
 
-
-RUN apt update && apt install mosquitto-clients -y
-
-# CMD ["bash", "-c", "./docker-entry-point-dashboard.sh"]
 CMD [ "tail", "-f"]

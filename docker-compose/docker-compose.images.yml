@@ -1,0 +1,7 @@
+services:
+  tb-python-tools:
+    build:
+      context: ./docker/base
+      dockerfile: python-tools.Dockerfile
+    image: tb-python-tools:latest
+    entrypoint: ["echo", "base image only"]

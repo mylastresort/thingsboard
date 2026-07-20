@@ -11,14 +11,19 @@ COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
-COPY --chown=gradle:gradle tb-quarkus/cmd/settings.gradle tb-quarkus/cmd/build.gradle tb-quarkus/cmd/gradle.properties ./
-COPY --chown=gradle:gradle tb-quarkus/cmd/src ./src
-COPY --chown=gradle:gradle api-specs/openapi ./openapi-source
+COPY tb-quarkus/cmd/settings.gradle tb-quarkus/cmd/build.gradle tb-quarkus/cmd/gradle.properties ./
+COPY api-specs/openapi ./openapi-source
+COPY tb-quarkus/cmd/src ./src
 
-RUN gradle --no-daemon test
-RUN gradle --no-daemon quarkusBuild
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle --no-daemon test
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle --no-daemon quarkusBuild
 
 FROM eclipse-temurin:21-jre
+
+LABEL org.opencontainers.image.title="tb-quarkus-cmd" \
+      org.opencontainers.image.description="ThingsBoard Quarkus command-line tool"
 
 WORKDIR /app
 

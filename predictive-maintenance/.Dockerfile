@@ -1,11 +1,6 @@
-FROM python:3.12
+# syntax=docker/dockerfile:1.7
 
-RUN apt update
-
-RUN apt install -y mosquitto-clients less
-
-# JDK + Node.js for generating Python API client from OpenAPI spec at container start
-RUN apt install -y default-jdk-headless nodejs npm || true
+FROM tb-python-tools:latest
 
 WORKDIR /app/predictive-maintenance
 
@@ -14,13 +9,9 @@ COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 
-# COPY . /app/
-
 EXPOSE 8000
 
-# Copy entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Use entrypoint script to conditionally enable file watching
 ENTRYPOINT ["/docker-entrypoint.sh"]

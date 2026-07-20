@@ -34,10 +34,11 @@ COMBINED_VERSION := $(PRODUCT_VERSION)-tb$(THINGSBOARD_VERSION)
 COMPOSE_DIR := docker-compose
 
 # core = what runs in production
-CORE_FILES := -f $(COMPOSE_DIR)/docker-compose.base.yml -f $(COMPOSE_DIR)/docker-compose.db.yml \
-               -f $(COMPOSE_DIR)/docker-compose.tb.yml -f $(COMPOSE_DIR)/docker-compose.gateway.yml \
-               -f $(COMPOSE_DIR)/docker-compose.web.yml -f $(COMPOSE_DIR)/docker-compose.model.yml \
-               -f $(COMPOSE_DIR)/docker-compose.config.yml -f $(COMPOSE_DIR)/docker-compose.mcp.yml
+CORE_FILES := -f $(COMPOSE_DIR)/docker-compose.base.yml -f $(COMPOSE_DIR)/docker-compose.images.yml \
+               -f $(COMPOSE_DIR)/docker-compose.db.yml -f $(COMPOSE_DIR)/docker-compose.tb.yml \
+               -f $(COMPOSE_DIR)/docker-compose.gateway.yml -f $(COMPOSE_DIR)/docker-compose.web.yml \
+               -f $(COMPOSE_DIR)/docker-compose.model.yml -f $(COMPOSE_DIR)/docker-compose.config.yml \
+               -f $(COMPOSE_DIR)/docker-compose.mcp.yml
 # dev = core + angular dev server, ws-events seeder, go-toolbox
 DEV_FILES  := $(CORE_FILES) -f $(COMPOSE_DIR)/docker-compose.toolbox.yml -f $(COMPOSE_DIR)/docker-compose.dev.yml
 
@@ -73,7 +74,7 @@ version-info: ## Print detailed version information
 
 .PHONY: up
 up: ## Start the full dev stack (core + toolbox + dev web ui)
-	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
+	$(COMPOSE) up --remove-orphans -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 up-recreate: maybe-reset-pdm-state ## Recreate dev stack and reset PdM Kafka/Redis state by default
 	$(COMPOSE) up -d --force-recreate --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)

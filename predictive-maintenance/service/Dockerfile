@@ -1,8 +1,6 @@
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1.7
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    default-jdk-headless curl && \
-    rm -rf /var/lib/apt/lists/*
+FROM tb-python-tools:latest
 
 WORKDIR /app
 
