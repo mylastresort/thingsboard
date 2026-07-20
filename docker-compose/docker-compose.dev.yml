@@ -13,6 +13,8 @@ services:
     volumes:
       - .:/app
     depends_on:
+      tb-python-tools:
+        condition: service_completed_successfully
       thingsboard:
         condition: service_healthy
 

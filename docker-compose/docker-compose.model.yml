@@ -24,6 +24,8 @@ services:
       context: ./predictive-maintenance/service
       dockerfile: Dockerfile
     depends_on:
+      tb-python-tools:
+        condition: service_completed_successfully
       kafka:
         condition: service_healthy
       schema-registry:
@@ -68,6 +70,8 @@ services:
       - ./pip-cache:/root/.cache/pip
       - ./models-cache:/models
     depends_on:
+      tb-python-tools:
+        condition: service_completed_successfully
       tb-quarkus:
         condition: service_healthy
       thingsboard:
@@ -117,6 +121,8 @@ services:
       - ./pip-cache:/root/.cache/pip
       - ./models-cache:/models
     depends_on:
+      tb-python-tools:
+        condition: service_completed_successfully
       tb-quarkus:
         condition: service_healthy
       thingsboard:
