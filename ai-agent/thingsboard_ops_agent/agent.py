@@ -64,22 +64,24 @@ ROOT_INSTRUCTION = (
     # "already fully specified" case (Phase 0 of that skill), since a
     # fully-specified stats request was previously stalling instead of
     # triggering the skill at all.
-    "You also have four skills, "
+    "Skills are NOT direct tools — you must call the load_skill tool "
+    "with the skill name to activate it before using its underlying "
+    "MCP tools. You have four skills: "
     "find-site-asset, find-devices-in-site, get-timeseries-data, and "
-    "detect-machinery-anomalies — check list_skills and load the relevant "
-    "one whenever the request involves a building/site/facility name "
-    "(find-site-asset / find-devices-in-site), asks for telemetry "
+    "detect-machinery-anomalies. Call load_skill with the skill name "
+    "whenever the request involves a building/site/facility name "
+    "(load find-site-asset / find-devices-in-site), asks for telemetry "
     "values/history/aggregates for one or more devices "
-    "(get-timeseries-data), or asks to detect/flag/explain unusual "
+    "(load get-timeseries-data), or asks to detect/flag/explain unusual "
     "vibration, temperature, pressure, or other telemetry changes, "
     "including requests that already fully specify the statistical "
-    "method (detect-machinery-anomalies — load this BEFORE calling any "
+    "method (load detect-machinery-anomalies BEFORE calling any "
     "telemetry tool for that kind of request; if the request already "
     "answers all of the skill's elicitation questions, the skill closes "
     "its gate in the same turn with no questions asked), or asks to seed "
     "a PdM machine through the Quarkus MCP endpoint, create a predictive "
     "model, train it, or poll forecast/anomaly inference "
-    "(seed-train-infer-pdm — load this BEFORE calling pdm_agent). "
+    "(load seed-train-infer-pdm BEFORE calling pdm_agent). "
     # --- Skill sequencing ------------------------------------------------
     # Prevents calling get-timeseries-data with an unresolved site/building
     # name instead of a concrete device id.
