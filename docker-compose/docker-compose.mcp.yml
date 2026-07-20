@@ -1,39 +1,4 @@
 services:
-  thingsboard-mcp:
-    build:
-      context: thingsboard-mcp
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      WAIT_HOSTS: "thingsboard:8080"
-      THINGSBOARD_URL: "http://thingsboard:8080"
-      THINGSBOARD_API_KEY: "${TB_MCP_API_KEY:-}"
-      THINGSBOARD_USERNAME: "${TB_MCP_USERNAME:-tenant@thingsboard.org}"
-      THINGSBOARD_PASSWORD: "${TB_MCP_PASSWORD:-tenant}"
-      SPRING_AI_MCP_SERVER_STDIO: "false"
-      SPRING_WEB_APPLICATION_TYPE: servlet
-      HTTP_BIND_ADDRESS: "0.0.0.0"
-      HTTP_BIND_PORT: "8000"
-    ports:
-      - "${MCP_PORT:-8201}:8000"
-    depends_on:
-      thingsboard:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: 768M
-        reservations:
-          cpus: "0.25"
-          memory: 256M
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:8000/ || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
-
   ollama:
     image: ollama/ollama:0.30.11
     restart: unless-stopped
@@ -74,14 +39,6 @@ services:
       OLLAMA_NUM_CTX: "${TINY_AGENT_OLLAMA_NUM_CTX:-120000}"
       MAX_STEPS: "30"
       MAX_TOOLS_PER_QUERY: "${TINY_AGENT_MAX_TOOLS_PER_QUERY:-20}"
-      # Prompt: Detect unusual vibration, temperature, or pressure changes in machinery in building 1
-      # Ollama on RTX 4090 box (~21GB free VRAM idle).
-      # Tested combos to try, roughly ordered safest -> riskiest for VRAM:
-      #   4. qwen3:8b  @ num_ctx=65536 -> ~6GB, plenty of headroom, fast
-      #   4. qwen3:14b  @ num_ctx=32768  -> ~13GB, best headroom if 14B quality ok
-      #   1. qwen3:14b  @ num_ctx=16384  -> ~11GB total, plenty of headroom, fast
-      #   2. qwen3:32b  @ num_ctx=12288  -> ~22-23GB, small bump from current 8192
-      #   3. qwen3:32b  @ num_ctx=16384  -> ~22-23GB, only if #2 fits w/o OOM
       MCP_SERVER_URL: "http://thingsboard-mcp:8000/sse"
       MAX_ALARM_PAGES: "${TINY_AGENT_MAX_ALARM_PAGES:-1}"
       MAX_OBSERVATION_CHARS: "${TINY_AGENT_MAX_OBSERVATION_CHARS:-2000}"
@@ -97,8 +54,6 @@ services:
     ports:
       - "${TINY_AGENT_PORT:-8300}:8300"
     depends_on:
-      thingsboard-mcp:
-        condition: service_healthy
       tb-quarkus:
         condition: service_healthy
       redis:
