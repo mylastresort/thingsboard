@@ -1,14 +1,23 @@
-"""ThingsBoard domain sub-agents.
+"""ThingsBoard sub-agents and tool registry.
 
-One LlmAgent per ThingsBoard domain, each wired to the *same* MCP server but
-scoped down with MCPToolset's `tool_filter` so it only sees the tools for its
-job. The root agent (see agent.py) does the routing via ADK's built-in
-LLM-driven delegation (sub_agents=[...] -> transfer_to_agent), so no manual
-dispatch logic is needed here.
+A single ``thingsboard_agent`` wires to the ThingsBoard MCP server with all
+tools exposed through one MCPToolset connection (O(1) connection) and uses a
+tool-registry dict for O(1) tool-to-domain routing.  The per-domain dicts
+(``DOMAINS``) are kept for backward-compatible scope enforcement and tests.
+
+The root agent (see agent.py) delegates to this single agent instead of
+choosing among seven sub-agents, cutting the root-level routing from O(n) to
+O(1).
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
+
 from google.adk.agents import BaseAgent, LlmAgent
+from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.models.lite_llm import LiteLlm
+from google.adk.tools.base_tool import BaseTool
 from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
 
@@ -196,6 +205,28 @@ DOMAINS: dict[str, tuple[str, list[str]]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# O(1) tool registry: tool_name -> domain name
+# Built once from DOMAINS so every runtime lookup is a dict.get() call.
+# ---------------------------------------------------------------------------
+TOOL_REGISTRY: dict[str, str] = {
+    tool: domain for domain, (_desc, tools) in DOMAINS.items() for tool in tools
+}
+
+# Merged flat list of all ThingsBoard MCP tools (single MCPToolset connection).
+TB_ALL_TOOLS: list[str] = list(TOOL_REGISTRY)
+
+# Merged description for the single thingsboard_agent.
+TB_DESCRIPTION = (
+    "Manages all ThingsBoard entities through a single agent backed by the "
+    "ThingsBoard MCP server.  Covers devices, assets, customers, users, "
+    "alarms, telemetry, entity relations, entity groups, EDQ queries, and OTA "
+    "packages.  Route directly to the right tool — the tool registry maps "
+    "every tool name to its domain (devices, assets, customers_users, alarms, "
+    "telemetry, relations_query, ota) for O(1) lookups."
+)
+
+
 def build_model(settings: Settings) -> LiteLlm:
     return LiteLlm(
         model=f"ollama_chat/{settings.ollama_model}",
@@ -205,25 +236,66 @@ def build_model(settings: Settings) -> LiteLlm:
 
 
 def build_subagents(settings: Settings) -> list[BaseAgent]:
-    model = build_model(settings)
-    agents: list[BaseAgent] = [
-        LlmAgent(
-            name=name,
-            model=model,
-            description=text,  # shown to the root as this tool's docstring
-            instruction=build_scoped_instruction(name, text),
-            after_model_callback=langfuse_after_model_callback,
-            tools=[
-                MCPToolset(
-                    connection_params=SseConnectionParams(url=settings.mcp_server_url),
-                    tool_filter=build_scoped_tool_filter(name, tool_filter),
-                )
-            ],
-            before_tool_callback=guard_scoped_tool_calls,
+    """Build the single thingsboard_agent (returned as a 1-element list for
+    backward compatibility with callers that iterate the result)."""
+    return [build_tb_agent(settings)]
+
+
+def _build_flat_scoped_tool_filter(
+    base_tools: list[str],
+) -> Callable[[BaseTool, ReadonlyContext | None], bool]:
+    """O(1) tool filter for the merged thingsboard_agent.
+
+    Uses the flat ``TB_ALL_TOOLS`` set for membership checks and the per-domain
+    scope maps for authority-based filtering.  ``base_tools`` is the full flat
+    list; it is converted to a set once at construction time.
+    """
+    from .scope import (
+        AUTHORITY_KEY,
+        UNKNOWN_AUTHORITY,
+        CUSTOMER_USER,
+        CUSTOMER_SCOPED_TOOLS,
+        TENANT_SCOPED_TOOLS,
+    )
+
+    tool_set = set(base_tools)
+
+    def scoped_tool_filter(tool: BaseTool, ctx: ReadonlyContext | None = None) -> bool:
+        if tool.name not in tool_set:
+            return False
+
+        authority = (
+            ctx.state.get(AUTHORITY_KEY, UNKNOWN_AUTHORITY)
+            if ctx is not None
+            else UNKNOWN_AUTHORITY
         )
-        for name, (text, tool_filter) in DOMAINS.items()
-    ]
-    return agents
+        if authority == CUSTOMER_USER:
+            allowed = CUSTOMER_SCOPED_TOOLS
+        else:
+            allowed = TENANT_SCOPED_TOOLS
+
+        if allowed is None:
+            return True
+        return tool.name in allowed
+
+    return scoped_tool_filter
+
+
+def build_tb_agent(settings: Settings) -> BaseAgent:
+    """Single ThingsBoard agent with all tools via one MCPToolset (O(1))."""
+    return LlmAgent(
+        name="thingsboard_agent",
+        model=build_model(settings),
+        description=TB_DESCRIPTION,
+        instruction=build_scoped_instruction("thingsboard_agent", TB_DESCRIPTION),
+        tools=[
+            MCPToolset(
+                connection_params=SseConnectionParams(url=settings.mcp_server_url),
+                tool_filter=_build_flat_scoped_tool_filter(TB_ALL_TOOLS),
+            )
+        ],
+        before_tool_callback=guard_scoped_tool_calls,
+    )
 
 
 PANDAS_DOMAIN: tuple[str, tuple[str, list[str]]] = (

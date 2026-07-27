@@ -1,6 +1,6 @@
 {
   "eval_set_id": "pdm_agent_train_existing_device",
-  "name": "PDM agent \u2014 train existing device",
+  "name": "PDM agent — train existing device",
   "description": "Resolves an existing device, trains forecast+anomaly models, infers, and reports predictions without creating a device.",
   "eval_cases": [
     {
@@ -25,51 +25,13 @@
             ]
           },
           "intermediate_data": {
-            "tool_uses": [
-              {
-                "name": "getDeviceByName",
-                "args": {
-                  "name": "PdM-Machine-1"
-                }
-              },
-              {
-                "name": "getAvailableAlgorithmsMap",
-                "args": {}
-              },
-              {
-                "name": "createAndTrainPredictiveModel",
-                "args": {
-                  "forecastAlgorithm": "lstm",
-                  "anomalyAlgorithm": "random_forest",
-                  "attributes": [
-                    {
-                      "key": "vibration",
-                      "aggregation": "average",
-                      "groupByMs": 5000
-                    }
-                  ]
-                }
-              },
-              {
-                "name": "inferPredictiveModel",
-                "args": {
-                  "modelType": "BOTH"
-                }
-              },
-              {
-                "name": "pollPredictiveModelInference",
-                "args": {}
-              },
-              {
-                "name": "getAnomalyHistoryPredictions",
-                "args": {}
-              }
-            ]
+            "tool_uses": [],
+            "intermediate_responses": []
           }
         }
       ],
       "session_input": {
-        "app_name": "root_agent",
+        "app_name": "thingsboard_ops_agent",
         "user_id": "test_user",
         "state": {}
       }

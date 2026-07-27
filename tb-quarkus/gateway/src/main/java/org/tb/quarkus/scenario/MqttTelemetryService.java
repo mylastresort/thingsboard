@@ -30,9 +30,12 @@ public class MqttTelemetryService {
     private static final String DEFAULT_MQTT_HOST = "thingsboard";
     private static final int DEFAULT_MQTT_PORT = 1883;
     private static final String TELEMETRY_TOPIC = "v1/devices/me/telemetry";
+    private static final long INITIAL_BACKOFF_MS = 1_000;
+    private static final long MAX_BACKOFF_MS = 60_000;
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final Map<String, MqttClient> activeClients = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> stopping = new ConcurrentHashMap<>();
     private final Random random = new Random();
 
     public void startStreaming(Device device, ScenarioContextService.DeviceContext ctx) {
@@ -41,34 +44,53 @@ public class MqttTelemetryService {
             return;
         }
 
-        String clientId = "scenario-" + device.getName() + "-" + System.currentTimeMillis();
-        executor.submit(() -> {
+        stopping.put(device.getName(), false);
+        executor.submit(() -> streamWithRetry(device, ctx, tel));
+        Log.infof("Started MQTT streaming for device '%s'", device.getName());
+    }
+
+    private void streamWithRetry(Device device, ScenarioContextService.DeviceContext ctx, Telemetry tel) {
+        long backoff = INITIAL_BACKOFF_MS;
+        while (!Boolean.TRUE.equals(stopping.get(device.getName()))) {
+            MqttClient client = null;
             try {
-                MqttClient client = connect(clientId, ctx.mqttToken());
+                String clientId = "scenario-" + device.getName() + "-" + System.currentTimeMillis();
+                client = connect(clientId, ctx.mqttToken());
                 activeClients.put(device.getName(), client);
+                backoff = INITIAL_BACKOFF_MS;
 
                 if ("csv".equals(tel.getSource()) && tel.getFile() != null) {
                     streamCsv(client, device, tel);
                 } else if ("random".equals(tel.getSource())) {
                     streamRandom(client, device, tel);
                 }
+                if (!client.isConnected()) {
+                    Log.warnf("MQTT disconnected for device '%s', reconnecting in %d ms", device.getName(), backoff);
+                }
             } catch (Exception e) {
-                Log.errorf(e, "MQTT streaming failed for device '%s'", device.getName());
+                Log.warnf(e, "MQTT streaming error for device '%s', retrying in %d ms", device.getName(), backoff);
+            } finally {
+                closeClient(device.getName(), client);
             }
-        });
-        Log.infof("Started MQTT streaming for device '%s'", device.getName());
+            if (Boolean.TRUE.equals(stopping.get(device.getName()))) {
+                break;
+            }
+            try {
+                Thread.sleep(backoff);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            backoff = Math.min(backoff * 2, MAX_BACKOFF_MS);
+        }
+        activeClients.remove(device.getName());
+        Log.infof("MQTT streaming stopped for device '%s'", device.getName());
     }
 
     public void stopAll() {
+        stopping.keySet().forEach(name -> stopping.put(name, true));
         for (Map.Entry<String, MqttClient> entry : activeClients.entrySet()) {
-            try {
-                if (entry.getValue().isConnected()) {
-                    entry.getValue().disconnect();
-                }
-                entry.getValue().close();
-            } catch (MqttException e) {
-                Log.warnf(e, "Error disconnecting MQTT client for '%s'", entry.getKey());
-            }
+            closeClient(entry.getKey(), entry.getValue());
         }
         activeClients.clear();
         executor.shutdown();
@@ -76,6 +98,20 @@ public class MqttTelemetryService {
             executor.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    private void closeClient(String deviceName, MqttClient client) {
+        if (client == null) {
+            return;
+        }
+        try {
+            if (client.isConnected()) {
+                client.disconnect();
+            }
+            client.close();
+        } catch (MqttException e) {
+            Log.debugf(e, "Error closing MQTT client for '%s'", deviceName);
         }
     }
 
