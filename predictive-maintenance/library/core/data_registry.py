@@ -18,22 +18,14 @@ class DataRegistry:
         component_keys: List[str] | None = None,
         **_: Any,
     ):
-        self.telemetry_keys = telemetry_keys or [
-            "volt",
-            "rotate",
-            "pressure",
-            "vibration",
-        ]
-        self.error_keys = error_keys or [
-            "error1",
-            "error2",
-            "error3",
-            "error4",
-            "error5",
-        ]
-        self.component_keys = component_keys or ["comp1", "comp2", "comp3", "comp4"]
+        self.telemetry_keys = telemetry_keys
+        self.error_keys = error_keys
+        self.component_keys = component_keys
 
-        self.telemetry_keys_ids = self._get_key_ids(self.telemetry_keys)
+        if self.telemetry_keys:
+            self.telemetry_keys_ids = self._get_key_ids(self.telemetry_keys)
+        else:
+            self.telemetry_keys_ids = []
 
     def _get_key_ids(self, key_names: List[str]) -> List[int]:
         return list(range(len(key_names or [])))
@@ -105,7 +97,8 @@ class DataRegistry:
 
     def fetch_predictive_model_config(self, model_id: str) -> Dict[str, Any]:
         try:
-            forecast = get_quarkus_client().get_forecast(model_id)
+            forecast_id = model_id.split("/")[0] if "/" in model_id else model_id
+            forecast = get_quarkus_client().get_forecast(forecast_id)
             if not forecast:
                 raise ValueError(
                     f"Predictive maintenance configuration not found for model_id: {model_id}"
@@ -251,6 +244,28 @@ class DataRegistry:
 
         return pd.DataFrame({"age": [machine_age], "model": [machine_model]})
 
+    def discover_device_keys(self, device_id: str) -> Dict[str, List[str]]:
+        try:
+            result = get_quarkus_client().get_discovered_keys_by_device_id(device_id)
+            error_codes = result.get("error_codes") or []
+            root_causes = result.get("root_causes") or []
+            parts_replaced = result.get("parts_replaced") or []
+
+            if not error_codes and not root_causes and not parts_replaced:
+                raise ValueError(
+                    f"No error codes, root causes, or parts replaced found in database for device {device_id}. "
+                    f"Please add failure mode records (errors, failures, maintenance) before training."
+                )
+
+            return {
+                "error_codes": error_codes,
+                "root_causes": root_causes,
+                "parts_replaced": parts_replaced,
+            }
+        except Exception as e:
+            logger.error(f"Error discovering device keys for {device_id}: {e}")
+            raise
+
     def fetch_anomaly_training_data(
         self,
         device_id: str,
@@ -262,6 +277,25 @@ class DataRegistry:
             if start_date is None:
                 start_date = datetime.now()
             cutoff_date = start_date - timedelta(days=days_back)
+
+            # Discover error_keys and component_keys from DB if not provided
+            if not self.error_keys or not self.component_keys:
+                discovered = self.discover_device_keys(device_id)
+                if not self.error_keys:
+                    self.error_keys = discovered["error_codes"]
+                if not self.component_keys:
+                    self.component_keys = discovered["root_causes"] or discovered["parts_replaced"]
+
+            if not self.error_keys:
+                raise ValueError(
+                    f"No error keys available for device {device_id}. "
+                    "Add error records to the database before training."
+                )
+            if not self.component_keys:
+                raise ValueError(
+                    f"No component keys available for device {device_id}. "
+                    "Add failure/maintenance records to the database before training."
+                )
 
             telemetry_keys = self.fetch_model_telemetry_keys(device_id)
             logger.info(f"Using telemetry keys for {device_id}: {telemetry_keys}")
@@ -323,8 +357,8 @@ class DataRegistry:
 
                 features_df = features_df.merge(error_24h, on="datetime", how="left")
 
-            for i in range(1, 6):
-                col = f"error{i}count"
+            for error_key in self.error_keys:
+                col = f"{error_key}count"
                 if col not in features_df.columns:
                     features_df[col] = 0
                 else:
@@ -352,8 +386,7 @@ class DataRegistry:
                     .sort_values(by="datetime")
                 )
 
-                components = ["comp1", "comp2", "comp3", "comp4"]
-                for comp in components:
+                for comp in self.component_keys:
                     if comp not in comp_rep.columns:
                         comp_rep[comp] = 0
 
@@ -369,14 +402,14 @@ class DataRegistry:
                     ) / np.timedelta64(1, "D")
                     comp_rep[comp] = comp_rep[comp].fillna(365)
                 features_df = features_df.merge(
-                    comp_rep[["datetime"] + components], on="datetime", how="left"
+                    comp_rep[["datetime"] + self.component_keys], on="datetime", how="left"
                 )
 
-                for comp in components:
+                for comp in self.component_keys:
                     features_df[comp] = features_df[comp].fillna(365)
             else:
-                for i in range(1, 5):
-                    features_df[f"comp{i}"] = 365
+                for comp in self.component_keys:
+                    features_df[comp] = 365
 
             machines_df = self.fetch_machines_data(device_id)
             features_df["age"] = int(machines_df["age"].iloc[0]) if not machines_df.empty else 10
@@ -411,8 +444,8 @@ class DataRegistry:
                     ]
                 )
 
-            for i in range(1, len(self.error_keys) + 1):
-                expected_cols.append(f"error{i}count")
+            for error_key in self.error_keys:
+                expected_cols.append(f"{error_key}count")
 
             expected_cols.extend(self.component_keys)
 

@@ -15,13 +15,6 @@ FROM base AS interpreter
 RUN go install ./cmd/interpreter
 CMD ["interpreter"]
 
-FROM base AS dash
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    mosquitto-clients \
-    && rm -rf /var/lib/apt/lists/*
-RUN go install ./cmd/dash
-CMD ["dash"]
-
 FROM base AS darktheme-build
 RUN go build -o /darktheme ./cmd/darktheme
 

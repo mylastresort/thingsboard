@@ -37,6 +37,7 @@ class ForecastModel(BaseModel):
         group_by_ms_per_sensor: Optional[Dict[str, int]] = None,
         aggregation_funcs: Optional[Dict[str, str]] = None,
         last_fetched_date: Optional[datetime] = datetime(1970, 1, 1),
+        epochs_per_sensor: Optional[Dict[str, int]] = None,
     ):
         super().__init__(name, data_registry=data_registry)
         self.algorithm_name = algorithm_name
@@ -49,6 +50,7 @@ class ForecastModel(BaseModel):
         self.sensors = sensors
         self.group_by_ms_per_sensor = group_by_ms_per_sensor or {}
         self.aggregation_funcs = aggregation_funcs or {}
+        self.epochs_per_sensor = epochs_per_sensor or {}
         self.last_real_timestamps: Dict[str, int] = {}
         self.train_start_date = train_start_date or additional_info.get("train_start_date", None)
         self.train_end_date = train_end_date or additional_info.get("train_end_date", None)
@@ -147,7 +149,6 @@ class ForecastModel(BaseModel):
 
         TRAIN_PERCENTAGE = 0.75
         LSTM_UNITS = 256
-        EPOCHS = 35
         BATCH_SIZE = 128
 
         models = dict()
@@ -155,7 +156,7 @@ class ForecastModel(BaseModel):
         logger.info(
             "Training LSTM models for "
             f"{len(data)} sensors with lookback={self.lookback}, "
-            f"epochs={EPOCHS}, batch_size={BATCH_SIZE}"
+            f"batch_size={BATCH_SIZE}"
         )
 
         total_sensors = max(len(data), 1)
@@ -199,12 +200,13 @@ class ForecastModel(BaseModel):
 
             logger.info(f"Building LSTM model for {sensor_key}")
             model = build_lstm_model(self.lookback, LSTM_UNITS, use_gpu=USE_GPU)
-            logger.info(f"Training LSTM model for {sensor_key} with {EPOCHS} epochs...")
+            sensor_epochs = self.epochs_per_sensor.get(sensor_key, 1)
+            logger.info(f"Training LSTM model for {sensor_key} with {sensor_epochs} epochs...")
             model = train_lstm_model(
                 model,
                 train_x,
                 train_y,
-                EPOCHS,
+                sensor_epochs,
                 BATCH_SIZE,
                 progress_callback=(
                     _sensor_epoch_progress_callback(

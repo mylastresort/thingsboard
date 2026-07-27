@@ -1,0 +1,12 @@
+# docker-compose.worktree-dev.yml
+# Dev-only worktree volume overrides.
+# Only included in the full dev compose stack (not prod).
+
+services:
+  tb-quarkus-dev:
+    volumes:
+      - ./tb-quarkus:/workspace/tb-quarkus
+      - ./api-specs:/workspace/api-specs
+      - ./application/src/main/resources/predictive-maintenance/data:/data:ro
+      - ${WORKTREE_VOLUMES_DIR}/tb_quarkus_dev_cache/gradle:/root/.gradle
+      - ${WORKTREE_VOLUMES_DIR}/tb_quarkus_dev_cache/runtime:/workspace/tb-quarkus/gateway/.quarkus

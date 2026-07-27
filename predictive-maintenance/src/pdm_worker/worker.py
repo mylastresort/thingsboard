@@ -50,7 +50,10 @@ class PdmKafkaWorker:
                 except Exception as exc:
                     logger.exception(f"Failed to handle PDM command {command}: {exc}")
                     forecast_id = str((command or {}).get("forecastId", "unknown"))
+                    sensor_key = (command or {}).get("sensorKey")
                     model_id = f"{forecast_id}/system"
+                    if sensor_key and self._config.worker_model_type == "FORECAST":
+                        model_id = f"{forecast_id}/forecast_model/{sensor_key}"
                     self._publisher.log(model_id, "error", f"Command failed: {exc}")
                     self._publisher.flush()
         finally:
@@ -76,6 +79,7 @@ class PdmKafkaWorker:
         forecast_id = str(command["forecastId"])
         model_type = str(command.get("modelType") or "BOTH").upper()
         device_id = command.get("deviceId")
+        sensor_key = command.get("sensorKey")
 
         if not self._handles_model_type(model_type):
             logger.info(
@@ -86,7 +90,8 @@ class PdmKafkaWorker:
 
         logger.info(
             f"Handling PDM command commandType={command_type} forecastId={forecast_id} "
-            f"modelType={model_type} workerModelType={self._config.worker_model_type}"
+            f"modelType={model_type} sensorKey={sensor_key} "
+            f"workerModelType={self._config.worker_model_type}"
         )
 
         if command_type == "TRAIN":
@@ -96,11 +101,13 @@ class PdmKafkaWorker:
                 model_type=self._config.worker_model_type,
                 job_manager=self._jobs,
                 progress_callback=self._publisher.progress,
+                sensor_key=sensor_key,
             )
             return
 
+        target_model_id = self._target_model_id(forecast_id, sensor_key)
+
         if command_type == "INFER":
-            target_model_id = self._target_model_id(forecast_id)
             handled = self._jobs.start(
                 target_model_id,
                 self._source_model_type(target_model_id),
@@ -110,7 +117,6 @@ class PdmKafkaWorker:
             self._publisher.log(target_model_id, level, f"{command_type} handled={handled}")
             return
 
-        target_model_id = self._target_model_id(forecast_id)
         if command_type == "STOP":
             handled = self._jobs.stop(target_model_id)
         elif command_type == "PAUSE":
@@ -143,10 +149,12 @@ class PdmKafkaWorker:
     def _handles_model_type(self, command_model_type: str) -> bool:
         return command_model_type == "BOTH" or command_model_type == self._config.worker_model_type
 
-    def _target_model_id(self, forecast_id: str) -> str:
+    def _target_model_id(self, forecast_id: str, sensor_key: str | None = None) -> str:
         if self._config.worker_model_type == "ANOMALY":
             return f"{forecast_id}/anomaly_predictor"
         if self._config.worker_model_type == "FORECAST":
+            if sensor_key:
+                return f"{forecast_id}/forecast_model/{sensor_key}"
             return f"{forecast_id}/forecast_model"
         raise ValueError(f"Unsupported PDM_WORKER_MODEL_TYPE={self._config.worker_model_type}")
 

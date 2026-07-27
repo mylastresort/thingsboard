@@ -1,0 +1,41 @@
+# docker-compose.worktree.yml
+# Override persistent volumes to worktree-specific directories.
+# Only overrides services that exist in the core compose files
+# (base, db, tb, gateway, web, model, config, mcp).
+# Dev-only services (tb-quarkus-dev, go-toolbox, pdm workers, ollama)
+# keep their default volumes — their source bind mounts already
+# resolve to the worktree via --project-directory.
+#
+# PORT CONFLICT: both stacks bind to the same host ports by default.
+# Stop the main stack before starting a worktree.
+
+services:
+  postgres:
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/psql_data-merge:/var/lib/postgresql
+      - .:/app
+
+  config-db:
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/psql_data-merge-config:/var/lib/postgresql/data
+
+  redis:
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/redis-data:/data
+
+  kafka:
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/kafka-data:/var/lib/kafka/data
+
+  cassandra:
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/cassandra-data:/var/lib/cassandra
+
+  thingsboard:
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/tb-config:/config
+
+  tb-quarkus:
+    volumes:
+      - ${WORKTREE_VOLUMES_DIR}/tb-quarkus-cache:/deployments/cache
+      - ./application/src/main/resources/predictive-maintenance/data:/data:ro

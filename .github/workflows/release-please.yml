@@ -1,0 +1,157 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - staging
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
+      tag: ${{ steps.release.outputs.tag }}
+      thingsboard_version: ${{ steps.tb-version.outputs.thingsboard_version }}
+      product_version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: dev
+
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.releases_created }}
+
+      - name: Read ThingsBoard upstream version
+        id: tb-version
+        if: ${{ steps.release.outputs.releases_created }}
+        run: |
+          # Extract THINGSBOARD_VERSION from docker/.env (falls back to pom.xml)
+          if grep -q '^THINGSBOARD_VERSION=' docker/.env; then
+            TB_VER=$(grep '^THINGSBOARD_VERSION=' docker/.env | head -1 | cut -d= -f2-)
+          else
+            TB_VER=$(grep '<version>' pom.xml | head -1 | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+          fi
+          echo "thingsboard_version=${TB_VER}" >> "$GITHUB_OUTPUT"
+          echo "ThingsBoard version: ${TB_VER}"
+
+      - name: Derive combined version tag
+        id: version-tag
+        if: ${{ steps.release.outputs.releases_created }}
+        run: |
+          PRODUCT_VER="${{ steps.release.outputs.version }}"
+          if [ -z "$PRODUCT_VER" ]; then
+            PRODUCT_VER=$(jq -r '.version' package.json)
+          fi
+          TB_VER="${{ steps.tb-version.outputs.thingsboard_version }}"
+          # Docker tags cannot contain '+', use '-' as separator
+          COMBINED="${PRODUCT_VER}-tb${TB_VER}"
+          echo "combined=${COMBINED}" >> "$GITHUB_OUTPUT"
+          echo "product=${PRODUCT_VER}" >> "$GITHUB_OUTPUT"
+          echo "thingsboard=${TB_VER}" >> "$GITHUB_OUTPUT"
+          echo "Version scheme: PRODUCT_VERSION=${PRODUCT_VER} + THINGSBOARD_VERSION=${TB_VER} => ${COMBINED}"
+
+      - name: Set up Docker Buildx
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Build and push Docker images ──────────────────────────────────
+      # Each image is tagged with:
+      #   - <product_version>-tb<thingsboard_version>  (combined scheme)
+      #   - latest                                     (for dev convenience)
+      #   - <product_version>                          (product-only tag)
+
+      - name: Build and push tb-quarkus-gateway
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: tb-quarkus/gateway/src/main/docker/Dockerfile.jvm
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-gateway:${{ steps.version-tag.outputs.combined }}
+            ${{ env.IMAGE_PREFIX }}-gateway:${{ steps.version-tag.outputs.product }}
+            ${{ env.IMAGE_PREFIX }}-gateway:latest
+
+      - name: Build and push msa-web-ui
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: msa/web-ui/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-web-ui:${{ steps.version-tag.outputs.combined }}
+            ${{ env.IMAGE_PREFIX }}-web-ui:${{ steps.version-tag.outputs.product }}
+            ${{ env.IMAGE_PREFIX }}-web-ui:latest
+
+      - name: Build and push pdm-workers
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./predictive-maintenance
+          file: predictive-maintenance/.Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-pdm-workers:${{ steps.version-tag.outputs.combined }}
+            ${{ env.IMAGE_PREFIX }}-pdm-workers:${{ steps.version-tag.outputs.product }}
+            ${{ env.IMAGE_PREFIX }}-pdm-workers:latest
+
+      - name: Build and push config-api
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./config-api
+          file: config-api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-config-api:${{ steps.version-tag.outputs.combined }}
+            ${{ env.IMAGE_PREFIX }}-config-api:${{ steps.version-tag.outputs.product }}
+            ${{ env.IMAGE_PREFIX }}-config-api:latest
+
+      - name: Build and push ai-agent
+        if: ${{ steps.release.outputs.releases_created }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./ai-agent
+          file: ai-agent/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-ai-agent:${{ steps.version-tag.outputs.combined }}
+            ${{ env.IMAGE_PREFIX }}-ai-agent:${{ steps.version-tag.outputs.product }}
+            ${{ env.IMAGE_PREFIX }}-ai-agent:latest
+
+      # ── Create GitHub Release with combined version ───────────────────
+      - name: Annotate releases with ThingsBoard version
+        if: ${{ steps.release.outputs.releases_created }}
+        run: |
+          echo "=== Release Summary ==="
+          echo "Product Version:  ${{ steps.version-tag.outputs.product }}"
+          echo "ThingsBoard:      ${{ steps.version-tag.outputs.thingsboard }}"
+          echo "Combined Tag:     ${{ steps.version-tag.outputs.combined }}"
+          echo "Images pushed:"
+          echo "  ${{ env.IMAGE_PREFIX }}-gateway:${{ steps.version-tag.outputs.combined }}"
+          echo "  ${{ env.IMAGE_PREFIX }}-web-ui:${{ steps.version-tag.outputs.combined }}"
+          echo "  ${{ env.IMAGE_PREFIX }}-pdm-workers:${{ steps.version-tag.outputs.combined }}"
+          echo "  ${{ env.IMAGE_PREFIX }}-config-api:${{ steps.version-tag.outputs.combined }}"
+          echo "  ${{ env.IMAGE_PREFIX }}-ai-agent:${{ steps.version-tag.outputs.combined }}"

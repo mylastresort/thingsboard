@@ -1,9 +1,11 @@
 fastapi
 google-adk
 httpx
+langfuse>=2.60,<3
 litellm
 mcp
 pytest
 uvicorn
 orjson
+redis>=5.0.0
 google-adk[eval]

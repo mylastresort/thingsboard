@@ -12,8 +12,11 @@ import org.jboss.logging.Logger;
 import org.tb.quarkus.pdm.PdmJobStatus;
 import org.tb.quarkus.pdm.PdmModelType;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @ApplicationScoped
@@ -25,6 +28,8 @@ public class PdmStartupRecovery {
     @Inject PdmCommandService commandService;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final Set<String> recentlyReissued = ConcurrentHashMap.newKeySet();
+    private static final java.time.Duration REISSUE_COOLDOWN = java.time.Duration.ofMinutes(5);
 
     void onStartup(@Observes StartupEvent event) {
         recoverStaleJobs();
@@ -100,6 +105,10 @@ public class PdmStartupRecovery {
             return false;
         }
 
+        if (recentlyReissued.contains(key)) {
+            return false;
+        }
+
         String modelId = key.substring("job:".length());
         String forecastId = extractForecastId(modelId);
         if (forecastId == null) {
@@ -109,13 +118,16 @@ public class PdmStartupRecovery {
 
         String modelType = hash.getOrDefault("model_type", "");
         String deviceId = hash.getOrDefault("device_id", null);
+        String sensorKey = extractSensorKey(modelId);
 
-        LOG.infof("PdM recovery: re-issuing INFER for modelId=%s forecastId=%s modelType=%s",
-                modelId, forecastId, modelType);
+        LOG.infof("PdM recovery: re-issuing INFER for modelId=%s forecastId=%s modelType=%s sensorKey=%s",
+                modelId, forecastId, modelType, sensorKey);
 
         commandService.reissueInfer(forecastId, resolveModelType(modelType),
-                deviceId != null && !deviceId.isBlank() ? deviceId : null);
+                deviceId != null && !deviceId.isBlank() ? deviceId : null,
+                sensorKey);
 
+        recentlyReissued.add(key);
         return true;
     }
 
@@ -123,8 +135,26 @@ public class PdmStartupRecovery {
         if (modelId == null) {
             return null;
         }
+        // Per-sensor forecast: {forecastId}/forecast_model/{sensorKey}
+        if (modelId.contains("/forecast_model/")) {
+            return modelId.substring(0, modelId.indexOf("/forecast_model/"));
+        }
+        // Legacy or anomaly: {forecastId}/forecast_model or {forecastId}/anomaly_predictor
         int slash = modelId.lastIndexOf('/');
         return slash > 0 ? modelId.substring(0, slash) : modelId;
+    }
+
+    private String extractSensorKey(String modelId) {
+        if (modelId == null) {
+            return null;
+        }
+        String prefix = "/forecast_model/";
+        int idx = modelId.indexOf(prefix);
+        if (idx >= 0) {
+            String suffix = modelId.substring(idx + prefix.length());
+            return suffix.isEmpty() ? null : suffix;
+        }
+        return null;
     }
 
     private PdmModelType resolveModelType(String storedType) {

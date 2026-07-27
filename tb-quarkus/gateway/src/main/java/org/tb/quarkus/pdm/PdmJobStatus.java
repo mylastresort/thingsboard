@@ -6,5 +6,6 @@ public enum PdmJobStatus {
     RUNNING,
     PAUSED,
     STOPPED,
-    ERROR
+    ERROR,
+    FAILED
 }

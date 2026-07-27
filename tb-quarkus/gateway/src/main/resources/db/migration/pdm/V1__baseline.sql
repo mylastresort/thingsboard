@@ -2,8 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict GhoMKJxBgJpvNFdD1kJWLXzJrKFeD7ThTJeQdKABbgl4bNDJAa3vKgqTg0ET3zk
-
 -- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
 -- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
 
@@ -23,7 +21,7 @@ SET row_security = off;
 -- Name: tb_quarkus_pdm; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA tb_quarkus_pdm;
+CREATE SCHEMA IF NOT EXISTS tb_quarkus_pdm;
 
 
 SET default_tablespace = '';
@@ -335,16 +333,11 @@ ALTER TABLE ONLY tb_quarkus_pdm.predictive_maintenance_config
 
 
 --
--- Name: predictions predictions_model_id_fkey; Type: FK CONSTRAINT; Schema: tb_quarkus_pdm; Owner: -
---
-
-ALTER TABLE ONLY tb_quarkus_pdm.predictions
-    ADD CONSTRAINT predictions_model_id_fkey FOREIGN KEY (model_id) REFERENCES tb_quarkus_pdm.predictive_maintenance_config(id) ON DELETE CASCADE;
+-- NOTE: predictions_model_id_fkey intentionally omitted.
+-- Predictions are historical data that must survive model config deletion.
 
 
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict GhoMKJxBgJpvNFdD1kJWLXzJrKFeD7ThTJeQdKABbgl4bNDJAa3vKgqTg0ET3zk
 

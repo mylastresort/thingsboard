@@ -18,6 +18,7 @@ export interface ForecastField {
   endDate: Date;
   aggregation?: string; // 'average', 'min', 'max'
   groupByMs?: number; // grouping interval in milliseconds
+  epochs?: number; // training epochs (default 1)
 }
 
 export interface ForecastData {

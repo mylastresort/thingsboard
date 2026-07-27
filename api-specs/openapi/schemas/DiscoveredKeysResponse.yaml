@@ -1,0 +1,18 @@
+type: object
+description: Distinct error codes, root causes, and parts replaced discovered from the database for a device
+properties:
+  error_codes:
+    type: array
+    items:
+      type: string
+    description: Distinct error_code values from device_errors table
+  root_causes:
+    type: array
+    items:
+      type: string
+    description: Distinct root_cause values from device_failures table
+  parts_replaced:
+    type: array
+    items:
+      type: string
+    description: Distinct parts_replaced values from device_maintenance table

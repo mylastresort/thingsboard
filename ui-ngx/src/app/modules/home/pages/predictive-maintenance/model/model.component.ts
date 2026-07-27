@@ -188,6 +188,10 @@ export class ModelComponent
 
   status = "inactive";
 
+  errorMessage: string | null = null;
+
+  errorCode: string | null = null;
+
   forecastAlgorithm!: string;
 
   anomalyAlgorithm!: string;
@@ -1079,6 +1083,8 @@ export class ModelComponent
     this.anomalyModelPending = true;
     this.predictions = null;
     this.logs = [];
+    this.errorMessage = null;
+    this.errorCode = null;
     if (!this.progressMessage) {
       this.progressMessage = null;
     }
@@ -1683,6 +1689,8 @@ export class ModelComponent
         break;
       case "complete":
         this.progressMessage = null;
+        this.errorMessage = null;
+        this.errorCode = null;
         this.markForecastTrainingComplete();
         this.anomalyModelPending = false;
         this.anomalyTrainingState = null;
@@ -1697,6 +1705,17 @@ export class ModelComponent
         this.anomalyModelPending = false;
         this.anomalyTrainingComplete = false;
         this.status = "failed";
+        this.errorMessage =
+          payload?.message ||
+          payload?.errorMsg ||
+          payload?.data?.message ||
+          payload?.data?.errorMsg ||
+          "Training failed. Check the logs for details.";
+        this.errorCode =
+          payload?.errorCode ||
+          payload?.data?.errorCode ||
+          null;
+        this.isActivating = false;
         break;
       case "model_status":
       case "response":
