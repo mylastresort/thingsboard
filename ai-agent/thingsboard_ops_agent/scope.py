@@ -230,10 +230,10 @@ def build_scoped_instruction(
 
         guard_prompt = (
             "Never invent an id, count, or attribute value. If a tool errors or "
+            "returns nothing, say so or call a lookup tool — do not retry with a "
+            "different guessed value, and do not answer from what a similar entity "
+            "'probably' has."
         )
-        "returns nothing, say so or call a lookup tool — do not retry with a "
-        "different guessed value, and do not answer from what a similar entity "
-        "'probably' has."
 
         if authority == CUSTOMER_USER:
             if agent_name == "thingsboard_agent":

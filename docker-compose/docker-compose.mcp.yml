@@ -35,8 +35,6 @@ services:
       start_period: 15s
 
   ollama:
-    profiles:
-      - local-ollama
     image: ollama/ollama:0.30.11
     restart: unless-stopped
     ports:
@@ -45,13 +43,7 @@ services:
       - ./.ollama:/root/.ollama
     environment:
       OLLAMA_FLASH_ATTENTION: "1"
-      OLLAMA_KV_CACHE_TYPE: "q8_0"
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "ollama serve &
-       sleep 5 &&
-       ollama pull qwen3:8b &&
-       wait"
+      OLLAMA_KV_CACHE_TYPE: "q4_0"
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 5s
@@ -111,8 +103,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # ollama:
-      #   condition: service_healthy
+      ollama:
+        condition: service_healthy
     deploy:
       resources:
         limits:
