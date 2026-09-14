@@ -17,8 +17,6 @@ services:
         condition: service_healthy
 
   tb-web-ui-dev:
-    profiles:
-      - dev
     build:
       context: ./ui-ngx
       dockerfile: .Dockerfile

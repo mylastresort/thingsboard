@@ -10,7 +10,7 @@ from .subagents import build_model, build_tb_agent, build_pandas_agent, build_pd
 from .scope import build_scope_resolver, harvest_known_ids
 from .settings import load_settings, Settings
 from .datetime_tool import get_current_datetime
-from .langfuse import after_model_callback as langfuse_after_model_callback, shutdown_langfuse
+from .langfuse_tracing import after_model_callback as langfuse_after_model_callback, shutdown_langfuse
 from .redis_session_service import register_redis_session_service
 
 # Register the redis:// session service scheme so ADK's api_server picks it up

@@ -67,6 +67,17 @@ Otherwise choose the first available model of each type.
 
 ---
 
+## Phase 1.5 - Discover all telemetry keys
+
+Call `getTimeseriesKeys` on the resolved device to get every telemetry key
+the device reports (e.g. `volt`, `rotate`, `pressure`, `vibration`).
+
+ALL discovered keys MUST be included in the `attributes` array when creating the
+model. The PdM training pipeline needs every sensor to build its feature matrix.
+Do not cherry-pick a single sensor — pass them all.
+
+---
+
 ## Phase 2 - Create the predictive model
 
 Create a model using:
@@ -83,11 +94,26 @@ The request should contain:
 - deviceId (resolved during Phase 0)
 - forecastAlgorithm (use the same algorithm id as returned by `getAvailableAlgorithmsMap` lowercase or uppercase)
 - anomalyAlgorithm (use the same algorithm id as returned by `getAvailableAlgorithmsMap` lowercase or uppercase)
-- forecastStartDate
-- forecastEndDate
-- anomalyStartDate
-- anomalyEndDate
-- attributes (telemetry fields) as {aggregation: "average", groupByMs: 5000, key: "vibration"}[]
+- forecastStartDate: use `0` (epoch milliseconds) to include ALL available data
+- forecastEndDate: use current time in milliseconds
+- anomalyStartDate: use `0` (epoch milliseconds) to include ALL available data
+- anomalyEndDate: use current time in milliseconds
+- attributes: include ALL telemetry keys discovered in Phase 1.5, each as
+  `{aggregation: "average", groupByMs: 5000, key: "<discovered_key>"}`. Example
+  for a device with `volt`, `rotate`, `pressure`, `vibration`:
+  ```json
+  "attributes": [
+    {"key": "volt", "aggregation": "average", "groupByMs": 5000},
+    {"key": "rotate", "aggregation": "average", "groupByMs": 5000},
+    {"key": "pressure", "aggregation": "average", "groupByMs": 5000},
+    {"key": "vibration", "aggregation": "average", "groupByMs": 5000}
+  ]
+  ```
+
+CRITICAL: The anomaly detection algorithm performs feature engineering on the raw
+telemetry (3-hour resampling, 24-hour rolling windows). It needs ALL historical
+telemetry from the beginning of time to now. Always set start dates to 0 (epoch
+milliseconds) unless the user explicitly provides a different start date.
 
 Follow this structure to send create request to MCP for `createPredictiveModel`:
 
@@ -96,13 +122,12 @@ Follow this structure to send create request to MCP for `createPredictiveModel`:
   "additionalData": "{}",
   "anomalyAlgorithm": "random_forest",
   "anomalyEndDate": 1784069999999,
-  "anomalyStartDate": 1778799600000,
+  "anomalyStartDate": 0,
   "attributes": [
-    {
-      "key": "vibration",
-      "aggregation": "average",
-      "groupByMs": 5000
-    }
+    {"key": "volt", "aggregation": "average", "groupByMs": 5000},
+    {"key": "rotate", "aggregation": "average", "groupByMs": 5000},
+    {"key": "pressure", "aggregation": "average", "groupByMs": 5000},
+    {"key": "vibration", "aggregation": "average", "groupByMs": 5000}
   ],
   "deviceId": {
     "entityType": "DEVICE",
@@ -110,14 +135,13 @@ Follow this structure to send create request to MCP for `createPredictiveModel`:
   },
   "forecastAlgorithm": "lstm",
   "forecastEndDate": 1784069999999,
-  "forecastStartDate": 1781391600000,
+  "forecastStartDate": 0,
   "name": "dsadsa"
 }
 ```
 
-Only include telemetry fields or attributes if explicitly provided by the user.
-
-Do not invent telemetry keys.
+Only include telemetry keys discovered via `getTimeseriesKeys` in Phase 1.5.
+Never invent telemetry keys that do not exist on the device.
 Do not invent algorithms or use malformed algorithm ids.
 
 Capture the returned model id.
@@ -205,7 +229,7 @@ Do not report successful inference unless the API returns either predictions or 
 - Always verify the target device exists before creating a model.
 - Never invent device ids.
 - Never invent model ids.
-- Never invent telemetry keys.
+- Never invent telemetry keys. Always discover real keys via `getTimeseriesKeys` and include ALL of them in the model's `attributes`.
 - Never invent algorithms.
 - Stop immediately if the device cannot be resolved.
 - Keep forecast and anomaly results separate.

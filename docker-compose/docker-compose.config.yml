@@ -32,7 +32,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://config_user:config_pass@config-db:5432/config_db
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -o /dev/null http://localhost:9000/health || exit 1"]
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:9000/health', timeout=5).getcode() == 200 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3

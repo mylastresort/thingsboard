@@ -200,8 +200,8 @@ def _resolve_date(config: dict, key: str, default: datetime) -> datetime:
     if isinstance(value, datetime):
         return value
     if isinstance(value, (int, float)):
-        if value == 0:
-            return default
+        if value <= 0:
+            return datetime(1970, 1, 1)
         return datetime.fromtimestamp(value / 1000, tz=timezone.utc).replace(tzinfo=None)
     if isinstance(value, str):
         try:

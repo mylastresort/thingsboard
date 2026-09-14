@@ -136,7 +136,7 @@ up-dev-ui: ## Start the full stack (scaled workers), then ensure tb-web-ui-dev i
 .PHONY: down-dev-ui
 down-dev-ui: export COMPOSE_PROFILES = dev
 down-dev-ui: ## Stop tb-web-ui-dev and the scaled pdm workers
-	$(COMPOSE) stop $(WEB_SERVICE) $(PDM_FORECAST_WORKER) $(PDM_ANOMALY_WORKER)
+	$(COMPOSE) down $(WEB_SERVICE) $(PDM_FORECAST_WORKER) $(PDM_ANOMALY_WORKER)
 
 .PHONY: up-dev
 up-dev: export COMPOSE_PROFILES = dev
@@ -253,9 +253,12 @@ upgrade-db: destroy db-up ## Run TB database upgrade (UPGRADE_DB=true)
 
 # ─── build ───────────────────────────────────────────────────────────────────
 
+# Extra build flags passed to `docker compose build` (e.g. COMPOSE_BUILD_FLAGS=--no-cache)
+COMPOSE_BUILD_FLAGS ?=
+
 .PHONY: build
 build: ## Build / rebuild all images
-	$(COMPOSE) build
+	$(COMPOSE) build $(COMPOSE_BUILD_FLAGS)
 
 .PHONY: build-tb
 build-tb: ## Build / rebuild thingsboard image only
@@ -270,11 +273,11 @@ build-tb-quarkus: tb-quarkus-build ## Build / rebuild tb-quarkus image only
 
 .PHONY: build-web
 build-web: ## Build / rebuild tb-web-ui-dev image only
-	$(COMPOSE) build $(WEB_SERVICE)
+	$(COMPOSE) build $(COMPOSE_BUILD_FLAGS) $(WEB_SERVICE)
 
 .PHONY: build-web-prod
 build-web-prod: ## Build / rebuild the production tb-web-ui image
-	docker compose --project-directory . $(CORE_FILES) build $(WEB_PROD)
+	docker compose --project-directory . $(CORE_FILES) build $(COMPOSE_BUILD_FLAGS) $(WEB_PROD)
 
 .PHONY: pull
 pull: ## Pull latest base images

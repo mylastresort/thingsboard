@@ -33,11 +33,16 @@ If the user asks for a test/example flow and does not provide values, use these
 defaults without asking follow-up questions:
 
 - MCP source: the Quarkus PdM MCP service.
-- Forecast training window: last 30 days ending now.
-- Anomaly training window: last 60 days ending now.
+- Forecast training window: ALL available data — `forecastStartDate = 0` (epoch, timestamp 0) and `forecastEndDate = current time in ms`.
+- Anomaly training window: ALL available data — `anomalyStartDate = 0` (epoch, timestamp 0) and `anomalyEndDate = current time in ms`.
 - Forecast model type: first available `ForecastModel` from `getAvailableAlgorithmsMap`.
 - Anomaly model type: first available `AnomalyPredictor` from `getAvailableAlgorithmsMap`.
 - Prediction history limit: 100.
+
+CRITICAL: The anomaly detection algorithm performs feature engineering on the raw
+telemetry (3-hour resampling, 24-hour rolling windows). It needs ALL historical
+telemetry from the beginning of time to now. Always set start dates to 0 (epoch
+milliseconds) unless the user explicitly provides a different start date.
 
 Ask only for missing values when the user explicitly wants a non-example,
 production, or named-device run.
@@ -58,6 +63,13 @@ tools are available.
 3. Select one forecast algorithm and one anomaly algorithm using the user's
    preference or Phase 0 defaults.
 
+## Phase 2.5 - Discover all telemetry keys
+
+Call `getTimeseriesKeys` on the resolved device to get every telemetry key
+the device reports. ALL discovered keys MUST be included in the `attributes`
+array when creating the model. The PdM training pipeline needs every sensor to
+build its feature matrix. Do not cherry-pick a single sensor — pass them all.
+
 ## Phase 3 - Create the predictive model
 
 1. Call `createPredictiveModel` or `createAndTrainPredictiveModel` with a model
@@ -67,10 +79,12 @@ tools are available.
      `id`).
    - `forecastAlgorithm`: selected forecast model name.
    - `anomalyAlgorithm`: selected anomaly predictor name.
-   - `forecastStartDate` / `forecastEndDate`: millisecond timestamps.
-   - `anomalyStartDate` / `anomalyEndDate`: millisecond timestamps.
-   - `fields` or telemetry attributes only when known; do not guess telemetry
-     key names.
+   - `forecastStartDate` / `forecastEndDate`: millisecond timestamps. Use `0` for
+     start (epoch) to include all available data. Use `Date.now()` for end.
+   - `anomalyStartDate` / `anomalyEndDate`: millisecond timestamps. Use `0` for
+     start (epoch) to include all available data. Use `Date.now()` for end.
+   - `attributes`: ALL telemetry keys discovered in Phase 2.5, each as
+     `{aggregation: "average", groupByMs: 5000, key: "<discovered_key>"}`.
 2. Capture the returned forecast/model id from the response.
 
 If the API returns no id, stop and report the create response.
@@ -110,6 +124,7 @@ explicit successful empty result.
 - Use the Quarkus PdM MCP endpoint. Do not point PdM MCP traffic at the Python
   predictive-maintenance service.
 - Never invent device ids, model ids, telemetry keys, algorithm names, status
-  values, or predictions.
+  values, or predictions. Always discover real telemetry keys via
+  `getTimeseriesKeys` and include ALL of them in the model's `attributes`.
 - Keep forecast and anomaly status/results separate in the final answer.
 - Surface API errors directly and stop at the failed phase.

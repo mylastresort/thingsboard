@@ -27,7 +27,7 @@ from .scope import (
     build_scoped_tool_filter,
     guard_scoped_tool_calls,
 )
-from .langfuse import after_model_callback as langfuse_after_model_callback
+from .langfuse_tracing import after_model_callback as langfuse_after_model_callback
 
 # name -> (description/instruction, tool_filter)
 # Grouped from the ThingsBoard MCP server tools.
