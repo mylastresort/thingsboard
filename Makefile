@@ -75,6 +75,10 @@ version-info: ## Print detailed version information
 up: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
+.PHONY: up-ordered
+up-ordered: ## Start core services sequentially in dependency order (wait for each to be ready)
+	./scripts/up-services-sorted.sh
+
 up-recreate: maybe-reset-pdm-state ## Recreate dev stack and reset PdM Kafka/Redis state by default
 	$(COMPOSE) up -d --force-recreate --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
@@ -123,13 +127,29 @@ reset-pdm-redis: ## Clear PdM Redis job/log/prediction keys
 up-ui: ## Start the full dev stack (core + toolbox + dev web ui)
 	$(COMPOSE) up -d $(WEB_SERVICE)
 
+.PHONY: up-dev-ui
+up-dev-ui: export COMPOSE_PROFILES = dev
+up-dev-ui: ## Start the full stack (scaled workers), then ensure tb-web-ui-dev is up
+	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS) --build
+	$(COMPOSE) up -d $(WEB_SERVICE) --build
+
+.PHONY: down-dev-ui
+down-dev-ui: export COMPOSE_PROFILES = dev
+down-dev-ui: ## Stop tb-web-ui-dev and the scaled pdm workers
+	$(COMPOSE) stop $(WEB_SERVICE) $(PDM_FORECAST_WORKER) $(PDM_ANOMALY_WORKER)
+
+.PHONY: up-dev
+up-dev: export COMPOSE_PROFILES = dev
+up-dev: ## Start the full dev stack with tb-web-ui-dev
+	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS) --build
+
 .PHONY: up-prod
 up-prod: ## Start prod-only stack (core: tb, quarkus, pdm workers, config-api)
 	docker compose --project-directory . $(CORE_FILES) -p $(PROJECT) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
 
 .PHONY: down
 down: ## Stop and remove containers (keep volumes)
-	$(COMPOSE) down
+	$(COMPOSE) down --remove-orphans
 
 .PHONY: destroy
 destroy: ## Stop and remove containers AND volumes
