@@ -82,3 +82,21 @@ Recent commits use Conventional Commit style, for example `feat(ai-agent): ...`,
 ## Security & Configuration Tips
 
 Do not commit `.env` secrets, database volumes, Kafka data, model caches, or runtime cache directories. Document new config near the YAML/property. Keep Avro schemas in `tb-quarkus/gateway/src/main/avro` compatible with schema registry settings.
+
+## Google Maps Key Regeneration Protocol
+
+### Trigger
+*   **Condition:** The application encounters a Google Maps tile rendering error, an authentication failure (e.g., `Development Only` watermarks, console errors related to invalid/expired keys), or a `403/401` API response.
+*   **Specific Signal:** `Google Maps JavaScript API error: DeletedApiProjectMapError` in the browser console means the configured API key's Google Cloud project was deleted/rotated — the stored key must be regenerated and replaced immediately.
+
+### Instructions for the Agent
+If the trigger condition is met, automate or guide the user through the following manual steps to rotate the Google Maps Platform Demo Key:
+
+1.  **Navigate to the Source:** Go to the official Google Maps Platform Demo Key page at: `https://google.com`
+2.  **Initiate Flow:** Locate and click the **"Try for free"** button on the page.
+3.  **Account Selection:** Prompt the user to select the appropriate Google account to assign the project/demo session if a prompt appears.
+4.  **Extract the Key:** Once the setup screen completes, locate and copy the newly generated **API Key** string from the interface.
+5.  **Apply the Fix:** 
+    *   Locate the active environment file or configuration file in this project where the variable `GOOGLE_MAPS_API_KEY` (or equivalent) is defined.
+    *   Replace the old, failing key with the newly extracted key.
+    *   Restart the local development server to force a clean re-render of the map tiles.
