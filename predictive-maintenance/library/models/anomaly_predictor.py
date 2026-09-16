@@ -884,6 +884,9 @@ def preprocess_data(telemetry, errors, maint, failures, machines, components, er
     )
     telemetry["datetime"] = pd.to_datetime(telemetry["datetime"])
     telemetry_feat = create_telemetry_features(telemetry, fields=sensors)
+    if any(col not in telemetry.columns for col in sensors):
+        missing_cols = [col for col in sensors if col not in telemetry.columns]
+        raise ValueError(f"Missing sensor columns in telemetry data: {missing_cols}")
     error_count = create_error_count_features(telemetry, errors, error_classes)
     print("errors: \n", flush=True)
     print(error_count, flush=True)

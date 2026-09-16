@@ -188,7 +188,8 @@
           "options": {
             "buildTarget": "thingsboard:build",
             "proxyConfig": "proxy.conf.js",
-            "middlewares": ["./esbuild/tb-html-fallback-middleware.ts"]
+            "middlewares": ["./esbuild/tb-html-fallback-middleware.ts"],
+            "allowedHosts": ["dt.local"]
           },
           "configurations": {
             "production": {

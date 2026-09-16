@@ -9,6 +9,7 @@ from confluent_kafka.serialization import StringDeserializer
 from src.logger import logger
 from src.model import job as job_module
 from src.model.job import PredictionJobManager
+from src.model.shared import TrainingError
 from src.pdm_worker.activation import activate_forecast
 from src.pdm_worker.config import WorkerConfig, load_config
 from src.pdm_worker.events import PdmEventPublisher
@@ -47,6 +48,17 @@ class PdmKafkaWorker:
                 try:
                     self._handle_command(command)
                     self._consumer.commit(msg)
+                except TrainingError as exc:
+                    forecast_id = str((command or {}).get("forecastId", "unknown"))
+                    sensor_key = (command or {}).get("sensorKey")
+                    model_id = self._target_model_id(forecast_id, sensor_key)
+                    logger.warning(
+                        f"Skipping PDM command {command}: {exc}",
+                        exc_info=True,
+                    )
+                    self._publisher.log(model_id, "warning", f"Command skipped: {exc}")
+                    self._consumer.commit(msg)
+                    self._publisher.flush()
                 except Exception as exc:
                     logger.exception(f"Failed to handle PDM command {command}: {exc}")
                     forecast_id = str((command or {}).get("forecastId", "unknown"))

@@ -140,7 +140,7 @@ def build_root_agent(settings: Settings) -> LlmAgent:
                     find_devices_in_site_skill,
                     get_timeseries_data_skill,
                     detect_machinery_anomalies_skill,
-                    # seed_train_infer_pdm_skill,
+                    seed_train_infer_pdm_skill,
                     train_existing_device_pdm
                 ]
             ),

@@ -73,7 +73,7 @@ version-info: ## Print detailed version information
 
 .PHONY: up
 up: ## Start the full dev stack (core + toolbox + dev web ui)
-	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS)
+	$(COMPOSE) up -d --scale $(PDM_FORECAST_WORKER)=$(PDM_FORECAST_WORKERS) --scale $(PDM_ANOMALY_WORKER)=$(PDM_ANOMALY_WORKERS) --build
 
 .PHONY: up-ordered
 up-ordered: ## Start core services sequentially in dependency order (wait for each to be ready)
