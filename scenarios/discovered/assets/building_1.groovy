@@ -43,6 +43,8 @@ return [
             relation('DEVICE', 'D4 N3', 'Contains')
             relation('DEVICE', 'D4 N2', 'Contains')
             relation('DEVICE', 'D5 P7', 'Contains')
+            relation('DEVICE', 'PdM-Machine-1', 'Contains')
+            relation('DEVICE', 'PdM-Machine-11', 'Contains')
             build()
         },
     new AssetProfileBuilder()
