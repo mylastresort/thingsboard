@@ -44,6 +44,8 @@ Each service owns its own database schema. Any action that adds a new service da
 
 ## ThingsBoard Upgrade Workflow
 
+**Before upgrading:** Read the official upgrade instructions at https://thingsboard.io/docs/installation/upgrade-instructions/ and follow the **Docker** tab — do not follow the Ubuntu or other platform instructions, as this stack runs ThingsBoard in containers.
+
 Do not build ThingsBoard from this repo. Update the upstream image version through `.env` variables such as `TB_VERSION`, `DOCKER_REPO`, or `TB_NODE_DOCKER_NAME`, then set `TB_PREV_VERSION` in `Makefile` to the version being upgraded from. Run `make upgrade-db` to destroy/recreate the DB service, build the `thingsboard` container wrapper, and execute the `UPGRADE_TB=true` path with `FROM_VERSION=$(TB_PREV_VERSION)`. After upgrade, use `make up` or `make up-prod` with the new upstream image tag.
 
 ## Version Scheme

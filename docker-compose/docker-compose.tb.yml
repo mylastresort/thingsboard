@@ -107,7 +107,7 @@ services:
 
   thingsboard:
     # restart: always
-    image: "${DOCKER_REPO:-thingsboard}/${TB_NODE_DOCKER_NAME:-tb-node}:${TB_VERSION:-4.3.1.3}"
+    image: "${DOCKER_REPO:-thingsboard}/${TB_NODE_DOCKER_NAME:-tb-node}:${TB_VERSION:-4.3.1.5}"
     volumes:
       - ./tb-config:/config
     ports:
