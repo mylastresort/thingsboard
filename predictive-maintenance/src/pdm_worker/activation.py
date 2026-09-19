@@ -126,7 +126,7 @@ def activate_forecast(
                 data_registry=data_registry,
                 sensors=all_sensors,
                 train_start_date=_resolve_date(model_config, "anomalyStartDate", default=datetime(2014, 1, 1)),
-                train_end_date=_resolve_date(model_config, "anomalyEndDate", default=datetime.now()),
+                train_end_date=None,
                 progress_callback=lambda progress: _progress_dict(
                     progress_callback, anomaly_model_id, progress
                 ),

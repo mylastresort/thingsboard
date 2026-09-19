@@ -934,8 +934,20 @@ def train_model(
         f"\n[DEBUG] Split sizes - train: {len(train)}, val: {len(val)}, test: {len(test)}",
         flush=True,
     )
+    print(
+        f"\n[DEBUG] Training hourly models on all {len(labeled_features_clean)} labeled rows (full history)",
+        flush=True,
+    )
     hourly_models = create_and_train_hourly_models(
-        train, val, test, X_train, X_val, X_test, feature_cols, components, algorithm=algorithm
+        labeled_features_clean,
+        labeled_features_clean,
+        labeled_features_clean,
+        labeled_features_clean[feature_cols],
+        labeled_features_clean[feature_cols],
+        labeled_features_clean[feature_cols],
+        feature_cols,
+        components,
+        algorithm=algorithm,
     )
     return hourly_models, feature_cols, labeled_features_clean
 
@@ -954,7 +966,7 @@ def predict_failure(
     error_classes,
     sensors: List[str],
 ):
-    labeled_features_clean, _ = preprocess_data(
+    labeled_features_clean, feat_cols = preprocess_data(
         telemetry, errors, maint, failures, machines, components, error_classes, sensors
     )
 
@@ -963,7 +975,7 @@ def predict_failure(
     ]
 
     return predict_next_24h_hourly_failures(
-        telemetry_data, labeled_features_clean, feature_cols, hourly_models
+        telemetry_data, labeled_features_clean, feat_cols, hourly_models
     )
 
 

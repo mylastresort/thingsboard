@@ -259,7 +259,7 @@ export class AnomaliesComponent implements OnInit, OnDestroy {
     };
 
     this.sort.active = "timeRange";
-    this.sort.direction = "asc";
+    this.sort.direction = "desc";
     this.dataSource.sort = this.sort;
   }
 

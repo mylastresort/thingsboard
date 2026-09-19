@@ -120,6 +120,42 @@ def anomaly_predict_model(
     )
     telemetry_df["datetime"] = pd.to_datetime(telemetry_df["datetime"])
     start_time = telemetry_df["datetime"].max()
+    try:
+        model_config = data_registry.fetch_predictive_model_config(model_id)
+        anomaly_ref_ms = int(model_config.get("anomaly_end_date") or 0)
+        if anomaly_ref_ms and anomaly_ref_ms > 0:
+            ref_time = pd.to_datetime(anomaly_ref_ms, unit="ms")
+            if ref_time < start_time:
+                start_time = ref_time
+                add_model_log(
+                    model_id,
+                    "info",
+                    f"Predicting from configured reference date {start_time} (anomalyEndDate), "
+                    f"latest telemetry is {telemetry_df['datetime'].max()}",
+                )
+    except Exception as exc:
+        add_model_log(model_id, "warn", f"Could not read anomaly reference date: {exc}")
+    if (
+        not failures_df.empty
+        and start_time == telemetry_df["datetime"].max()
+        and pd.notna(telemetry_df["datetime"].min())
+    ):
+        failures_df["datetime"] = pd.to_datetime(failures_df["datetime"])
+        last_failure = failures_df.loc[
+            failures_df["datetime"] <= telemetry_df["datetime"].max(), "datetime"
+        ].max()
+        if pd.notna(last_failure):
+            min_time = telemetry_df["datetime"].min()
+            ref_time = max(min_time, last_failure - pd.Timedelta(hours=4))
+            if ref_time < last_failure and ref_time < start_time:
+                start_time = ref_time
+                add_model_log(
+                    model_id,
+                    "info",
+                    f"Auto-selected anomaly reference date {start_time} (4h before last failure "
+                    f"{last_failure}; anomalyEndDate unset or after latest telemetry), "
+                    f"latest telemetry is {telemetry_df['datetime'].max()}",
+                )
     start_time_str = start_time.strftime("%Y-%m-%d %H:%M:%S")
     predictions = predict_failure(
         start_time_str,

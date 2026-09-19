@@ -85,6 +85,38 @@ Recent commits use Conventional Commit style, for example `feat(ai-agent): ...`,
 
 Do not commit `.env` secrets, database volumes, Kafka data, model caches, or runtime cache directories. Document new config near the YAML/property. Keep Avro schemas in `tb-quarkus/gateway/src/main/avro` compatible with schema registry settings.
 
+## Finding Anomalies on the PdM Dataset (worker + model workflow)
+
+Domain knowledge for the predictive-maintenance stack (`predictive-maintenance/`).
+
+### Dataset facts
+- CSV source per machine in `PdM_machines/` (`telemetry.csv`, `errors.csv`, `failures.csv`, `maint.csv`), loaded by `library/core/data_registry.py`. 100 machines; machine models are `model1`..`model4`; failures carry `failure_time` + `root_cause` (`comp1`..`comp4`); `failures.csv` is the ground truth.
+- `failures.csv` rows are raw events — the rest of the pipeline marks the *previous days* as pre-failure via lookback windows, so expect many more "failure" labels in `labeled_features_clean` than raw failure rows.
+- Feature engineering (`library/models/anomaly_predictor.py:preprocess_data`): per-sensor mean/std, p95, kurtosis, rms over 1h/3h/24h windows, rolling mean with min_periods, plus `model_encoded`. ~25 features. Includes sensor keys like vibration/pressure/volt/rotate plus errors and maintenance recency.
+
+### Model semantics & the "stop point" (reference date)
+- Anomaly detection = forecast + anomaly algorithm (`random_forest`, `isolation_forest`, `lstm`). Prediction sample = **last labeled row at or before the reference date**, then emits `ref+1h .. ref+24h` via the nearest of 7 hourly lookahead models (1, 4, 8, 12, 16, 20, 24).
+- To catch failure time `F`, the reference must be in `(F − 24h, F]`.
+- In `src/model/job.py` (`anomaly_predict_model`): if `anomalyEndDate` is unset/0/after the latest telemetry timestamp, the worker **auto-selects the reference = 4h before the last failure** (log: `Auto-selected anomaly reference date ... (4h before last failure ...)`). Reference is also capped at the latest telemetry ts. This makes a freshly trained anomaly algorithm immediately produce visible predictions around the most recent failure — do not "fix"/remove this.
+
+### Training requirements
+- Anomaly training **must use the full labeled history** to learn the failure signature; a truncated/single-day reference yields ~all-zero probabilities (`none:1.0`, confidence 0 alarms). Confirm full-history training ran by the marker `[DEBUG] Training hourly models on all ... labeled rows (full history)`.
+- Model config **must provide `attributes` (telemetry keys)** or training fails with "No telemetry keys provided". Sensor attributes must include the keys used by the dataset (e.g. `vibration`, `pressure`, `volt`, `rotate`).
+- Model config (`predictive_maintenance_config`) is keyed by `device_id` → `public.device(id)` (FK). Device IDs **churn on every re-seed** — reuse a stale ID → 500 FK violation. Always look up the current device ID first.
+
+### Seeds, profiles, relations
+- Devices: `PdM-Machine-<n>`; all use one canonical device profile **`PdM`** (`PdmSeedService.ensureDeviceProfile` reassigns existing PdM devices). Do not create per-machine profiles.
+- Machines appear under the building asset (`building_1`) via **`ASSET → DEVICE Contains`** "from" relation; seed deletes the inverse `DEVICE → ASSET`. The "discovered" machines (PdM-Machine-1/-11) are intentionally left with `DEVICE → ASSET` only (so they do not belong to the building) — do not "fix".
+
+### Triggering training + inference
+- **REST** (tb-quarkus): `POST /api/v1/models` `{name, deviceId, attributes[], forecastAlgorithm, anomalyAlgorithm, anomalyStartDate, anomalyEndDate}` then `POST /api/v1/models/{id}` to train/infer. Creates under `controllermp`... see `ModelsApiImpl`/`PredictiveModelsRestService` in `tb-quarkus/gateway/src/main/java/org/tb/quarkus/controller/`.
+- **MCP**: `trainPredictiveModel`/`inferPredictiveModel` require `forecastId` + `deviceId` (and `modelType: "ANOMALY"`); `pollPredictiveModelInference` requires `forecastId, modelType, startTs, endTs, windowMs, limit`. `updateForecast` is broken — use REST instead.
+- **Where results live**: `predictions` + `public.alarm` (type `Anomaly Detected`) with `additional_info` JSON (`confidence_score`, `model_id`, `prediction.{datetime,hour,general_failure_probability,failure_predicted,predicted_failing_component,component_probabilities}`); anomalies UI page (sort default `timeRange desc`).
+
+### Rebuild & restart
+- `make build-tb-quarkus` fails on a stale preflight — use the direct compose build (base/db/tb/gateway/web/model/config/mcp/toolbox/dev, `-p thingsboard`, `build tb-quarkus` then `up -d tb-quarkus`). Java edits need that rebuild; Python edits only need `docker restart thingsboard-pdm-anomaly-worker-{1..5}` (workers import modules at startup).
+- Probe to evaluate a model offline (run inside a worker, `docker cp` + `docker exec -w /app/predictive-maintenance python /tmp/eval_<dev>.py`): replicate `preprocess_data` + `load_models` + `predict_next_24h_hourly_failures`, check each real failure with `ref = F − 4h` (flagged? top component? prob) and sweep a window every 24h for FP rate. Baseline on machine 2: 4/4 failures flagged (3/4 correct component; comp1+comp2 simultaneous event attributed to comp1), p95 background prob ~0.06 vs min failure-window prob ~0.79, FP rate ~0.8%/yr all coinciding with real failures at window start.
+
 ## Google Maps Key Regeneration Protocol
 
 ### Trigger

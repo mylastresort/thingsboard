@@ -52,6 +52,7 @@ public class PdmSeedService {
     private static final String MODE_MAX_MACHINES = "maxMachines";
     private static final String MODE_SELECTED_MACHINES = "selectedMachines";
     private static final String DEFAULT_MACHINE_PREFIX = "PdM-Machine";
+    private static final String DEFAULT_PDM_PROFILE = "PdM";
     private static final long DAY_MILLIS = Duration.ofDays(1).toMillis();
     private static final DateTimeFormatter CSV_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -148,9 +149,25 @@ public class PdmSeedService {
         TbClient client = new TbClient(tbUrl, tbUser, tbPass, mapper);
         client.login();
 
+        String buildingAssetId = resolveTargetBuildingAssetId(client);
+        String pdmProfileId = client.ensureDeviceProfile(DEFAULT_PDM_PROFILE);
+        if (pdmProfileId != null) {
+            attachPdMProfile(client, pdmProfileId);
+        }
+
         LoadMachinesResult machines = loadMachines(Path.of(dataPath), client, mode, selectedMachineNames, maxMachines,
                 firstNonBlank(cfg.getMachinePrefix(), DEFAULT_MACHINE_PREFIX));
         Log.infof("PdM seed: %d devices ready", machines.machineToDevice().size());
+        if (buildingAssetId != null) {
+            for (String deviceId : machines.machineToDevice().values()) {
+                try {
+                    client.createRelationIfMissing(buildingAssetId, "ASSET", deviceId, "DEVICE", "Contains");
+                    client.deleteRelationIfExists(deviceId, "DEVICE", buildingAssetId, "ASSET", "Contains");
+                } catch (Exception e) {
+                    Log.warnf(e, "PdM seed: failed to attach device %s under asset %s", deviceId, buildingAssetId);
+                }
+            }
+        }
 
         Map<String, List<TsPoint>> deviceTelemetry = new LinkedHashMap<>();
         Map<Integer, Long> machineMaxTs = new HashMap<>();
@@ -219,7 +236,7 @@ public class PdmSeedService {
                 if (existing != null) {
                     deviceId = existing.path("id").path("id").asText();
                 } else {
-                    deviceId = client.createDevice(name, "PdM-" + model, "Predictive Maintenance Machine " + machineId);
+                    deviceId = client.createDevice(name, DEFAULT_PDM_PROFILE, "Predictive Maintenance Machine " + machineId);
                     client.saveAttributes(deviceId, Map.of(
                             "model", model,
                             "age", age,
@@ -231,6 +248,51 @@ public class PdmSeedService {
             loaded++;
         }
         return new LoadMachinesResult(machineToDevice, loaded);
+    }
+
+    private void attachPdMProfile(TbClient client, String pdmProfileId) {
+        try {
+            for (JsonNode dev : client.findDevicesByTextSearch("PdM")) {
+                String name = dev.path("name").asText();
+                boolean isPdMDevice = name.startsWith(DEFAULT_MACHINE_PREFIX)
+                        || dev.path("type").asText().startsWith("PdM-");
+                if (!isPdMDevice) {
+                    continue;
+                }
+                if (pdmProfileId.equals(dev.path("deviceProfileId").path("id").asText())) {
+                    continue;
+                }
+                client.reassignDeviceProfile(dev, pdmProfileId);
+                Log.infof("PdM seed: reassigned device %s to profile %s", name, pdmProfileId);
+            }
+        } catch (Exception e) {
+            Log.warnf(e, "PdM seed: could not normalize PdM device profiles");
+        }
+    }
+
+    private String resolveTargetBuildingAssetId(TbClient client) {
+        try {
+            for (JsonNode dev : client.findDevicesByTextSearch(DEFAULT_MACHINE_PREFIX)) {
+                String deviceId = dev.path("id").path("id").asText();
+                for (JsonNode rel : client.getRelations(deviceId, "DEVICE", "Contains")) {
+                    if ("ASSET".equals(rel.path("to").path("entityType").asText())) {
+                        String assetId = rel.path("to").path("id").asText();
+                        Log.infof("PdM seed: discovered scenario attaches %s to asset %s",
+                                dev.path("name").asText(), assetId);
+                        return assetId;
+                    }
+                }
+            }
+            JsonNode fallback = client.findAssetByName("building_1");
+            if (fallback != null) {
+                String assetId = fallback.path("id").path("id").asText();
+                Log.infof("PdM seed: no discovered PdM device relations, falling back to asset %s", assetId);
+                return assetId;
+            }
+        } catch (Exception e) {
+            Log.warnf(e, "PdM seed: could not resolve building asset from current scenario");
+        }
+        return null;
     }
 
     private void loadTelemetry(Path dataPath, Map<Integer, String> machineToDevice, TsTracker tracker) throws IOException {
@@ -512,6 +574,144 @@ public class PdmSeedService {
             return node.isMissingNode() || node.isNull() ? null : node;
         }
 
+        List<JsonNode> findDevicesByTextSearch(String text) throws IOException, InterruptedException {
+            HttpResponse<String> resp = get("/api/tenant/devices?pageSize=100&page=0&textSearch=" + encode(text));
+            if (resp.statusCode() != 200) {
+                throw ioError("search devices by text " + text, resp);
+            }
+            List<JsonNode> devices = new ArrayList<>();
+            JsonNode data = mapper.readTree(resp.body()).path("data");
+            if (data.isArray()) {
+                data.forEach(devices::add);
+            }
+            return devices;
+        }
+
+        List<JsonNode> getRelations(String fromId, String fromType, String relationType) throws IOException, InterruptedException {
+            HttpResponse<String> resp = get("/api/relations?fromId=" + encode(fromId)
+                    + "&fromType=" + encode(fromType)
+                    + "&relationType=" + encode(relationType));
+            if (resp.statusCode() != 200) {
+                throw ioError("get relations for " + fromId, resp);
+            }
+            List<JsonNode> relations = new ArrayList<>();
+            JsonNode body = mapper.readTree(resp.body());
+            if (body.isArray()) {
+                body.forEach(relations::add);
+            }
+            return relations;
+        }
+
+        JsonNode findAssetByName(String name) throws IOException, InterruptedException {
+            HttpResponse<String> resp = get("/api/tenant/assets?assetName=" + encode(name));
+            if (resp.statusCode() == 404) {
+                return null;
+            }
+            if (resp.statusCode() != 200) {
+                throw ioError("find asset " + name, resp);
+            }
+            JsonNode node = mapper.readTree(resp.body());
+            return node.isMissingNode() || node.isNull() ? null : node;
+        }
+
+        String ensureDeviceProfile(String name) throws IOException, InterruptedException {
+            for (JsonNode profile : listDeviceProfiles()) {
+                if (name.equals(profile.path("name").asText())) {
+                    String id = profile.path("id").path("id").asText();
+                    Log.infof("PdM seed: reusing existing device profile %s (%s)", name, id);
+                    return id;
+                }
+            }
+            ObjectNode body = mapper.createObjectNode();
+            body.put("name", name);
+            body.put("type", "DEFAULT");
+            body.put("transportType", "DEFAULT");
+            body.put("provisionType", "DISABLED");
+            ObjectNode profileData = body.putObject("profileData");
+            profileData.putObject("configuration").put("type", "DEFAULT");
+            profileData.putObject("transportConfiguration").put("type", "DEFAULT");
+            profileData.putObject("provisionConfiguration").put("type", "DISABLED");
+            HttpResponse<String> resp = post("/api/deviceProfile", body, true);
+            if (resp.statusCode() != 200) {
+                throw ioError("create device profile " + name, resp);
+            }
+            String id = mapper.readTree(resp.body()).path("id").path("id").asText();
+            Log.infof("PdM seed: created device profile %s (%s)", name, id);
+            return id;
+        }
+
+        List<JsonNode> listDeviceProfiles() throws IOException, InterruptedException {
+            HttpResponse<String> resp = get("/api/deviceProfiles?pageSize=100&page=0");
+            if (resp.statusCode() != 200) {
+                throw ioError("list device profiles", resp);
+            }
+            List<JsonNode> profiles = new ArrayList<>();
+            JsonNode data = mapper.readTree(resp.body()).path("data");
+            if (data.isArray()) {
+                data.forEach(profiles::add);
+            }
+            return profiles;
+        }
+
+        void reassignDeviceProfile(JsonNode device, String profileId) throws IOException, InterruptedException {
+            ObjectNode body = mapper.createObjectNode();
+            ObjectNode id = body.putObject("id");
+            id.put("entityType", "DEVICE");
+            id.put("id", device.path("id").path("id").asText());
+            body.put("name", device.path("name").asText());
+            body.put("type", DEFAULT_PDM_PROFILE);
+            body.put("label", device.path("label").asText(null));
+            ObjectNode profile = body.putObject("deviceProfileId");
+            profile.put("entityType", "DEVICE_PROFILE");
+            profile.put("id", profileId);
+            if (device.has("additionalInfo")) {
+                body.set("additionalInfo", device.get("additionalInfo"));
+            }
+            HttpResponse<String> resp = post("/api/device", body, true);
+            if (resp.statusCode() != 200) {
+                throw ioError("reassign profile for device " + device.path("name").asText(), resp);
+            }
+        }
+
+        void createRelationIfMissing(String fromId, String fromType, String toId, String toType, String relationType)
+                throws IOException, InterruptedException {
+            for (JsonNode rel : getRelations(fromId, fromType, relationType)) {
+                if (toType.equals(rel.path("to").path("entityType").asText())
+                        && toId.equals(rel.path("to").path("id").asText())) {
+                    return;
+                }
+            }
+            ObjectNode body = mapper.createObjectNode();
+            ObjectNode from = body.putObject("from");
+            from.put("entityType", fromType);
+            from.put("id", fromId);
+            ObjectNode to = body.putObject("to");
+            to.put("entityType", toType);
+            to.put("id", toId);
+            body.put("type", relationType);
+            body.put("typeGroup", "COMMON");
+            HttpResponse<String> resp = post("/api/relation", body, true);
+            if (resp.statusCode() == 409) {
+                return;
+            }
+            if (resp.statusCode() != 200) {
+                throw ioError("create relation from " + fromId + " to " + toId, resp);
+            }
+        }
+
+        void deleteRelationIfExists(String fromId, String fromType, String toId, String toType, String relationType)
+                throws IOException, InterruptedException {
+            String query = "/api/relation?fromId=" + encode(fromId)
+                    + "&fromType=" + encode(fromType)
+                    + "&relationType=" + encode(relationType)
+                    + "&toId=" + encode(toId)
+                    + "&toType=" + encode(toType);
+            HttpResponse<String> resp = delete(query);
+            if (resp.statusCode() != 200 && resp.statusCode() != 404) {
+                throw ioError("delete relation from " + fromId + " to " + toId, resp);
+            }
+        }
+
         String createDevice(String name, String type, String label) throws IOException, InterruptedException {
             ObjectNode body = mapper.createObjectNode();
             body.put("name", name);
@@ -558,6 +758,15 @@ public class PdmSeedService {
             if (withAuth) {
                 authHeader(req);
             }
+            return http.send(req.build(), HttpResponse.BodyHandlers.ofString());
+        }
+
+        private HttpResponse<String> delete(String path) throws IOException, InterruptedException {
+            HttpRequest.Builder req = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .timeout(Duration.ofSeconds(30))
+                    .DELETE();
+            authHeader(req);
             return http.send(req.build(), HttpResponse.BodyHandlers.ofString());
         }
 

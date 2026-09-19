@@ -111,6 +111,8 @@ class DataRegistry:
                 "anomaly_algorithm": forecast.get("anomalyAlgorithm") or "THRESHOLD",
                 "name": forecast.get("name") or "Unknown",
                 "forecast_grouping_ms": 5000,
+                "anomaly_start_date": forecast.get("anomalyStartDate") or 0,
+                "anomaly_end_date": forecast.get("anomalyEndDate") or 0,
             }
 
             logger.info(
