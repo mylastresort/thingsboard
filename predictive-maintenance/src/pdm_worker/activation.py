@@ -97,7 +97,7 @@ def activate_forecast(
             _progress(
                 progress_callback,
                 forecast_model_id,
-                50,
+                100,
                 "forecast_complete",
                 f"ForecastModel trained successfully for sensor {sensor_key or 'all'}",
             )

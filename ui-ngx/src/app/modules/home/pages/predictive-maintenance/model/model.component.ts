@@ -1763,23 +1763,74 @@ export class ModelComponent
   }
 
   private applyForecastStatusProgress(forecastStatus: any): void {
-    if (!forecastStatus) {
+    const states: any[] = Array.isArray(forecastStatus)
+      ? forecastStatus
+      : forecastStatus
+        ? [forecastStatus]
+        : [];
+
+    if (!states.length) {
       this.forecastModelPending = false;
       return;
     }
 
-    const status = (forecastStatus.status || "").toLowerCase();
-    this.forecastModelPending = status === "training" || status === "pending";
-    if (status === "running" || status === "active") {
-      this.forecastModelPending = false;
+    const sensorProgress: { [sensor: string]: TrainingProgressMessage } = {};
+    let anyTraining = false;
+
+    for (const rawState of states) {
+      const state = rawState?.data?.data || rawState?.data || rawState || {};
+      const status = (state.status || "").toLowerCase();
+      if (
+        status === "training" ||
+        status === "pending" ||
+        status === "initialized"
+      ) {
+        anyTraining = true;
+      }
+      const step = state.trainingStep;
+      if (step === "forecast_complete" || typeof state.trainingProgress === "number") {
+        const isComplete = step === "forecast_complete";
+        const progress: TrainingProgressMessage = {
+          step: step || "Forecast training",
+          progress: isComplete
+            ? 100
+            : this.clampProgress(state.trainingProgress ?? 0),
+          model: "ForecastModel",
+        };
+        if (isComplete) {
+          progress.message = "Forecast training complete";
+        }
+        const sensor = this.sensorKeyFromModelId(state.model_id);
+        if (sensor) {
+          progress.sensor = sensor;
+          sensorProgress[sensor] = progress;
+        }
+        this.forecastTrainingState = progress;
+      }
     }
-    if (typeof forecastStatus.trainingProgress === "number") {
-      this.forecastTrainingState = {
-        step: forecastStatus.trainingStep || "Forecast training",
-        progress: this.clampProgress(forecastStatus.trainingProgress),
-        model: "ForecastModel",
+
+    this.forecastModelPending = anyTraining;
+
+    if (Object.keys(sensorProgress).length) {
+      this.forecastTrainingProgressBySensor = {
+        ...this.forecastTrainingProgressBySensor,
+        ...sensorProgress,
       };
     }
+    this.cdr.detectChanges();
+  }
+
+  private sensorKeyFromModelId(modelId: string): string | null {
+    if (!modelId) {
+      return null;
+    }
+    const marker = "/forecast_model/";
+    const markerIndex = modelId.lastIndexOf(marker);
+    if (markerIndex === -1) {
+      return null;
+    }
+    const sensor = modelId.substring(markerIndex + marker.length);
+    return sensor || null;
   }
 
   private applyAnomalyStatusProgress(anomalyStatus: any): void {

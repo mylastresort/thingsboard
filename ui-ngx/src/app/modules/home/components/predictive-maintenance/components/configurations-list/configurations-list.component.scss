@@ -127,6 +127,7 @@
       flex-direction: column;
       height: 100%;
       min-height: 0;
+      max-width: none !important;
       background: #050707;
 
       .table-container {
@@ -136,10 +137,27 @@
         background: #050707;
 
         table {
+          display: table;
+          table-layout: fixed;
+          border-collapse: separate;
           width: 100%;
-          // min-height: 100%;
+          min-width: 1180px;
           background: #050707;
           box-shadow: none;
+
+          .mat-mdc-header-row,
+          .mat-mdc-row {
+            display: table-row;
+            width: 100%;
+          }
+
+          .mat-mdc-header-cell,
+          .mat-mdc-cell {
+            display: table-cell;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
 
           .mat-mdc-header-row {
             background: #050707;
@@ -160,12 +178,38 @@
           }
 
           .mat-column-select {
-            width: 64px;
+            width: 4%;
+          }
+
+          .mat-column-createdTime {
+            width: 12%;
+          }
+
+          .mat-column-name {
+            width: 18%;
+          }
+
+          .mat-column-deviceName {
+            width: 15%;
+          }
+
+          .mat-column-deviceLabel {
+            width: 15%;
+          }
+
+          .mat-column-forecastAlgorithm {
+            width: 10%;
+          }
+
+          .mat-column-anomalyAlgorithm {
+            width: 10%;
           }
 
           .mat-column-actions {
-            width: 100px;
+            width: 16%;
             text-align: center;
+            white-space: normal;
+            overflow: visible;
           }
 
           .clickable-row {
